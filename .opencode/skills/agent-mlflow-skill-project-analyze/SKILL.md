@@ -268,7 +268,9 @@ sample_source_path
 target_project_path
 copy_mode: folder
 required_dirs: aiu_custom, local_serving, save_model
-next_action
+next_action:
+  1. 환경 검증
+  2. 환경 변수 설정
 ```
 
 ## Output

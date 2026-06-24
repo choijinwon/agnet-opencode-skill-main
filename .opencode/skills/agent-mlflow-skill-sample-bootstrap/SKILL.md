@@ -190,7 +190,21 @@ sample_source_path
 target_project_path
 copy_mode: folder
 ignored_generated_files
-next_action
+next_action:
+  1. 환경 검증
+  2. 환경 변수 설정
+```
+
+샘플 폴더 복사 후 첫 번째 다음 단계는 반드시 환경 검증이다.
+
+```text
+1. 환경 검증: python .opencode/scripts/check_environment.py --project <target_project_path>
+```
+
+두 번째 다음 단계는 반드시 환경 변수 설정 안내다. `ai_studio.env` 필수 키 5개를 사용자가 직접 입력하도록 안내하고, secret 값은 출력하지 않는다.
+
+```text
+2. 환경 변수 설정: ai_studio.env에 MLflow/AI Studio 필수 키 5개를 직접 입력
 ```
 
 ## Safety

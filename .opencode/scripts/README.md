@@ -66,6 +66,13 @@ python .opencode/scripts/bootstrap_sample_project.py --project <model-project-fo
 
 복사 후 `aiu_custom/`, `local_serving/`, `save_model/` 필수 폴더는 항상 복사된 샘플 폴더 안에 보장한다.
 
+복사 후 다음 단계는 아래 순서로 안내한다.
+
+```text
+1. 환경 검증
+2. 환경 변수 설정
+```
+
 기존 파일이 있을 때 덮어쓰기는 사용자가 명시적으로 요청한 경우에만 사용한다.
 
 ```text

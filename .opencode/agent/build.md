@@ -78,8 +78,12 @@ sample_source_path
 target_project_path
 copy_mode: folder
 ignored_generated_files
-next_action
+next_action:
+  1. 환경 검증
+  2. 환경 변수 설정
 ```
+
+The first next action after folder copy must be environment validation. The second next action must be guiding the user to fill the required `ai_studio.env` environment values directly.
 
 ## Existing Model Flow
 

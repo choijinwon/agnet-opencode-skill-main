@@ -13,6 +13,7 @@ SAMPLE_PATHS = {
     "sklearn": "sklearn_sample",
     "pytorch": "pytorch_sample",
     "tensorflow": "tensorflow_sample",
+    "log": "log_sample",
 }
 DEFAULT_SAMPLES = list(SAMPLE_PATHS)
 
@@ -67,8 +68,8 @@ def test_sample(sample_name: str, rebuild: bool, do_install: bool, do_register: 
     if do_install:
         install_requirements(python_bin, sample_dir)
 
-    # runtest.py is preferred when present. Current bundled samples otherwise
-    # expose run_model.py as the main local prepare/export entrypoint.
+    # runtest.py is preferred when present. Bundled samples otherwise expose
+    # run_model.py as the local prepare/export entrypoint.
     if (sample_dir / "train.py").exists():
         run([str(python_bin), "train.py"], cwd=sample_dir)
     if (sample_dir / "register_model.py").exists():

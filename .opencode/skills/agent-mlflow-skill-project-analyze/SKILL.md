@@ -17,7 +17,7 @@ metadata:
 - 학습, 추론, MLflow 등록 전에 어떤 파일이 있는지 확인해야 할 때
 - 프로젝트가 sklearn, PyTorch, TensorFlow, HuggingFace, custom pyfunc 중 무엇에 가까운지 판단해야 할 때
 - `aiu_custom`, `local_serving`, `save_model`, `runtest.py`, `run_model.py`, `input_example.json` 같은 구성 요소가 필요한지 확인해야 할 때
-- 사용자가 지정한 모델 프로젝트 폴더에 모델 프로젝트가 없어서 `.opencode/samples` 아래 샘플 3개 중 하나를 선택해 폴더째 복사해야 할 때
+- 사용자가 지정한 모델 프로젝트 폴더에 모델 프로젝트가 없어서 `.opencode/samples` 아래 샘플 4개 중 하나를 선택해 폴더째 복사해야 할 때
 
 ## Guidance Checks
 
@@ -137,7 +137,7 @@ next_action: 발견된 프로젝트로 Step 2 환경 검증 후 Step 3 실행
 
 ## No Model Found Fallback
 
-사용자가 지정한 모델 프로젝트 폴더에서 학습/추론 가능한 모델 프로젝트를 찾지 못하면 실패로 끝내지 않는다. `.opencode/samples` 아래 샘플 3개 중 하나를 사용자가 선택하게 하고, 선택한 샘플 폴더를 워크스페이스 아래로 폴더째 복사해 모델 생성과 테스트 흐름을 진행할 수 있게 한다.
+사용자가 지정한 모델 프로젝트 폴더에서 학습/추론 가능한 모델 프로젝트를 찾지 못하면 실패로 끝내지 않는다. `.opencode/samples` 아래 샘플 4개 중 하나를 사용자가 선택하게 하고, 선택한 샘플 폴더를 워크스페이스 아래로 폴더째 복사해 모델 생성과 테스트 흐름을 진행할 수 있게 한다.
 
 모델이 없는 경우 사용자에게 반드시 아래처럼 선택을 요청한다.
 
@@ -149,6 +149,7 @@ next_action: 발견된 프로젝트로 Step 2 환경 검증 후 Step 3 실행
 1. sklearn
 2. pytorch
 3. tensorflow
+4. log
 
 원하는 샘플 번호 또는 이름을 알려주세요.
 ```
@@ -165,13 +166,14 @@ next_action: 발견된 프로젝트로 Step 2 환경 검증 후 Step 3 실행
 1. sklearn
 2. pytorch
 3. tensorflow
+4. log
 
 원하는 번호나 이름을 알려주면 해당 샘플 폴더를 워크스페이스에 복사하겠습니다.
 ```
 
 ### Selectable Samples
 
-사용자가 선택할 수 있는 샘플은 아래 3개다.
+사용자가 선택할 수 있는 샘플은 아래 4개다.
 
 ```text
 1. sklearn
@@ -185,9 +187,13 @@ next_action: 발견된 프로젝트로 Step 2 환경 검증 후 Step 3 실행
 3. tensorflow
    source: .opencode/samples/tensorflow_sample
    purpose: 폐쇄망 TensorFlow/Keras 모델 프로젝트 기본 구조
+
+4. log
+   source: .opencode/samples/log_sample
+   purpose: 폐쇄망 로그 모델 프로젝트 기본 구조
 ```
 
-이 3개 외의 샘플은 임의로 선택하지 않는다.
+이 4개 외의 샘플은 임의로 선택하지 않는다.
 
 선택형 샘플은 원본 폴더에 아래 기본 폴더가 있어야 한다.
 
@@ -257,6 +263,7 @@ save_model/
 python .opencode/scripts/bootstrap_sample_project.py --project <model-project-folder> --sample sklearn --execute
 python .opencode/scripts/bootstrap_sample_project.py --project <model-project-folder> --sample pytorch --execute
 python .opencode/scripts/bootstrap_sample_project.py --project <model-project-folder> --sample tensorflow --execute
+python .opencode/scripts/bootstrap_sample_project.py --project <model-project-folder> --sample log --execute
 ```
 
 샘플 선택 결과에는 반드시 다음을 포함한다.
@@ -278,7 +285,7 @@ next_action:
 - 선택된 프로젝트 경로
 - 모델 프로젝트 발견 여부
 - 모델이 있을 때 발견된 학습/추론/model artifact 경로
-- 모델이 없을 때 사용자가 선택할 샘플 3개
+- 모델이 없을 때 사용자가 선택할 샘플 4개
 - 선택된 샘플 원본 경로와 폴더 복사 대상 경로
 - 발견된 핵심 파일 목록
 - 누락되었거나 확인 필요한 파일 목록

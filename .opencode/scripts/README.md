@@ -38,7 +38,7 @@ python .opencode/scripts/validate_mlflow_project.py --project <model-project-fol
 
 ### bootstrap_sample_project.py
 
-모델 프로젝트 폴더에 실행 가능한 모델이 없을 때, 샘플 3개 중 하나를 선택해 워크스페이스 아래로 샘플 폴더째 복사한다.
+모델 프로젝트 폴더에 실행 가능한 모델이 없을 때, 샘플 4개 중 하나를 선택해 워크스페이스 아래로 샘플 폴더째 복사한다.
 
 선택 가능한 샘플은 원본에 `aiu_custom/`, `local_serving/`, `save_model/` 기본 폴더가 있어야 한다.
 
@@ -54,6 +54,7 @@ python .opencode/scripts/bootstrap_sample_project.py --list
 python .opencode/scripts/bootstrap_sample_project.py --project <model-project-folder> --sample sklearn
 python .opencode/scripts/bootstrap_sample_project.py --project <model-project-folder> --sample pytorch
 python .opencode/scripts/bootstrap_sample_project.py --project <model-project-folder> --sample tensorflow
+python .opencode/scripts/bootstrap_sample_project.py --project <model-project-folder> --sample log
 ```
 
 실제 폴더 복사:
@@ -129,7 +130,7 @@ mlflow_experiment_name=
 mlflow_register_model_name=
 ```
 
-`runtest.py` 또는 `run_model.py`에서 이 값들을 자동 생성하지 않는다. 사용자가 `run_model.py` 또는 `runtest.py`의 MLflow/AI Studio 설정 블록에 직접 입력한다.
+`runtest.py` 또는 `run_model.py`에서 이 값들을 자동 생성하지 않는다. 사용자가 해당 파일의 MLflow/AI Studio 설정 블록에 직접 입력한다.
 PyTorch 샘플 기본값은 `mlflow_experiment_name=pytorch_sample`, `mlflow_register_model_name=pytorch_sample_model`이다.
 `mlflow_tracking_password` 값은 출력하지 않는다.
 

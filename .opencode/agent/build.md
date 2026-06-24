@@ -83,6 +83,9 @@ next_action:
   2. 샘플 폴더 이동
   3. 환경 변수 입력
   4. 환경 변수 export
+  5. 패키지 설치
+  6. 로컬 학습/모델 실행
+  7. 산출물 확인
 ```
 
 The first next action after folder copy must be environment validation. The third next action must be guiding the user to fill the required MLflow/AI Studio values directly in `run_model.py` or `runtest.py`. The fourth next action must explain that `run_model.py` exports those values to `MLFLOW_*` environment variables during execution.

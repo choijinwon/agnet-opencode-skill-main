@@ -85,6 +85,7 @@ class EnvironmentReport:
     failures: list[str] = field(default_factory=list)
     next_steps: list[str] = field(default_factory=list)
     tod_guide: list[str] = field(default_factory=list)
+    source_input_required: list[EnvVarStatus] = field(default_factory=list)
 
 
 def package_version(name: str) -> str | None:
@@ -193,6 +194,18 @@ def export_ready_status(project: Path) -> list[EnvVarStatus]:
     return []
 
 
+def source_input_required_status(model_settings: EnvFileStatus | None) -> list[EnvVarStatus]:
+    if model_settings is None:
+        return [EnvVarStatus(key, "missing") for key in AI_STUDIO_ENV_KEYS[:3]]
+    required = []
+    for item in model_settings.key_status:
+        if item.name not in AI_STUDIO_ENV_KEYS[:3]:
+            continue
+        if item.status in {"missing", "empty"}:
+            required.append(item)
+    return required
+
+
 def build_report(project: Path) -> EnvironmentReport:
     python_version = platform.python_version()
     deps = dependency_files(project)
@@ -205,6 +218,7 @@ def build_report(project: Path) -> EnvironmentReport:
     ai_env = ai_studio_env_status(project)
     model_settings = model_settings_status(project)
     export_ready = export_ready_status(project)
+    source_input_required = source_input_required_status(model_settings)
     blocked_summary: list[str] = []
     failures: list[str] = []
     next_steps: list[str] = []
@@ -234,6 +248,9 @@ def build_report(project: Path) -> EnvironmentReport:
     tracking_ready = any(item.name == "MLFLOW_TRACKING_URI" and item.status in {"set", "exported"} for item in export_ready)
     if env_status("MLFLOW_TRACKING_URI") == "missing" and not tracking_ready:
         next_steps.append("Confirm local or remote MLFLOW_TRACKING_URI before MLflow verification.")
+    if source_input_required:
+        required_names = ", ".join(item.name for item in source_input_required)
+        next_steps.append(f"사용자가 직접 소스에 입력해야 하는 값: {required_names}.")
     setting_source = model_settings or ai_env
     if model_settings is None and not (project / "ai_studio.env").exists():
         failures.append("missing_model_settings_file:runtest.py_or_run_model.py")
@@ -261,6 +278,7 @@ def build_report(project: Path) -> EnvironmentReport:
         failures=failures,
         next_steps=next_steps,
         tod_guide=tod_guide,
+        source_input_required=source_input_required,
     )
 
 
@@ -286,6 +304,13 @@ def print_text(report: EnvironmentReport):
         print(f"\nModel settings: {report.model_settings.path}")
         for item in report.model_settings.key_status:
             print(f"- {item.name}: {item.status}")
+    if report.source_input_required:
+        source_path = report.model_settings.path if report.model_settings else "run_model.py 또는 runtest.py"
+        print(f"\n입력이 필요한 {len(report.source_input_required)}개 값:")
+        print(f"- 사용자가 직접 소스에 입력: {source_path}")
+        for item in report.source_input_required:
+            suffix = " (값은 출력하지 않음)" if item.name == "mlflow_tracking_password" else ""
+            print(f"- {item.name}: {item.status}{suffix}")
     if report.export_ready:
         print("\nEnvironment export readiness:")
         for item in report.export_ready:

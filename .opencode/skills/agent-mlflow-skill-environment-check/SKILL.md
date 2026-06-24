@@ -74,6 +74,11 @@ metadata:
 - MLflow 설치/version 상태
 - 환경 변수 설정 상태
 - 환경 변수 export 준비 상태
+- 소스 직접 입력 필요 값
+  - `입력이 필요한 3개 값:` 형식으로 표시한다.
+  - 기본 샘플에서 비어 있는 tracking 값은 `mlflow_tracking_url`, `mlflow_tracking_username`, `mlflow_tracking_password`다.
+  - `사용자가 직접 소스에 입력` 안내와 대상 파일 `run_model.py` 또는 `runtest.py`를 함께 표시한다.
+  - password 실제 값은 출력하지 않는다.
 - 체크 단계 TOD Guide
   - `1. 환경 검증`
   - `2. 샘플 폴더 이동`

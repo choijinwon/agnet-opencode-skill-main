@@ -12,7 +12,8 @@ SAMPLES_DIR = ROOT / "samples"
 SAMPLE_OPTIONS = ["sklearn", "pytorch", "tensorflow"]
 ENTRYPOINTS = ["runtest.py", "train.py", "run_model.py", "scripts/train.py"]
 REQUIRED_DIRS = ["aiu_custom", "local_serving", "save_model"]
-ARTIFACT_DIRS = ["ai_studio", "save_model", "model", "artifacts", "saved_model"]
+ARTIFACT_DIRS = ["save_model", "model", "artifacts", "saved_model"]
+MLFLOW_OUTPUT_DIRS = {"metrics", "params", "artifacts", "tags"}
 ARTIFACT_SUFFIXES = {".pkl", ".joblib", ".pt", ".pth", ".h5", ".keras", ".onnx", ".safetensors"}
 AI_STUDIO_ENV_KEYS = [
     "mlflow_tracking_url",
@@ -117,7 +118,16 @@ def find_artifacts(project: Path) -> list[str]:
         path = project / name
         if path.is_file() or (path.is_dir() and any(child.name != ".gitkeep" for child in path.iterdir())):
             found.append(str(path))
+    ai_studio = project / "ai_studio"
+    if ai_studio.exists():
+        for path in ai_studio.rglob("*"):
+            if path.name == "meta.yaml":
+                continue
+            if path.is_file() and any(part in MLFLOW_OUTPUT_DIRS for part in path.relative_to(ai_studio).parts):
+                found.append(str(path))
     for path in project.rglob("*"):
+        if path.name == "model_info.json":
+            continue
         if path.is_file() and (path.suffix in ARTIFACT_SUFFIXES or path.name in {"MLmodel", "python_model.pkl"}):
             found.append(str(path))
     return sorted(set(found))
@@ -302,7 +312,7 @@ def main():
         print("Process checklist:")
         for item in report.process_checklist:
             print(f"- {item.name}: {item.status}")
-        print("Artifacts:")
+        print("Metrics and artifacts:")
         for artifact in report.artifacts:
             print(f"- {artifact}")
         if report.failures:

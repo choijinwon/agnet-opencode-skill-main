@@ -299,7 +299,7 @@ def build_report(project: Path) -> EnvironmentReport:
         f"3. 환경 변수 입력/export: {entrypoint}의 설정 블록 값을 직접 입력하고 실행 시 MLFLOW_*로 export한다.",
         "4. 패키지 설치: requirements.txt 기준으로 필요한 패키지를 설치하거나 활성화된 환경을 확인한다.",
         f"5. 로컬 학습 모델 실행: python {entrypoint}",
-        "6. 산출물 확인: ai_studio/model_info.json 또는 MLflow artifact 생성 여부를 확인한다.",
+        "6. 산출물 확인: MLflow metrics/artifacts 또는 ai_studio/metrics, ai_studio/artifacts 생성 여부를 확인한다.",
     ]
     python_version_status = "set" if python_version == EXPECTED_PYTHON_VERSION else "version_mismatch"
 

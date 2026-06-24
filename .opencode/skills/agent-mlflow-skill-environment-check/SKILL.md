@@ -43,6 +43,11 @@ metadata:
   - `mlflow_tracking_password`
   - `mlflow_experiment_name`
   - `mlflow_register_model_name`
+- MLflow tracking 값은 사용자가 직접 `ai_studio.env`에 넣도록 안내한다.
+  - `runtest.py` 또는 `run_model.py`에서 tracking URL, username, password를 자동 생성하거나 출력하지 않는다.
+  - `mlflow_tracking_password` 값은 절대 출력하지 않는다.
+  - `mflow_tracking_url` 오타가 있으면 `mlflow_tracking_url`로 수정하도록 안내한다.
+  - PyTorch 샘플 기본값은 `mlflow_experiment_name=pytorch_sample`, `mlflow_register_model_name=pytorch_sample_model`이다.
 - secret 값은 출력하지 않고 `set`, `empty`, `missing` 상태만 표시한다.
 - 로컬/원격 MLflow 중 어떤 tracking target을 쓰는지 확인한다.
 

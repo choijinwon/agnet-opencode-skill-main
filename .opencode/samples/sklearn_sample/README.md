@@ -16,6 +16,23 @@ requirements.txt
 ai_studio.env.example
 ```
 
+## MLflow Tracking 설정
+
+`runtest.py` 또는 `run_model.py`에서 tracking 값을 자동으로 만들거나 출력하지 않습니다.
+사용자가 `ai_studio.env.example`을 참고해 `ai_studio.env`를 직접 작성합니다.
+
+필수 키:
+
+```text
+mlflow_tracking_url=""          # tracking 서버 URL
+mlflow_tracking_username=""     # 사용자명
+mlflow_tracking_password=""     # 비밀번호, 출력 금지
+mlflow_experiment_name="sklearn_sample"
+mlflow_register_model_name="sklearn_sample_model"
+```
+
+주의: `mflow_tracking_url`이 아니라 `mlflow_tracking_url`을 사용합니다.
+
 주의:
 
 - 실제 API key, password, token 값은 넣지 않습니다.

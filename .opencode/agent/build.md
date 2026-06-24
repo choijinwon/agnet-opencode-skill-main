@@ -85,6 +85,22 @@ next_action
 
 If `model_found: true`, do not ask the user to choose a sample. Continue with the discovered model project path.
 
+## MLflow Tracking Guide
+
+For `runtest.py` and `run_model.py`, only guide the user to fill MLflow tracking settings directly in `ai_studio.env`. Do not generate, infer, or print secret values.
+
+Required keys:
+
+```text
+mlflow_tracking_url          tracking server URL
+mlflow_tracking_username     username
+mlflow_tracking_password     password, never print the value
+mlflow_experiment_name       pytorch_sample by default for the PyTorch sample
+mlflow_register_model_name   pytorch_sample_model by default for the PyTorch sample
+```
+
+If the user writes `mflow_tracking_url`, explain that the expected key is `mlflow_tracking_url`.
+
 Use these skills by task:
 
 ```text

@@ -73,6 +73,11 @@ REQUIRED_DIRS = [
     "save_model",
 ]
 
+SAMPLE_SPEC_FILES = [
+    "requirements.txt",
+    "input_example.json",
+]
+
 AI_STUDIO_ENV_KEYS = [
     "mlflow_tracking_url",
     "mlflow_tracking_username",
@@ -330,6 +335,18 @@ def check_aiu_custom(project: Path, entrypoints: list[Path]) -> Check:
             "aiu_custom is not required by detected entrypoints",
             [],
         )
+    if not required and aiu_dir.exists():
+        evidence = ["aiu_custom/"]
+        if model_wrapper_file.exists():
+            evidence.append("aiu_custom/model_wrapper.py")
+        elif (aiu_dir / "predict.py").exists():
+            evidence.append("aiu_custom/predict.py")
+        return Check(
+            "AI Studio custom wrapper",
+            "pass",
+            "aiu_custom scaffold is available; ModelWrapper is not required by detected entrypoints",
+            evidence,
+        )
 
     evidence = []
     if aiu_dir.exists():
@@ -386,6 +403,47 @@ def check_required_dirs(project: Path) -> Check:
         "required project folders",
         "pass",
         "required folders are available",
+        evidence,
+    )
+
+
+def sample_key_for_framework(framework: str) -> str:
+    if framework in {"sklearn", "pytorch", "tensorflow"}:
+        return framework
+    return "pytorch"
+
+
+def sample_spec_missing(project: Path) -> list[str]:
+    missing = []
+    for name in REQUIRED_DIRS:
+        if not (project / name).is_dir():
+            missing.append(f"{name}/")
+    for name in SAMPLE_SPEC_FILES:
+        if not (project / name).exists():
+            missing.append(name)
+    if not any((project / name).exists() for name in ["runtest.py", "run_model.py", "train.py"]):
+        missing.append("run_model.py")
+    if not ((project / "aiu_custom" / "predict.py").exists() or (project / "aiu_custom" / "model_wrapper.py").exists()):
+        missing.append("aiu_custom/predict.py")
+    if not (project / "local_serving" / "serve.py").exists():
+        missing.append("local_serving/serve.py")
+    return missing
+
+
+def check_sample_spec(project: Path, framework: str) -> Check:
+    missing = sample_spec_missing(project)
+    evidence = [f"sample: {sample_key_for_framework(framework)}"]
+    if missing:
+        return Check(
+            "sample spec scaffold",
+            "warn",
+            "model exists, but sample-spec folders/files are incomplete",
+            evidence + [f"missing: {item}" for item in missing],
+        )
+    return Check(
+        "sample spec scaffold",
+        "pass",
+        "model project already matches the sample scaffold",
         evidence,
     )
 
@@ -502,6 +560,7 @@ def build_report(project: Path, reason: str, write_check: bool) -> ValidationRep
         )
     )
     checks.append(check_required_dirs(project))
+    checks.append(check_sample_spec(project, framework))
     checks.append(check_aiu_custom(project, entrypoints))
 
     mlflow_evidence = []
@@ -600,6 +659,15 @@ def build_report(project: Path, reason: str, write_check: bool) -> ValidationRep
         next_steps.append("Add or confirm mlflow dependency in the project environment.")
     if not artifacts:
         next_steps.append("Run training or provide a model artifact path.")
+    missing_spec = sample_spec_missing(project)
+    if missing_spec:
+        sample_key = sample_key_for_framework(framework)
+        next_steps.append(
+            f"Sample spec scaffold missing: {', '.join(missing_spec)}."
+        )
+        next_steps.append(
+            f"Copy missing scaffold without overwriting existing model files: python .opencode/scripts/bootstrap_sample_project.py --project {project} --sample {sample_key} --scaffold-existing --execute"
+        )
     if not prepare_found:
         next_steps.append("Confirm a prepare-only or preflight behavior before registration.")
     if not local_remote_evidence:

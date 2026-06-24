@@ -128,6 +128,16 @@ local_serving/
 save_model/
 ```
 
+## Existing Model Scaffold Rule
+
+모델 파일 또는 실행 entrypoint가 이미 있는 프로젝트에서 샘플 규격 폴더/파일만 부족하면 샘플 폴더 전체를 복사하지 않는다. 아래 명령으로 없는 골격만 보충한다.
+
+```text
+python .opencode/scripts/bootstrap_sample_project.py --project <model-project-folder> --sample <sklearn|pytorch|tensorflow> --scaffold-existing --execute
+```
+
+`--scaffold-existing`은 기존 파일을 덮어쓰지 않는다. `runtest.py`, `run_model.py`, `train.py` 중 하나가 이미 있으면 샘플의 `run_model.py`도 복사하지 않는다.
+
 ## Script
 
 샘플 목록 확인:

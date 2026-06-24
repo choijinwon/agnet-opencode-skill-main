@@ -62,6 +62,12 @@ python .opencode/scripts/bootstrap_sample_project.py --project <model-project-fo
 python .opencode/scripts/bootstrap_sample_project.py --project <model-project-folder> --sample sklearn --execute
 ```
 
+기존 모델이 있지만 샘플 규격 폴더/파일이 부족한 경우, 기존 모델 파일을 덮어쓰지 않고 없는 골격만 복사한다.
+
+```text
+python .opencode/scripts/bootstrap_sample_project.py --project <model-project-folder> --sample pytorch --scaffold-existing --execute
+```
+
 복사 대상은 소스 구조 중심이며 `.venv/`, `__pycache__/`, `model/`, `saved_model/`, `artifacts/ai_studio/`, `mlruns/`, `ai_studio/`, `mlflow.db` 같은 생성 산출물은 제외한다.
 
 복사 후 `aiu_custom/`, `local_serving/`, `save_model/` 필수 폴더는 항상 복사된 샘플 폴더 안에 보장한다.

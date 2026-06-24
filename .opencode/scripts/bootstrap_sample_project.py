@@ -53,6 +53,16 @@ REQUIRED_PROJECT_DIRS = [
     "save_model",
 ]
 
+SCAFFOLD_ROOT_NAMES = {
+    "aiu_custom",
+    "local_serving",
+    "save_model",
+    "requirements.txt",
+    "input_example.json",
+    "run_model.py",
+    ".gitkeep",
+}
+
 IGNORABLE_PROJECT_ROOT_NAMES = {
     ".git",
     ".gitignore",
@@ -125,6 +135,57 @@ def iter_sample_files(sample: Path, skip_run_model: bool = False):
         yield path
 
 
+def is_scaffold_path(relative: Path) -> bool:
+    return bool(relative.parts) and relative.parts[0] in SCAFFOLD_ROOT_NAMES
+
+
+def append_unique(items: list[str], item: str) -> None:
+    if item not in items:
+        items.append(item)
+
+
+def copy_existing_project_scaffold(sample: Path, project: Path, execute: bool) -> tuple[Path, list[str], list[str]]:
+    copied: list[str] = []
+    skipped: list[str] = []
+    skip_run_model = any((project / name).exists() for name in ["runtest.py", "run_model.py", "train.py"])
+
+    for source in iter_sample_files(sample, skip_run_model=skip_run_model):
+        relative = source.relative_to(sample)
+        if not is_scaffold_path(relative):
+            continue
+
+        target = project / relative
+        if source.is_dir():
+            if target.exists():
+                append_unique(skipped, str(relative) + "/")
+                continue
+            if execute:
+                target.mkdir(parents=True, exist_ok=True)
+            append_unique(copied, str(relative) + "/")
+            continue
+
+        if target.exists():
+            append_unique(skipped, str(relative))
+            continue
+
+        if execute:
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source, target)
+        append_unique(copied, str(relative))
+
+    for name in REQUIRED_PROJECT_DIRS:
+        target = project / name
+        if execute:
+            target.mkdir(parents=True, exist_ok=True)
+        entry = f"{name}/"
+        if entry not in copied and target.exists():
+            append_unique(skipped, entry)
+        elif entry not in copied:
+            append_unique(copied, entry)
+
+    return project, copied, skipped
+
+
 def copy_sample(sample: Path, project: Path, force: bool, execute: bool, copy_mode: str) -> tuple[Path, list[str], list[str]]:
     target_root = project / sample.name if copy_mode == "folder" else project
     copied: list[str] = []
@@ -189,6 +250,7 @@ def main():
     parser.add_argument("--project", default=".", help="target workspace root")
     parser.add_argument("--sample", choices=sorted(SAMPLES), help="sample key: sklearn, pytorch, tensorflow")
     parser.add_argument("--copy-mode", choices=["folder", "root"], default="folder", help="copy sample as a folder by default; use root to copy contents directly")
+    parser.add_argument("--scaffold-existing", action="store_true", help="copy only missing sample-spec scaffold files into an existing model project without overwriting")
     parser.add_argument("--list", action="store_true", help="list selectable samples")
     parser.add_argument("--execute", action="store_true", help="copy files into the workspace")
     parser.add_argument("--force", action="store_true", help="allow overwriting existing files")
@@ -225,20 +287,27 @@ def main():
     project_empty = is_project_empty(project)
     if project.exists() and not project.is_dir():
         failures.append(f"project_is_not_directory:{project}")
-    if not project_empty and not args.force and args.copy_mode == "root":
+    if not args.scaffold_existing and not project_empty and not args.force and args.copy_mode == "root":
         failures.append("project_not_empty")
 
     if not failures:
         if args.execute:
             project.mkdir(parents=True, exist_ok=True)
         try:
-            target_project_path, copied, skipped = copy_sample(
-                sample_source,
-                project,
-                force=args.force,
-                execute=args.execute,
-                copy_mode=args.copy_mode,
-            )
+            if args.scaffold_existing:
+                target_project_path, copied, skipped = copy_existing_project_scaffold(
+                    sample_source,
+                    project,
+                    execute=args.execute,
+                )
+            else:
+                target_project_path, copied, skipped = copy_sample(
+                    sample_source,
+                    project,
+                    force=args.force,
+                    execute=args.execute,
+                    copy_mode=args.copy_mode,
+                )
         except Exception as exc:
             failures.append(str(exc))
 
@@ -247,7 +316,7 @@ def main():
         selected_sample=args.sample,
         sample_source_path=str(sample_source),
         target_project_path=str(target_project_path) if target_project_path else None,
-        copy_mode=args.copy_mode,
+        copy_mode="scaffold_existing" if args.scaffold_existing else args.copy_mode,
         execute=args.execute,
         project_empty=project_empty,
         copied=copied,

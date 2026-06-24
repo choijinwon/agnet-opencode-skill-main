@@ -38,6 +38,7 @@ metadata:
   - Custom pyfunc: `mlflow.pyfunc.PythonModel`, `aiu_custom`, `ModelWrapper`
 - 모델 artifact 후보와 생성 위치를 확인한다.
 - 학습 entrypoint와 추론 entrypoint를 분리해서 표시한다.
+- 모델이 발견되어도 샘플 규격의 기본 폴더/파일이 맞지 않으면 누락 항목을 `sample spec scaffold`로 알려준다.
 - 누락 항목은 실패로 단정하지 않고 다음 단계에서 확인할 항목으로 분류한다.
 
 ## Initial Workspace Guide
@@ -134,6 +135,29 @@ next_action: 발견된 프로젝트로 Step 2 환경 검증 후 Step 3 실행
 ```
 
 모델이 발견되면 `.opencode/samples`는 참조하지 않는다.
+
+단, 모델은 있지만 샘플 규격의 기본 폴더/파일이 부족한 경우에는 샘플 선택 질문을 하지 않고 누락 항목만 보충하도록 안내한다. 기존 모델 파일은 덮어쓰지 않는다.
+
+체크 대상:
+
+```text
+aiu_custom/
+aiu_custom/predict.py 또는 aiu_custom/model_wrapper.py
+local_serving/
+local_serving/serve.py
+save_model/
+requirements.txt
+input_example.json
+run_model.py 또는 runtest.py 또는 train.py
+```
+
+보충 명령:
+
+```text
+python .opencode/scripts/bootstrap_sample_project.py --project <model-project-folder> --sample <sklearn|pytorch|tensorflow> --scaffold-existing --execute
+```
+
+`--scaffold-existing`은 없는 폴더/파일만 복사하고 기존 모델 파일을 덮어쓰지 않는다.
 
 ## No Model Found Fallback
 
@@ -297,5 +321,6 @@ next_action:
 - 샘플 원본 디렉터리를 직접 덮어쓰지 않는다.
 - 샘플을 폴더째 복사해야 하면 사용자 선택을 먼저 받은 뒤 `agent-mlflow-skill-sample-bootstrap` 기준으로 처리한다.
 - 모델이 발견된 경우에는 샘플 선택을 제안하지 않는다.
+- 모델이 발견되었지만 샘플 규격이 부족한 경우에는 샘플 폴더 전체 복사가 아니라 `--scaffold-existing`으로 누락 골격만 보충한다.
 - credential 값은 출력하지 않는다.
 - framework가 불명확하면 `unknown/custom`으로 둔다.

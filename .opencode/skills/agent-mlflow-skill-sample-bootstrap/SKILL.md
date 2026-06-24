@@ -201,7 +201,9 @@ copy_mode: folder
 ignored_generated_files
 next_action:
   1. 환경 검증
-  2. 환경 변수 설정
+  2. 샘플 폴더 이동
+  3. 환경 변수 입력
+  4. 환경 변수 export
 ```
 
 샘플 폴더 복사 후 첫 번째 다음 단계는 반드시 환경 검증이다.
@@ -210,10 +212,11 @@ next_action:
 1. 환경 검증: python .opencode/scripts/check_environment.py --project <target_project_path>
 ```
 
-두 번째 다음 단계는 반드시 환경 변수 설정 안내다. `run_model.py` 또는 `runtest.py`의 MLflow/AI Studio 설정 블록에 필수 값 5개를 사용자가 직접 입력하도록 안내하고, secret 값은 출력하지 않는다.
+세 번째 다음 단계는 반드시 환경 변수 입력 안내다. `run_model.py` 또는 `runtest.py`의 MLflow/AI Studio 설정 블록에 필수 값 5개를 사용자가 직접 입력하도록 안내하고, secret 값은 출력하지 않는다.
 
 ```text
-2. 환경 변수 설정: run_model.py 또는 runtest.py의 설정 블록에 MLflow/AI Studio 필수 값 5개를 직접 입력
+3. 환경 변수 입력: run_model.py 또는 runtest.py의 설정 블록에 MLflow/AI Studio 필수 값 5개를 직접 입력
+4. 환경 변수 export: run_model.py 실행 시 설정 블록 값을 MLFLOW_* 환경변수로 export
 ```
 
 ## Safety

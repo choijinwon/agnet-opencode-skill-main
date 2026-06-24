@@ -14,6 +14,7 @@ ENV_KEYS = [
     "MLFLOW_TRACKING_USERNAME",
     "MLFLOW_TRACKING_PASSWORD",
     "MLFLOW_EXPERIMENT_NAME",
+    "MLFLOW_REGISTER_MODEL_NAME",
     "MLFLOW_EXPERIMENT_ID",
 ]
 
@@ -26,6 +27,14 @@ AI_STUDIO_ENV_KEYS = [
 ]
 
 MODEL_SETTING_FILES = ["runtest.py", "run_model.py"]
+
+EXPORT_ENV_MAP = {
+    "mlflow_tracking_url": "MLFLOW_TRACKING_URI",
+    "mlflow_tracking_username": "MLFLOW_TRACKING_USERNAME",
+    "mlflow_tracking_password": "MLFLOW_TRACKING_PASSWORD",
+    "mlflow_experiment_name": "MLFLOW_EXPERIMENT_NAME",
+    "mlflow_register_model_name": "MLFLOW_REGISTER_MODEL_NAME",
+}
 
 CORE_PACKAGES = [
     "mlflow",
@@ -71,6 +80,7 @@ class EnvironmentReport:
     env_vars: list[EnvVarStatus] = field(default_factory=list)
     ai_studio_env: EnvFileStatus | None = None
     model_settings: EnvFileStatus | None = None
+    export_ready: list[EnvVarStatus] = field(default_factory=list)
     blocked_summary: list[str] = field(default_factory=list)
     failures: list[str] = field(default_factory=list)
     next_steps: list[str] = field(default_factory=list)
@@ -163,6 +173,25 @@ def model_settings_status(project: Path) -> EnvFileStatus | None:
     return None
 
 
+def export_ready_status(project: Path) -> list[EnvVarStatus]:
+    for name in MODEL_SETTING_FILES:
+        path = project / name
+        if not path.exists():
+            continue
+        values = parse_python_string_assignments(path)
+        statuses = []
+        for setting_key, env_key in EXPORT_ENV_MAP.items():
+            if values.get(setting_key):
+                status = "set"
+            elif env_status(env_key) == "set":
+                status = "exported"
+            else:
+                status = "missing"
+            statuses.append(EnvVarStatus(env_key, status))
+        return statuses
+    return []
+
+
 def build_report(project: Path) -> EnvironmentReport:
     python_version = platform.python_version()
     deps = dependency_files(project)
@@ -174,6 +203,7 @@ def build_report(project: Path) -> EnvironmentReport:
     env_vars = [EnvVarStatus(key, env_status(key)) for key in ENV_KEYS]
     ai_env = ai_studio_env_status(project)
     model_settings = model_settings_status(project)
+    export_ready = export_ready_status(project)
     blocked_summary: list[str] = []
     failures: list[str] = []
     next_steps: list[str] = []
@@ -189,7 +219,8 @@ def build_report(project: Path) -> EnvironmentReport:
     if package_version("mlflow") is None:
         failures.append("missing_dependency:mlflow")
         next_steps.append("Install or activate an environment that includes mlflow.")
-    if env_status("MLFLOW_TRACKING_URI") == "missing":
+    tracking_ready = any(item.name == "MLFLOW_TRACKING_URI" and item.status in {"set", "exported"} for item in export_ready)
+    if env_status("MLFLOW_TRACKING_URI") == "missing" and not tracking_ready:
         next_steps.append("Confirm local or remote MLFLOW_TRACKING_URI before MLflow verification.")
     setting_source = model_settings or ai_env
     if model_settings is None and not (project / "ai_studio.env").exists():
@@ -213,6 +244,7 @@ def build_report(project: Path) -> EnvironmentReport:
         env_vars=env_vars,
         ai_studio_env=ai_env,
         model_settings=model_settings,
+        export_ready=export_ready,
         blocked_summary=blocked_summary,
         failures=failures,
         next_steps=next_steps,
@@ -240,6 +272,10 @@ def print_text(report: EnvironmentReport):
     if report.model_settings:
         print(f"\nModel settings: {report.model_settings.path}")
         for item in report.model_settings.key_status:
+            print(f"- {item.name}: {item.status}")
+    if report.export_ready:
+        print("\nEnvironment export readiness:")
+        for item in report.export_ready:
             print(f"- {item.name}: {item.status}")
     if report.blocked_summary:
         print("\n차단 항목 요약:")

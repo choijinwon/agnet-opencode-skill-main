@@ -177,13 +177,14 @@ def build_next_steps(sample_key: str, target_project_path: Path, has_runtest: bo
     entrypoint = "runtest.py" if has_runtest else "run_model.py"
     return [
         f"1. 환경 검증: python .opencode/scripts/check_environment.py --project {target_project_path}",
-        f"2. 환경 변수 설정: {entrypoint}의 MLflow/AI Studio 설정 블록에 필수 값 5개를 직접 입력한다.",
-        f"3. 선택한 샘플 폴더로 이동한다: {target_project_path}",
-        f"4. 해당 폴더에 사용자 모델 코드, 데이터, requirements.txt, {entrypoint}를 추가하거나 확인한다.",
-        f"5. {entrypoint} 기준으로 모델 저장 구조를 확인한다.",
-        f"6. python {entrypoint} 로 save_model/ 또는 MLflow artifact 생성 여부를 확인한다.",
-        "7. local_serving/ 또는 aiu_custom/predict.py 기준으로 추론 테스트를 수행한다.",
-        "8. MLflow UI에서 traces, chat-sessions, prompts, judges, datasets 기록을 확인한다.",
+        f"2. 선택한 샘플 폴더로 이동한다: {target_project_path}",
+        f"3. 환경 변수 입력: {entrypoint}의 MLflow/AI Studio 설정 블록에 필수 값 5개를 직접 입력한다.",
+        f"4. 환경 변수 export: {entrypoint} 실행 시 설정 블록 값을 MLFLOW_* 환경변수로 export한다.",
+        f"5. 해당 폴더에 사용자 모델 코드, 데이터, requirements.txt, {entrypoint}를 추가하거나 확인한다.",
+        f"6. {entrypoint} 기준으로 모델 저장 구조를 확인한다.",
+        f"7. python {entrypoint} 로 save_model/ 또는 MLflow artifact 생성 여부를 확인한다.",
+        "8. local_serving/ 또는 aiu_custom/predict.py 기준으로 추론 테스트를 수행한다.",
+        "9. MLflow UI에서 traces, chat-sessions, prompts, judges, datasets 기록을 확인한다.",
         f"선택 샘플: {sample_key}",
     ]
 

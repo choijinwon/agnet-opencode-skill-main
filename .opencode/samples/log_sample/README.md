@@ -30,6 +30,8 @@ mlflow_experiment_name = "log_sample"
 mlflow_register_model_name = "log_sample_model"
 ```
 
+`run_model.py` 실행 시 위 값은 `MLFLOW_TRACKING_URI`, `MLFLOW_TRACKING_USERNAME`, `MLFLOW_TRACKING_PASSWORD`, `MLFLOW_EXPERIMENT_NAME`, `MLFLOW_REGISTER_MODEL_NAME`으로 export됩니다.
+
 주의: `mflow_tracking_url`이 아니라 `mlflow_tracking_url`을 사용합니다.
 
 주의:

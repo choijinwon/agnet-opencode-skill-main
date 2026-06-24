@@ -99,6 +99,7 @@ MLFLOW_TRACKING_URI
 MLFLOW_TRACKING_USERNAME
 MLFLOW_TRACKING_PASSWORD
 MLFLOW_EXPERIMENT_NAME
+MLFLOW_REGISTER_MODEL_NAME
 MLFLOW_EXPERIMENT_ID
 ```
 
@@ -131,6 +132,16 @@ mlflow_register_model_name=
 ```
 
 `runtest.py` 또는 `run_model.py`에서 이 값들을 자동 생성하지 않는다. 사용자가 해당 파일의 MLflow/AI Studio 설정 블록에 직접 입력한다.
+환경 변수 입력 후 `run_model.py`는 설정 블록 값을 아래 환경 변수로 export한다.
+
+```text
+mlflow_tracking_url -> MLFLOW_TRACKING_URI
+mlflow_tracking_username -> MLFLOW_TRACKING_USERNAME
+mlflow_tracking_password -> MLFLOW_TRACKING_PASSWORD
+mlflow_experiment_name -> MLFLOW_EXPERIMENT_NAME
+mlflow_register_model_name -> MLFLOW_REGISTER_MODEL_NAME
+```
+
 PyTorch 샘플 기본값은 `mlflow_experiment_name=pytorch_sample`, `mlflow_register_model_name=pytorch_sample_model`이다.
 `mlflow_tracking_password` 값은 출력하지 않는다.
 

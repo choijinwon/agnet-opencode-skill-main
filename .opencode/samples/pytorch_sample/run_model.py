@@ -1,4 +1,5 @@
 import json
+import os
 from pathlib import Path
 
 
@@ -25,6 +26,19 @@ def missing_mlflow_settings() -> list[str]:
     return [name for name, value in required.items() if not value]
 
 
+def export_mlflow_environment() -> None:
+    exports = {
+        "MLFLOW_TRACKING_URI": mlflow_tracking_url,
+        "MLFLOW_TRACKING_USERNAME": mlflow_tracking_username,
+        "MLFLOW_TRACKING_PASSWORD": mlflow_tracking_password,
+        "MLFLOW_EXPERIMENT_NAME": mlflow_experiment_name,
+        "MLFLOW_REGISTER_MODEL_NAME": mlflow_register_model_name,
+    }
+    for name, value in exports.items():
+        if value:
+            os.environ[name] = value
+
+
 def main() -> None:
     missing = missing_mlflow_settings()
     if missing:
@@ -33,6 +47,7 @@ def main() -> None:
         for name in missing:
             print(f"- {name}")
         print("비밀번호 값은 출력하지 않습니다.")
+    export_mlflow_environment()
 
     SAVE_MODEL_DIR.mkdir(parents=True, exist_ok=True)
     model_info = {

@@ -83,10 +83,12 @@ copy_mode: folder
 ignored_generated_files
 next_action:
   1. 환경 검증
-  2. 환경 변수 설정
+  2. 샘플 폴더 이동
+  3. 환경 변수 입력
+  4. 환경 변수 export
 ```
 
-The first next action after folder copy must be environment validation. The second next action must be guiding the user to fill the required MLflow/AI Studio values directly in `run_model.py` or `runtest.py`.
+The first next action after folder copy must be environment validation. The third next action must be guiding the user to fill the required MLflow/AI Studio values directly in `run_model.py` or `runtest.py`. The fourth next action must explain that `run_model.py` exports those values to `MLFLOW_*` environment variables during execution.
 
 ## Existing Model Flow
 
@@ -114,6 +116,16 @@ mlflow_tracking_username=
 mlflow_tracking_password=
 mlflow_experiment_name=
 mlflow_register_model_name=
+```
+
+`run_model.py` exports the setting block to:
+
+```text
+MLFLOW_TRACKING_URI
+MLFLOW_TRACKING_USERNAME
+MLFLOW_TRACKING_PASSWORD
+MLFLOW_EXPERIMENT_NAME
+MLFLOW_REGISTER_MODEL_NAME
 ```
 
 For the PyTorch sample, guide these default values when the user has no preferred names:

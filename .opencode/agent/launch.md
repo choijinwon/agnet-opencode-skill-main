@@ -113,7 +113,7 @@ agent-mlflow-skill-environment-check
   - Python, dependency, MLflow, ai_studio.env, environment variable checks
 
 agent-mlflow-skill-train-model
-  - local training, run_model.py, model artifact creation, save_model checks
+  - local training, runtest.py or run_model.py, model artifact creation, save_model checks
 
 agent-mlflow-skill-inference-test
   - input_example.json, predict.py, aiu_custom, local_serving inference tests

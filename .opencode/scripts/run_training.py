@@ -9,7 +9,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SAMPLES_DIR = ROOT / "samples"
 SAMPLE_OPTIONS = ["sklearn", "pytorch", "tensorflow"]
-ENTRYPOINTS = ["train.py", "run_model.py", "scripts/train.py"]
+ENTRYPOINTS = ["runtest.py", "train.py", "run_model.py", "scripts/train.py"]
 REQUIRED_DIRS = ["aiu_custom", "local_serving", "save_model"]
 ARTIFACT_DIRS = ["save_model", "model", "artifacts", "saved_model"]
 ARTIFACT_SUFFIXES = {".pkl", ".joblib", ".pt", ".pth", ".h5", ".keras", ".onnx", ".safetensors"}
@@ -38,7 +38,7 @@ class TrainingReport:
 
 
 def has_model_project(project: Path) -> bool:
-    markers = ["train.py", "run_model.py", "predict.py", "input_example.json", "MLmodel"]
+    markers = ["runtest.py", "train.py", "run_model.py", "predict.py", "input_example.json", "MLmodel"]
     if any((project / name).exists() for name in markers):
         return True
     if any((project / name).exists() for name in ARTIFACT_DIRS):

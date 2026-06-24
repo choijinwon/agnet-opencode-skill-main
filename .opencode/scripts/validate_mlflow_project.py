@@ -20,6 +20,7 @@ SAMPLE_PRIORITY = ["sklearn_sample", "pytorch_sample", "tensorflow_sample"]
 # used only as hints when detecting a registration or inference entrypoint.
 ENTRYPOINT_NAMES = [
     "register_model.py",
+    "runtest.py",
     "run_model.py",
     "serve.py",
     "inference.py",
@@ -125,6 +126,7 @@ def has_project_markers(path: Path) -> bool:
         "config.json",
         "input_example.json",
         "register_model.py",
+        "runtest.py",
         "run_model.py",
         "train.py",
     }

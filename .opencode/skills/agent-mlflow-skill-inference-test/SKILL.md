@@ -27,6 +27,7 @@ metadata:
   - `aiu_custom/predict.py`
   - `local_serving/`
   - `run_model.py`
+  - `runtest.py`
   - serving/test script
 - input example을 확인한다.
   - `input_example.json`

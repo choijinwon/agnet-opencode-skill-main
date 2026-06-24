@@ -68,22 +68,26 @@ def test_sample(sample_name: str, rebuild: bool, do_install: bool, do_register: 
     if do_install:
         install_requirements(python_bin, sample_dir)
 
-    # Each current sample exposes run_model.py as the main local prepare/export
-    # entrypoint. Older train.py/register_model.py files are optional.
+    # runtest.py is preferred when present. Current bundled samples otherwise
+    # expose run_model.py as the main local prepare/export entrypoint.
     if (sample_dir / "train.py").exists():
         run([str(python_bin), "train.py"], cwd=sample_dir)
     if (sample_dir / "register_model.py").exists():
         run([str(python_bin), "register_model.py", "--prepare-only"], cwd=sample_dir)
-    if (sample_dir / "run_model.py").exists():
+    if (sample_dir / "runtest.py").exists():
+        run([str(python_bin), "runtest.py"], cwd=sample_dir)
+    elif (sample_dir / "run_model.py").exists():
         run([str(python_bin), "run_model.py", "--prepare-only"], cwd=sample_dir)
     else:
-        raise FileNotFoundError(f"missing run_model.py: {sample_dir}")
+        raise FileNotFoundError(f"missing runtest.py or run_model.py: {sample_dir}")
 
     # Full registration is optional because each user may have different local
     # or remote MLflow tracking settings.
     if do_register:
         if (sample_dir / "register_model.py").exists():
             run([str(python_bin), "register_model.py"], cwd=sample_dir)
+        elif (sample_dir / "runtest.py").exists():
+            run([str(python_bin), "runtest.py"], cwd=sample_dir)
         else:
             run([str(python_bin), "run_model.py"], cwd=sample_dir)
 

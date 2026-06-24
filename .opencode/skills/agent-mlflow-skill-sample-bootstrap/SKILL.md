@@ -104,6 +104,8 @@ save_model/
 <workspace-root>/<sample-folder>/input_example.json
 ```
 
+`runtest.py`가 대상 워크스페이스 또는 대상 샘플 폴더에 이미 있으면 `run_model.py`를 새로 만들거나 덮어쓰지 않는다. 이 경우 `runtest.py`를 모델 생성/테스트 entrypoint로 사용한다.
+
 복사하지 않는 항목:
 
 ```text

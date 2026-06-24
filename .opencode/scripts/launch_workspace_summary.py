@@ -5,6 +5,7 @@ from pathlib import Path
 
 
 MODEL_HINTS = [
+    "runtest.py",
     "run_model.py",
     "train.py",
     "predict.py",

@@ -16,7 +16,7 @@ metadata:
 - 사용자가 지정한 모델 프로젝트 폴더의 ML 프로젝트 구조를 분석해 달라고 요청할 때
 - 학습, 추론, MLflow 등록 전에 어떤 파일이 있는지 확인해야 할 때
 - 프로젝트가 sklearn, PyTorch, TensorFlow, HuggingFace, custom pyfunc 중 무엇에 가까운지 판단해야 할 때
-- `aiu_custom`, `local_serving`, `save_model`, `run_model.py`, `input_example.json` 같은 구성 요소가 필요한지 확인해야 할 때
+- `aiu_custom`, `local_serving`, `save_model`, `runtest.py`, `run_model.py`, `input_example.json` 같은 구성 요소가 필요한지 확인해야 할 때
 - 사용자가 지정한 모델 프로젝트 폴더에 모델 프로젝트가 없어서 `.opencode/samples` 아래 샘플 3개 중 하나를 선택해 폴더째 복사해야 할 때
 
 ## Guidance Checks
@@ -24,7 +24,7 @@ metadata:
 - 현재 작업 경로와 사용자가 지정한 프로젝트 경로를 확인한다.
 - 핵심 파일 존재 여부를 확인한다.
   - `requirements.txt`, `pyproject.toml`, `environment.yml`
-  - `train.py`, `app.py`, `main.py`, `run_model.py`
+  - `train.py`, `app.py`, `main.py`, `runtest.py`, `run_model.py`
   - `config.json`, `.env.example`, `input_example.json`
   - `aiu_custom/`, `aiu_custom/model_wrapper.py`, `aiu_custom/predict.py`
   - `local_serving/`
@@ -67,7 +67,7 @@ MLflow 5단계로 봐줘
 워크스페이스를 먼저 분석했습니다.
 
 확인 기준:
-- run_model.py, train.py, predict.py
+- runtest.py, run_model.py, train.py, predict.py
 - aiu_custom/
 - local_serving/
 - save_model/
@@ -97,7 +97,7 @@ MLflow 5단계로 봐줘
 
 ```text
 학습 entrypoint 존재: train.py, scripts/train.py
-실행/등록 entrypoint 존재: run_model.py
+실행/등록 entrypoint 존재: runtest.py, run_model.py
 추론 entrypoint 존재: predict.py, app.py, main.py
 필수 폴더 존재: aiu_custom/, local_serving/, save_model/
 모델 wrapper 존재: aiu_custom/model_wrapper.py, aiu_custom/predict.py
@@ -129,7 +129,7 @@ next_action: 발견된 프로젝트로 Step 2 환경 검증 후 Step 3 실행
 1. ai_studio.env 확인
 2. requirements.txt 또는 pyproject.toml 확인
 3. input_example.json 확인
-4. run_model.py 또는 train.py 실행 가능 여부 확인
+4. runtest.py, run_model.py 또는 train.py 실행 가능 여부 확인
 5. MLflow 기록 확인
 ```
 

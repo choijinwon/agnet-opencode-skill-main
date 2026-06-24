@@ -1,6 +1,6 @@
 ---
 name: agent-mlflow-skill-train-model
-description: Use when the user asks "학습 실행", "모델 생성", "run_model.py", "save_model 확인", "artifact 생성", or train model; checks local training entrypoint, model artifact creation, config, and input example.
+description: Use when the user asks "학습 실행", "모델 생성", "runtest.py", "run_model.py", "save_model 확인", "artifact 생성", or train model; checks local training entrypoint, model artifact creation, config, and input example.
 license: MIT
 compatibility: opencode
 metadata:
@@ -15,7 +15,7 @@ metadata:
 
 - 실행 환경 검증 후 로컬 학습을 실행하거나 학습 가능 여부를 확인할 때
 - 학습 결과로 모델 artifact가 생성되는지 확인해야 할 때
-- `train.py`, notebook, `run_model.py --prepare-only`, custom training script 중 실제 학습 entrypoint를 판단해야 할 때
+- `train.py`, notebook, `runtest.py`, `run_model.py --prepare-only`, custom training script 중 실제 학습 entrypoint를 판단해야 할 때
 - 학습 산출물이 MLflow 등록이나 추론 테스트에 충분한지 확인해야 할 때
 - Step 0에서 사용자가 선택한 샘플 폴더가 워크스페이스로 복사된 뒤 모델을 생성해야 할 때
 
@@ -30,6 +30,7 @@ metadata:
   - `train.py`
   - `scripts/train.py`
   - `run_model.py`
+  - `runtest.py`
   - framework별 학습 스크립트
 - 학습 전에 필요한 입력 파일을 확인한다.
   - dataset 경로

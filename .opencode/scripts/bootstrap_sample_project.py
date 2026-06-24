@@ -115,9 +115,12 @@ def should_ignore(path: Path) -> bool:
     return any(parts[: len(prefix)] == prefix for prefix in GENERATED_PATH_PREFIXES)
 
 
-def iter_sample_files(sample: Path):
+def iter_sample_files(sample: Path, skip_run_model: bool = False):
     for path in sample.rglob("*"):
-        if should_ignore(path.relative_to(sample)):
+        relative = path.relative_to(sample)
+        if skip_run_model and relative == Path("run_model.py"):
+            continue
+        if should_ignore(relative):
             continue
         yield path
 
@@ -126,13 +129,14 @@ def copy_sample(sample: Path, project: Path, force: bool, execute: bool, copy_mo
     target_root = project / sample.name if copy_mode == "folder" else project
     copied: list[str] = []
     skipped: list[str] = []
+    skip_run_model = (project / "runtest.py").exists() or (target_root / "runtest.py").exists()
 
     if target_root.exists() and copy_mode == "folder" and not force:
         raise FileExistsError(f"target_sample_folder_exists:{target_root}")
     if target_root.exists() and copy_mode == "folder" and force and execute:
         shutil.rmtree(target_root)
 
-    for source in iter_sample_files(sample):
+    for source in iter_sample_files(sample, skip_run_model=skip_run_model):
         relative = source.relative_to(sample)
         target = target_root / relative
         display_relative = Path(sample.name) / relative if copy_mode == "folder" else relative
@@ -164,13 +168,14 @@ def copy_sample(sample: Path, project: Path, force: bool, execute: bool, copy_mo
     return target_root, copied, skipped
 
 
-def build_next_steps(sample_key: str, target_project_path: Path) -> list[str]:
+def build_next_steps(sample_key: str, target_project_path: Path, has_runtest: bool) -> list[str]:
+    entrypoint = "runtest.py" if has_runtest else "run_model.py"
     return [
         f"선택한 샘플 폴더로 이동한다: {target_project_path}",
-        "해당 폴더에 사용자 모델 코드, 데이터, requirements.txt, run_model.py를 추가한다.",
+        f"해당 폴더에 사용자 모델 코드, 데이터, requirements.txt, {entrypoint}를 추가하거나 확인한다.",
         "ai_studio.env 또는 config/ai_studio.env.example을 기준으로 MLflow/AI Studio 접속값을 설정한다.",
-        "run_model.py를 추가한 뒤 python run_model.py --prepare-only 로 모델 저장 구조를 확인한다.",
-        "python run_model.py 로 save_model/ 또는 MLflow artifact 생성 여부를 확인한다.",
+        f"{entrypoint} 기준으로 모델 저장 구조를 확인한다.",
+        f"python {entrypoint} 로 save_model/ 또는 MLflow artifact 생성 여부를 확인한다.",
         "local_serving/ 또는 aiu_custom/predict.py 기준으로 추론 테스트를 수행한다.",
         "MLflow UI에서 traces, chat-sessions, prompts, judges, datasets 기록을 확인한다.",
         f"선택 샘플: {sample_key}",
@@ -246,7 +251,13 @@ def main():
         copied=copied,
         skipped=skipped,
         failures=failures,
-        next_steps=build_next_steps(args.sample, target_project_path) if not failures and target_project_path else [],
+        next_steps=build_next_steps(
+            args.sample,
+            target_project_path,
+            (project / "runtest.py").exists() or (target_project_path / "runtest.py").exists(),
+        )
+        if not failures and target_project_path
+        else [],
     )
 
     if args.json:

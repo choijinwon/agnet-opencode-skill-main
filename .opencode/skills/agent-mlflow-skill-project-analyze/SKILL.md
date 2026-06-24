@@ -29,7 +29,7 @@ metadata:
   - `aiu_custom/`, `aiu_custom/model_wrapper.py`, `aiu_custom/predict.py`
   - `local_serving/`
   - `save_model/`
-  - `artifacts/`, `model/`, `mlruns/`, `mlartifacts/`
+  - `artifacts/`, `model/`, `mlruns/`, `aiu_studio/`
 - framework 후보를 근거와 함께 분류한다.
   - sklearn: `sklearn`, `.pkl`, `.joblib`, `.fit()`
   - PyTorch: `torch`, `.pt`, `.pth`, `state_dict`
@@ -245,7 +245,7 @@ artifacts/aiu_studio/
 .venv/
 __pycache__/
 mlruns/
-mlartifacts/
+aiu_studio/
 mlflow.db
 ```
 

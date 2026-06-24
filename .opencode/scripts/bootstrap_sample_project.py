@@ -39,7 +39,7 @@ IGNORED_NAMES = {
     "venv",
     "env",
     "mlruns",
-    "mlartifacts",
+    "aiu_studio",
     "mlflow.db",
 }
 

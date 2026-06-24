@@ -119,7 +119,7 @@ save_model/
 .venv/
 __pycache__/
 mlruns/
-mlartifacts/
+aiu_studio/
 mlflow.db
 .DS_Store
 model/

@@ -13,13 +13,12 @@ save_model/
 run_model.py
 input_example.json
 requirements.txt
-ai_studio.env.example
 ```
 
 ## MLflow Tracking 설정
 
 `runtest.py` 또는 `run_model.py`에서 tracking 값을 자동으로 만들거나 출력하지 않습니다.
-사용자가 `ai_studio.env.example`을 참고해 `ai_studio.env`를 직접 작성합니다.
+사용자가 `ai_studio.env`를 직접 작성합니다.
 
 필수 키:
 

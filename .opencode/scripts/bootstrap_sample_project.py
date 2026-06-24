@@ -173,7 +173,7 @@ def build_next_steps(sample_key: str, target_project_path: Path, has_runtest: bo
     return [
         f"선택한 샘플 폴더로 이동한다: {target_project_path}",
         f"해당 폴더에 사용자 모델 코드, 데이터, requirements.txt, {entrypoint}를 추가하거나 확인한다.",
-        "ai_studio.env 또는 config/ai_studio.env.example을 기준으로 MLflow/AI Studio 접속값을 설정한다.",
+        "ai_studio.env에 MLflow/AI Studio 접속값을 직접 설정한다.",
         f"{entrypoint} 기준으로 모델 저장 구조를 확인한다.",
         f"python {entrypoint} 로 save_model/ 또는 MLflow artifact 생성 여부를 확인한다.",
         "local_serving/ 또는 aiu_custom/predict.py 기준으로 추론 테스트를 수행한다.",

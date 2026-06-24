@@ -76,6 +76,11 @@ python .opencode/scripts/bootstrap_sample_project.py --project <model-project-fo
 
 Python, dependency, MLflow, `ai_studio.env` 상태를 확인한다.
 Python 기준 버전은 3.11.9이다. 다른 버전이면 `version_mismatch:python`으로 분류한다.
+Python 버전이 다르면 `차단 항목 요약`에 다음 형식으로 표시한다.
+
+```text
+1. Python 버전 차이 (<현재버전> vs 기대 3.11.9) → 호환성 확인 필요
+```
 
 Secret 값은 출력하지 않고 `set`, `empty`, `missing` 상태만 출력한다.
 

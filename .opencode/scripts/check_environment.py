@@ -65,6 +65,7 @@ class EnvironmentReport:
     packages: list[PackageStatus] = field(default_factory=list)
     env_vars: list[EnvVarStatus] = field(default_factory=list)
     ai_studio_env: EnvFileStatus | None = None
+    blocked_summary: list[str] = field(default_factory=list)
     failures: list[str] = field(default_factory=list)
     next_steps: list[str] = field(default_factory=list)
 
@@ -128,11 +129,13 @@ def build_report(project: Path) -> EnvironmentReport:
 
     env_vars = [EnvVarStatus(key, env_status(key)) for key in ENV_KEYS]
     ai_env = ai_studio_env_status(project)
+    blocked_summary: list[str] = []
     failures: list[str] = []
     next_steps: list[str] = []
     python_version_status = "set" if python_version == EXPECTED_PYTHON_VERSION else "version_mismatch"
 
     if python_version_status == "version_mismatch":
+        blocked_summary.append(f"Python 버전 차이 ({python_version} vs 기대 {EXPECTED_PYTHON_VERSION}) → 호환성 확인 필요")
         failures.append(f"version_mismatch:python expected {EXPECTED_PYTHON_VERSION} got {python_version}")
         next_steps.append(f"Use Python {EXPECTED_PYTHON_VERSION} for this MLflow workflow.")
     if not deps:
@@ -163,6 +166,7 @@ def build_report(project: Path) -> EnvironmentReport:
         packages=packages,
         env_vars=env_vars,
         ai_studio_env=ai_env,
+        blocked_summary=blocked_summary,
         failures=failures,
         next_steps=next_steps,
     )
@@ -186,6 +190,10 @@ def print_text(report: EnvironmentReport):
         print(f"\nai_studio.env: {report.ai_studio_env.path}")
         for item in report.ai_studio_env.key_status:
             print(f"- {item.name}: {item.status}")
+    if report.blocked_summary:
+        print("\n차단 항목 요약:")
+        for index, item in enumerate(report.blocked_summary, start=1):
+            print(f"{index}. {item}")
     if report.failures:
         print("\nFailures:")
         for failure in report.failures:

@@ -64,6 +64,8 @@ metadata:
 - `ai_studio.env` 필수 키 상태
 - 로컬/원격 tracking target 판단
 - 실행 전 차단 항목
+  - 차단 항목 요약
+  - Python 버전 차이 예시: `Python 버전 차이 (<현재버전> vs 기대 3.11.9) → 호환성 확인 필요`
 - 다음 단계: `agent-mlflow-skill-train-model`
 
 ## Failure Classification
@@ -71,6 +73,7 @@ metadata:
 - `missing_dependency`: 필요한 패키지가 없음
 - `version_mismatch`: 설치 버전이 기대 범위와 다름
   - Python은 정확히 3.11.9를 기대한다.
+  - 출력에는 `차단 항목 요약`으로 현재 버전과 기대 버전을 함께 표시한다.
 - `missing_env`: 필수 환경 변수가 없음
 - `config_error`: 설정 파일은 있으나 읽거나 해석할 수 없음
 - `tracking_unreachable`: MLflow tracking server에 접근할 수 없음

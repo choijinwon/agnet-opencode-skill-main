@@ -7,11 +7,12 @@
 모델이 없으면 sklearn / pytorch / tensorflow 중 하나를 선택해 샘플을 생성합니다.
 생성 시 샘플 내용만 루트에 풀지 않고 `<workspace>/sklearn_sample/` 같은 샘플 폴더 자체를 복사합니다.
 
-실제 복사/모델 생성/환경 검증 실행은 OpenCode 빌드모드에서 선택해주세요.
+Launch 모드는 읽기 전용이라 파일을 수정하지 않습니다.
+실제 복사/모델 생성/환경 검증 실행은 OpenCode 빌드모드에서만 선택해주세요.
 
 추천 첫 요청:
 
 - 이 워크스페이스를 MLflow 5단계 기준으로 분석해줘.
-- 모델이 없으면 sklearn 샘플로 생성해줘.
+- 모델이 없으면 Build 모드에서 sklearn 샘플 생성 단계로 안내해줘.
 
 보안 규칙: API key, password, token 값은 출력하지 않고 서버 배포 시 Secret/환경변수를 사용합니다.

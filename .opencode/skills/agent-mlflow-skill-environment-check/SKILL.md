@@ -46,6 +46,12 @@ metadata:
   - `mlflow_tracking_password`
   - `mlflow_experiment_name`
   - `mlflow_register_model_name`
+- `ai_studio.env` 작성 안내에는 다음 빈 값 형태를 포함한다.
+  - `mlflow_tracking_url=`
+  - `mlflow_tracking_username=`
+  - `mlflow_tracking_password=`
+  - `mlflow_experiment_name=`
+  - `mlflow_register_model_name=`
 - MLflow tracking 값은 사용자가 직접 `ai_studio.env`에 넣도록 안내한다.
   - `runtest.py` 또는 `run_model.py`에서 tracking URL, username, password를 자동 생성하거나 출력하지 않는다.
   - `mlflow_tracking_password` 값은 절대 출력하지 않는다.

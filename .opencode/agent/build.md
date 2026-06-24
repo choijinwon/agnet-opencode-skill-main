@@ -99,6 +99,23 @@ mlflow_experiment_name       pytorch_sample by default for the PyTorch sample
 mlflow_register_model_name   pytorch_sample_model by default for the PyTorch sample
 ```
 
+Guide the user to write these keys in `ai_studio.env` directly:
+
+```text
+mlflow_tracking_url=
+mlflow_tracking_username=
+mlflow_tracking_password=
+mlflow_experiment_name=
+mlflow_register_model_name=
+```
+
+For the PyTorch sample, guide these default values when the user has no preferred names:
+
+```text
+mlflow_experiment_name=pytorch_sample
+mlflow_register_model_name=pytorch_sample_model
+```
+
 If the user writes `mflow_tracking_url`, explain that the expected key is `mlflow_tracking_url`.
 
 Use these skills by task:

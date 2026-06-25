@@ -26,6 +26,10 @@ doctor.py
   run.py처럼 이름이 자유로운 단일 Python 실행 파일도 자동 후보로 잡습니다.
   유지보수자가 가장 먼저 봐야 하는 종합 진단 진입점입니다.
 
+adapt_ai_studio.py
+  사용자가 가져온 임의 Python 실행 파일에 AI Studio/MLflow 연결부를 보강합니다.
+  기본은 dry-run이고 --execute에서만 실제 파일을 수정합니다.
+
 validate_mlflow_project.py
   모델 프로젝트를 깊게 분석합니다.
   모델 있음/없음, 프레임워크 후보, entrypoint 후보, 샘플 규격 누락을 판단합니다.
@@ -98,6 +102,36 @@ SETTING_ALIASES            사용자가 다르게 쓴 설정명 허용 목록
 - `.opencode/` 내부 샘플은 사용자 모델 산출물로 오인하지 않도록 스캔에서 제외합니다.
 - 실행 파일 후보가 여러 개면 `--entrypoint <file>`로 사용자가 실제 파일을 확정해야 합니다.
 - `--strict-exit`은 QA 자동화용입니다. 일반 사용 흐름에서는 기본 exit code 0을 유지합니다.
+
+## adapt_ai_studio.py
+
+책임:
+
+- 사용자가 가져온 `run.py`, `train.py`, `main.py` 등 임의 실행 파일을 분석합니다.
+- 프레임워크 후보를 추정합니다.
+- dry-run에서 수정 계획만 출력합니다.
+- `--execute`일 때만 entrypoint를 백업하고 AI Studio/MLflow adapter block을 삽입합니다.
+- 부족한 scaffold 파일을 새로 만듭니다.
+
+주요 수정 위치:
+
+```text
+FRAMEWORK_RULES             프레임워크 추정 규칙
+REQUIREMENT_BY_FRAMEWORK    프레임워크별 최소 requirements
+ENTRYPOINT_HINTS            실행 파일 후보
+adapter_block()             entrypoint에 삽입할 AI Studio/MLflow helper
+model_wrapper_template()    aiu_custom/predict.py 템플릿
+local_serving_template()    local_serving/serve.py 템플릿
+adapt_entrypoint()          백업 생성과 adapter block 삽입
+```
+
+주의:
+
+- 기본은 dry-run입니다. 실제 수정은 `--execute`가 있어야 합니다.
+- entrypoint 수정 전 `<file>.ai_studio.bak` 백업을 만듭니다.
+- 기존 adapter block이 있으면 `--force` 없이는 다시 쓰지 않습니다.
+- 모델별 학습/추론 로직은 자동으로 해석하지 않습니다. adapter block과 wrapper TODO를 넣어 AI Studio 연결부를 보강합니다.
+- secret 값은 생성하지 않습니다. 사용자가 소스의 설정 블록에 직접 입력합니다.
 
 ## validate_mlflow_project.py
 

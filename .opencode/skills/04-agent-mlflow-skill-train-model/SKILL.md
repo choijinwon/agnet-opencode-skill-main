@@ -81,6 +81,12 @@ python .opencode/scripts/run_training.py --project <project> --execute
 명시적 entrypoint 실행:
 python .opencode/scripts/run_training.py --project <project> --entrypoint <file> --execute
 python .opencode/scripts/run_training.py --project <project> --entrypoint run.py --execute
+
+AI Studio/MLflow 연결부 보강 dry-run:
+python .opencode/scripts/adapt_ai_studio.py --project <project> --entrypoint <file>
+
+AI Studio/MLflow 연결부 실제 보강:
+python .opencode/scripts/adapt_ai_studio.py --project <project> --entrypoint <file> --execute
 ```
 
 ## Artifact Map
@@ -105,6 +111,7 @@ pass:
 warn:
 - Python 버전 경고가 있지만 실행은 가능함
 - MLflow logging은 실패했지만 로컬 ai_studio 산출물은 생성됨
+- entrypoint는 있으나 AI Studio/MLflow 연결부 보강이 필요함
 
 needs_user_input:
 - entrypoint 후보가 여러 개임

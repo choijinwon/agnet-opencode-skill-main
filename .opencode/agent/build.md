@@ -52,6 +52,18 @@ If the user has an existing model and the entrypoint is known, include it:
 python .opencode/scripts/doctor.py --workspace . --project <model-project-folder> --entrypoint <file>
 ```
 
+If the confirmed entrypoint needs AI Studio/MLflow adaptation, first run a dry-run:
+
+```text
+python .opencode/scripts/adapt_ai_studio.py --project <model-project-folder> --entrypoint <file>
+```
+
+Apply the adaptation only in Build mode and only when the user asks to proceed:
+
+```text
+python .opencode/scripts/adapt_ai_studio.py --project <model-project-folder> --entrypoint <file> --execute
+```
+
 ## Sample Selection
 
 If `model_found: false`, the user can choose one bundled sample.

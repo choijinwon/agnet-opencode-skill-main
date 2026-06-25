@@ -12,6 +12,7 @@
 Step 1  프로젝트 구조 분석 / 실행 파일 확정
         validate_mlflow_project.py
         doctor.py
+        adapt_ai_studio.py
         bootstrap_sample_project.py
 
 Step 2  실행 환경 검증
@@ -85,6 +86,27 @@ python .opencode/scripts/doctor.py --workspace . --project <model-project-folder
 7. MLflow 필수 5개 설정값 입력/export
 8. 모델/메트릭/코드 산출물
 ```
+
+### adapt_ai_studio.py
+
+사용자가 가져온 임의 Python 실행 파일을 AI Studio/MLflow 연결 형식에 맞게 보강한다. 기본은 dry-run이며, `--execute`를 붙인 경우에만 실제 파일을 수정한다.
+
+```text
+python .opencode/scripts/adapt_ai_studio.py --project <model-project-folder> --entrypoint run.py
+python .opencode/scripts/adapt_ai_studio.py --project <model-project-folder> --entrypoint run.py --execute
+```
+
+수정 방식:
+
+```text
+- entrypoint 백업 생성: <file>.ai_studio.bak
+- MLflow 설정값 5개와 MLFLOW_* export helper 삽입
+- ai_studio/metrics, ai_studio/code, ai_studio/tracking 경로 helper 삽입
+- aiu_custom/predict.py, local_serving/serve.py, saved_model/, input_example.json 보충
+- requirements.txt가 없으면 프레임워크/Import 기반 최소 패키지 작성
+```
+
+기존 파일은 기본적으로 덮어쓰지 않는다. 이미 adapter block이 있으면 `--force`가 없을 때 건너뛴다.
 
 ### validate_mlflow_project.py
 

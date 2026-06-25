@@ -11,69 +11,150 @@ metadata:
 
 # Inference Test
 
-## When To Use
+## Result First
 
-- 로컬 학습 또는 모델 artifact 생성 후 실제 추론 가능성을 검증할 때
-- `input_example.json`을 사용해 predict가 동작하는지 확인해야 할 때
-- `aiu_custom` 기반 MLflow pyfunc wrapper의 `load_context`와 `predict` 계약을 확인해야 할 때
-- `local_serving/` 기반 로컬 serving 테스트 구성이 있는지 확인해야 할 때
-- 모델 등록 전에 schema, 반환값, 오류를 점검해야 할 때
+```text
+판단 결과: pass | warn | needs_user_input | blocked
+현재 단계: 추론 테스트
+현재 대상: trained model project
+핵심 판단: input_example, load mode, predict contract, output schema
+다음 단계: MLflow 검증
+```
 
-## Guidance Checks
+## Workflow
 
-- 추론 entrypoint 후보를 확인한다.
-  - `predict.py`
-  - `aiu_custom/model_wrapper.py`
-  - `aiu_custom/predict.py`
-  - `local_serving/`
-  - `run_model.py`
-  - `runtest.py`
-  - serving/test script
-- input example을 확인한다.
-  - `input_example.json`
-  - README 예제
-  - test fixture
-- 모델 로드 방식을 확인한다.
-  - `mlflow.pyfunc.load_model`
-  - custom wrapper load
-  - framework native load (Windows에서는 기본 경로로 안내하지 않고 보조 확인으로만 사용)
-- Windows x86_64 환경에서는 native/standalone executable 기반 추론을 기본 실행 경로로 사용하지 않는다.
-  - 네이티브 로드가 불안정하거나 실패하면 실패로 고정하지 말고 `mlflow.pyfunc.load_model`, `aiu_custom` wrapper, `run_model.py`, `runtest.py` 기반 검증으로 우회한다.
-  - 사용자가 별도로 요청하지 않는 한 native executable 실행 명령을 안내하지 않는다.
-- `ModelWrapper`가 있으면 다음 계약을 확인한다.
-  - `mlflow.pyfunc.PythonModel` 상속 여부
-  - `load_context` 구현 여부
-  - `predict` 구현 여부
-  - artifact/config 참조 경로
-- 추론 결과 schema를 확인한다.
-  - scalar
-  - list
-  - dict
-  - pandas DataFrame
-  - JSON serializable 여부
-- 실패 시 모델 로드 실패와 추론 실행 실패를 분리한다.
+```text
+1. 로컬 학습 산출물 확인
+2. input_example.json 확인
+3. 추론 entrypoint 확인
+4. 모델 로드 방식 결정
+5. predict 실행
+6. 출력 schema 확인
+7. MLflow 검증으로 이동
+```
 
-## Output
+## What To Do Now
 
-- 선택된 추론 entrypoint
+```text
+1. input_example.json을 확인한다.
+2. aiu_custom/predict.py 또는 ModelWrapper를 확인한다.
+3. mlflow.pyfunc.load_model 또는 custom wrapper load를 우선 사용한다.
+4. Windows native load는 보조 확인으로만 둔다.
+5. 결과가 JSON serializable인지 확인한다.
+```
+
+## Output Contract
+
+```text
+반드시 보여줄 값:
+- 판단 결과
 - 사용한 input example
+- 추론 entrypoint
 - 모델 로드 방식
-- 추론 결과 요약
-- 응답 schema
-- MLflow pyfunc 호환 여부
-- 다음 단계: `agent-mlflow-skill-mlflow-verify`
+- predict 결과 요약
+- response schema
+- 다음 단계
+```
 
-## Failure Classification
+성공 출력 UI:
 
-- `missing_inference_entrypoint`: 추론 진입점을 찾을 수 없음
-- `missing_input_example`: 테스트 입력이 없음
-- `model_load_error`: 모델 로드 실패
-- `predict_error`: predict 실행 실패
-- `schema_error`: 입력 또는 출력 schema가 기대와 다름
-- `serialization_error`: 응답을 JSON 등으로 직렬화할 수 없음
+```text
+판단 결과: pass
+input_example: input_example.json
+load mode: aiu_custom wrapper
+schema: JSON serializable
+next: MLflow verify
+```
 
-## Safety
+## Commands
+
+```text
+추론 dry-run:
+python .opencode/scripts/test_inference.py --project <project>
+
+실제 추론 실행:
+python .opencode/scripts/test_inference.py --project <project> --execute
+
+명시적 모델 경로:
+python .opencode/scripts/test_inference.py --project <project> --model-path <model-path> --execute
+```
+
+<details>
+<summary>자세한 판단 기준 보기</summary>
+
+```text
+pass:
+- input example 있음
+- 모델 로드 성공
+- predict 성공
+- output schema 확인됨
+
+warn:
+- native load는 실패했지만 pyfunc/custom wrapper로 우회 가능
+- 결과가 길어 요약 출력함
+
+needs_user_input:
+- input example이 없음
+- 어떤 추론 entrypoint를 사용할지 모호함
+
+blocked:
+- 모델 로드 실패
+- predict 실행 실패
+- 응답을 직렬화할 수 없음
+```
+
+</details>
+
+<details>
+<summary>문제 해결 보기</summary>
+
+```text
+증상: native load 실패
+원인: Windows x86_64 native/standalone 실행 불안정
+조치: mlflow.pyfunc.load_model, aiu_custom wrapper, run_model.py/runtest.py 기반 검증으로 우회
+
+증상: input_example 없음
+원인: 테스트 입력 누락
+조치: input_example.json 또는 README 예제를 먼저 확정
+
+증상: predict 결과를 JSON으로 못 바꿈
+원인: numpy/pandas/object 반환값 직렬화 처리 누락
+조치: schema를 요약하고 JSON serializable 형태로 변환 기준을 안내
+```
+
+</details>
+
+<details>
+<summary>전문가 상세 보기</summary>
+
+추론 entrypoint 후보:
+
+```text
+predict.py
+aiu_custom/model_wrapper.py
+aiu_custom/predict.py
+local_serving/
+run_model.py
+runtest.py
+serving/test script
+```
+
+모델 로드 우선순위:
+
+```text
+1. mlflow.pyfunc.load_model
+2. aiu_custom custom wrapper load
+3. framework native load, Windows에서는 보조 확인만
+```
+
+</details>
+
+<details>
+<summary>Safety 규칙 보기</summary>
 
 - secret 또는 개인정보가 포함된 입력 예제를 그대로 출력하지 않는다.
-- 추론 결과가 길면 요약하고 schema 중심으로 설명한다.
+- 추론 결과가 길면 schema 중심으로 요약한다.
 - 외부 LLM endpoint 호출이 필요한 경우 endpoint와 인증 설정 존재 여부를 먼저 확인한다.
+- 사용자가 별도로 요청하지 않는 한 native executable 실행 명령을 안내하지 않는다.
+
+</details>

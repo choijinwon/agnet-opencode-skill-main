@@ -11,112 +11,179 @@ metadata:
 
 # Execution Environment Check
 
-## When To Use
+## Result First
 
-- 프로젝트 구조 분석 후 실제 실행 가능성을 확인할 때
-- Python, virtualenv, dependency, MLflow version을 확인해야 할 때
-- 폐쇄망 또는 로컬 환경에서 외부 다운로드 없이 실행 준비 상태를 판단해야 할 때
-- MLflow tracking URI, experiment 설정 위치를 확인해야 할 때
-- 학습 모델 생성 전에 `ai_studio.env` 필수 설정이 준비되었는지 확인해야 할 때
+```text
+판단 결과: pass | warn | needs_user_input | blocked
+현재 단계: 2. 환경 검증
+현재 대상: selected_project_path
+핵심 판단: Python 3.11.9, MLflow, dependency, 설정 상태
+다음 단계: 샘플 규격 확인/보충 또는 로컬 학습 실행
+```
 
-## Guidance Checks
+## Workflow
 
-- Python 실행 파일과 버전을 확인한다.
-  - 기대 버전: Python 3.11.9
-  - 3.11.9가 아니면 `version_mismatch:python`으로 분류한다.
-- virtualenv 또는 conda 환경 사용 여부를 확인한다.
-- dependency 파일을 확인한다.
-  - `requirements.txt`
-  - `pyproject.toml`
-  - `environment.yml`
-- 핵심 dependency 설치 여부를 확인한다.
-  - `mlflow`
-  - framework dependency: `sklearn`, `torch`, `tensorflow`, `transformers`
-- MLflow version을 확인한다.
-- 환경 변수 설정 위치를 확인한다.
-  - `MLFLOW_TRACKING_URI`
-  - `MLFLOW_TRACKING_USERNAME`
-  - `MLFLOW_TRACKING_PASSWORD`
-  - `MLFLOW_EXPERIMENT_NAME`
-  - `MLFLOW_REGISTER_MODEL_NAME`
-  - `MLFLOW_EXPERIMENT_ID`
-  - `MLFLOW_EXPERIMENT_PASSWORD`는 올바른 MLflow 인증 환경변수가 아니므로 사용하지 않는다.
-- `run_model.py` 또는 `runtest.py`의 MLflow/AI Studio 설정 블록과 필수 값을 확인한다.
-  - `mlflow_tracking_url`
-  - `mlflow_tracking_username`
-  - `mlflow_tracking_password`
-  - `mlflow_experiment_name`
-  - `mlflow_register_model_name`
-- 설정 블록 작성 안내에는 다음 빈 값 형태를 포함한다.
-  - `mlflow_tracking_url=`
-  - `mlflow_tracking_username=`
-  - `mlflow_tracking_password=`
-  - `mlflow_experiment_name=`
-  - `mlflow_register_model_name=`
-- MLflow tracking 값은 사용자가 직접 `run_model.py` 또는 `runtest.py`에 넣도록 안내한다.
-  - `runtest.py` 또는 `run_model.py`에서 tracking URL, username, password를 자동 생성하거나 출력하지 않는다.
-  - 사용자가 짧은 변수명 `tracking_url`, `username`, `password`로 입력해도 각각 `mlflow_tracking_url`, `mlflow_tracking_username`, `mlflow_tracking_password`로 인식한다.
-  - 설정 dict 또는 `os.environ["MLFLOW_TRACKING_URI"] = "..."` 형태로 직접 넣은 값도 입력 완료로 인식한다.
-  - `mlflow_tracking_url`이 비어 있으면 로컬 기본 tracking URI를 `file://<project>/ai_studio/tracking`로 사용한다. MLflow artifact는 `artifact_path="ai_studio"` 아래 `ai_studio/code` 구조로 기록한다.
-  - 로컬 기본 tracking URI를 쓸 때는 `MLFLOW_ALLOW_FILE_STORE=true`도 함께 export한다.
-  - `run_model.py`는 설정 블록 값을 `MLFLOW_TRACKING_URI`, `MLFLOW_TRACKING_USERNAME`, `MLFLOW_TRACKING_PASSWORD`, `MLFLOW_EXPERIMENT_NAME`, `MLFLOW_REGISTER_MODEL_NAME`으로 export한다.
-  - `mlflow_tracking_password` 값은 절대 출력하지 않는다.
-  - `mflow_tracking_url` 오타가 있으면 `mlflow_tracking_url`로 수정하도록 안내한다.
-  - PyTorch 샘플 기본값은 `mlflow_experiment_name=pytorch_sample`, `mlflow_register_model_name=pytorch_sample_model`이다.
-- secret 값은 출력하지 않고 `set`, `empty`, `missing` 상태만 표시한다.
-  - `MLFLOW_TRACKING_PASSWORD`와 `mlflow_tracking_password` 값은 절대 출력하지 않는다.
-- 로컬/원격 MLflow 중 어떤 tracking target을 쓰는지 확인한다.
+```text
+1. 프로젝트 분석
+2. 환경 검증
+3. 샘플 규격 확인/보충
+4. 환경 변수 입력/export
+5. 패키지 설치
+6. 로컬 학습 모델 실행
+7. 산출물 확인
+```
 
-## Output
+## What To Do Now
 
-- Python 환경 요약
-  - 현재 Python version
-  - 기대 Python version: 3.11.9
-  - Python version status: `set` 또는 `version_mismatch`
-- dependency 파일 존재 여부
-- 설치된 핵심 dependency와 version
+```text
+1. Python 실행 파일과 버전을 확인한다.
+2. dependency 파일과 핵심 패키지를 확인한다.
+3. MLflow 설치/version을 확인한다.
+4. run_model.py 또는 runtest.py 설정 블록을 확인한다.
+5. 비어 있는 값은 사용자가 직접 소스에 입력하도록 안내한다.
+```
+
+## Output Contract
+
+```text
+반드시 보여줄 값:
+- 판단 결과
+- Python 현재 version / 기대 version 3.11.9
+- dependency 파일 상태
 - MLflow 설치/version 상태
-- 환경 변수 설정 상태
-- 환경 변수 export 준비 상태
-- 소스 직접 입력 필요 값
-  - `입력이 필요한 3개 값:` 형식으로 표시한다.
-  - 기본 샘플에서 비어 있는 tracking 값은 `mlflow_tracking_url`, `mlflow_tracking_username`, `mlflow_tracking_password`다.
-  - `사용자가 직접 소스에 입력` 안내와 대상 파일 `run_model.py` 또는 `runtest.py`를 함께 표시한다.
-  - password 실제 값은 출력하지 않는다.
-- 체크 단계 TOD Guide
-  - 모델 있음: `1. 실행 파일 확정`부터 시작하는 7단계
-  - 모델 없음/샘플 복사 후: `1. 환경 검증`부터 시작하는 6단계
-- `ai_studio.env` 필수 키 상태
-- 로컬/원격 tracking target 판단
-- 실행 전 차단 항목
-  - 차단 항목 요약
-  - Python 버전 차이 예시: `Python 버전 차이 (<현재버전> vs 기대 3.11.9) → 호환성 확인 필요`
-- 다음 단계: `agent-mlflow-skill-train-model`
+- 환경 변수 상태
+- 입력이 필요한 값
+- password는 값 없이 set/empty/missing
+- TOD Guide
+- 차단 항목 요약
+```
 
-## Failure Classification
+상태 출력 UI:
 
-- `missing_dependency`: 필요한 패키지가 없음
-- `version_mismatch`: 설치 버전이 기대 범위와 다름
-  - Python은 정확히 3.11.9를 기대한다.
-  - 출력에는 `차단 항목 요약`으로 현재 버전과 기대 버전을 함께 표시한다.
-- `missing_env`: 필수 환경 변수가 없음
-- `config_error`: 설정 파일은 있으나 읽거나 해석할 수 없음
-- `tracking_unreachable`: MLflow tracking server에 접근할 수 없음
+```text
+판단 결과: warn
+Python: version_mismatch, current=<현재버전>, expected=3.11.9
+MLflow: set
+Secrets: mlflow_tracking_password=set, value hidden
+입력이 필요한 값: mlflow_tracking_url, mlflow_tracking_username, mlflow_tracking_password
+```
 
-## Safety
+## Commands
+
+```text
+환경 검증:
+python .opencode/scripts/check_environment.py --project <selected_project_path>
+
+폐쇄망 WSL 패키지 설치:
+bash .opencode/wsl/install_offline.sh
+
+wheelhouse 준비:
+bash .opencode/wsl/download_wheels.sh
+
+인덱싱 제외 적용:
+python .opencode/scripts/apply_index_ignore.py --project .
+```
+
+## Artifact Map
+
+```text
+local metrics   -> ai_studio/metrics/
+local code      -> ai_studio/code/
+MLflow artifact -> artifact_path="ai_studio" 아래 code/
+tracking store  -> ai_studio/tracking/
+```
+
+<details>
+<summary>자세한 판단 기준 보기</summary>
+
+```text
+pass:
+- Python 3.11.9
+- MLflow 설치됨
+- 핵심 dependency 확인됨
+- 필수 MLflow 설정이 소스 또는 환경에 있음
+
+warn:
+- Python 버전만 기대값과 다름
+- 폐쇄망 설치 준비가 필요하지만 다음 단계 안내 가능
+
+needs_user_input:
+- mlflow_tracking_url, username, password 입력 필요
+- 실제 entrypoint 확인 필요
+
+blocked:
+- 프로젝트 경로 없음
+- 실행 파일 없음
+- requirements/config를 읽을 수 없음
+```
+
+필수 설정:
+
+```text
+mlflow_tracking_url
+mlflow_tracking_username
+mlflow_tracking_password
+mlflow_experiment_name
+mlflow_register_model_name
+```
+
+</details>
+
+<details>
+<summary>문제 해결 보기</summary>
+
+```text
+증상: Python 버전 차이
+원인: 현재 Python이 3.11.9가 아님
+조치: 호환성 경고로 표시하고 필요 시 3.11.9 환경 사용
+
+증상: mlruns 폴더가 생김
+원인: tracking URI가 기본값으로 잡힘
+조치: 로컬 기본 tracking은 ai_studio/tracking 기준으로 안내
+
+증상: 환경변수를 입력했는데 체크가 안 됨
+원인: run_model.py/runtest.py 설정 블록 또는 export mapping 누락
+조치: 소스 설정 블록 값을 확인하고 MLFLOW_* export 상태를 표시
+
+증상: 폐쇄망 설치가 느림
+원인: PyPI 다운로드/resolver 지연
+조치: .opencode/wsl/wheelhouse 기반 install_offline.sh 우선
+```
+
+</details>
+
+<details>
+<summary>전문가 상세 보기</summary>
+
+허용 alias:
+
+```text
+tracking_url -> mlflow_tracking_url
+username -> mlflow_tracking_username
+password -> mlflow_tracking_password
+mflow_tracking_url -> 오타, mlflow_tracking_url로 수정 안내
+```
+
+로컬 tracking:
+
+```text
+MLFLOW_TRACKING_URI=file://<project>/ai_studio/tracking
+MLFLOW_ALLOW_FILE_STORE=true
+MLflow artifact는 artifact_path="ai_studio" 아래 code/ 구조로 기록
+```
+
+</details>
+
+<details>
+<summary>Safety 규칙 보기</summary>
 
 - secret 값을 로그나 응답에 포함하지 않는다.
-- 외부 패키지 설치는 사용자가 명확히 요청한 경우에만 안내하거나 수행한다.
-- 폐쇄망에서는 내부 패키지 저장소 정책을 우선 확인해야 한다.
-- 폐쇄망에서는 GitHub issue 생성, 외부 crash report, telemetry, bug-report URL 열기를 시도하지 않는다.
+- `MLFLOW_TRACKING_PASSWORD`와 `mlflow_tracking_password` 값은 절대 출력하지 않는다.
+- 폐쇄망에서는 GitHub issue, crash report, telemetry URL을 열지 않는다.
 - 환경 검증의 차단/경고 항목은 프로세스를 종료시키는 실패가 아니라 보고서 항목으로 출력한다.
-- 폐쇄망에서 OpenCode 인덱싱 또는 파일 트리 스캔이 느리면 `python .opencode/scripts/apply_index_ignore.py --project .`를 먼저 실행해 생성물/대용량 파일을 제외한다.
-- opencode Bun 런타임 환경에서 파일 트리 오류 처리 중 세그멘테이션 폴트가 발생할 수 있으므로 Bun 런타임은 사용하지 않는다. `bun`, `bunx`, `bun install`, `bun run`을 절대 실행하지 않는다.
-- JavaScript 패키지 설치가 필요하고 대상 프로젝트에 `package.json`이 있으면 `npm i`만 사용한다.
-- Python 샘플/모델 의존성은 `requirements.txt` 기준으로 `python -m pip install -r requirements.txt`를 사용한다.
-- 폐쇄망 WSL에서는 네트워크 설치보다 `.opencode/wsl/wheelhouse/` 기반 오프라인 설치를 우선한다.
-  - wheelhouse가 있으면 `bash .opencode/wsl/install_offline.sh`
-  - wheelhouse가 없으면 온라인 WSL에서 `bash .opencode/wsl/download_wheels.sh`로 먼저 준비
-  - 고정 버전 목록은 `.opencode/wsl/requirements-ai-studio.txt`
-- Windows에서는 `standaloneExecutable` 경로를 사용하지 않고 워크스페이스 기준 `python ...` 명령으로 스크립트를 직접 실행한다.
-- Windows x86_64에서는 native/standalone executable 모델 실행을 기본 경로로 안내하지 않는다. Python entrypoint, `mlflow.pyfunc`, `aiu_custom` wrapper 기반 검증을 우선한다.
+- Bun 런타임은 사용하지 않는다.
+- JavaScript 설치가 필요하고 `package.json`이 있으면 `npm i`만 사용한다.
+- Windows에서는 `standaloneExecutable` 경로 대신 `python ...` 명령을 사용한다.
+- Windows x86_64에서는 native/standalone executable 모델 실행을 기본 경로로 안내하지 않는다.
+
+</details>

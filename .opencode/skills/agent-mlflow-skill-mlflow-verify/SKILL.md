@@ -11,69 +11,163 @@ metadata:
 
 # MLflow Run And Model Verification
 
-## When To Use
+## Result First
 
-- 학습과 추론 테스트 후 MLflow에 기록이 남았는지 확인할 때
-- run, params, metrics, artifacts, model logging 상태를 점검해야 할 때
-- Model Registry에 모델 버전이 생성되었는지 확인해야 할 때
-- local MLflow와 remote MLflow의 tracking/artifact 위치를 구분해야 할 때
+```text
+판단 결과: pass | warn | needs_user_input | blocked
+현재 단계: MLflow 검증
+현재 대상: tracking URI, experiment, latest run
+핵심 판단: run, metrics, artifact, registry 상태
+다음 단계: 완료 또는 차단 항목 해결
+```
 
-## Guidance Checks
+## Workflow
 
-- tracking target을 확인한다.
-  - local file store
-  - local MLflow server
-  - remote MLflow server
-- experiment name 또는 experiment id를 확인한다.
-- 최근 run 생성 여부를 확인한다.
-- run 내부 기록을 확인한다.
-  - params
-  - metrics
-  - tags
-  - artifacts
-  - model artifact
-- pyfunc model logging 여부를 확인한다.
-  - `MLmodel`
-  - `python_model.pkl`
-  - `code/`
-  - `artifacts/`
-  - signature
-  - input example
-- Model Registry 등록 여부를 확인한다.
-  - registered model name
-  - version
-  - source URI
-  - alias/stage/tag
-- GenAI agent인 경우 추가로 확인한다.
-  - traces
-  - chat sessions
-  - prompts
-  - judges
-  - datasets
+```text
+1. tracking target 확인
+2. experiment 확인
+3. 최근 run 확인
+4. params/metrics/tags 확인
+5. artifact_path="ai_studio" 아래 code/ 확인
+6. registry 상태 확인
+7. 완료 또는 후속 조치 안내
+```
 
-## Output
+## What To Do Now
 
-- tracking target 요약
-- experiment 정보
-- 최근 run 생성 여부
-- params/metrics/artifacts 기록 상태
-- model artifact 기록 상태
-- registered model/version 생성 여부
-- MLflow UI에서 확인할 위치
-- 남은 차단 항목 또는 후속 작업
+```text
+1. tracking URI를 확인한다.
+2. experiment name 또는 id를 확인한다.
+3. 최신 run을 찾는다.
+4. metrics와 artifacts를 확인한다.
+5. registry 등록 여부를 확인한다.
+```
 
-## Failure Classification
+## Output Contract
 
-- `tracking_unreachable`: tracking server 접근 실패
-- `experiment_missing`: experiment를 찾을 수 없음
-- `run_missing`: 실행 후 run이 생성되지 않음
-- `artifact_missing`: run은 있으나 artifact가 없음
-- `model_logging_error`: model artifact 구조가 불완전함
-- `registry_missing`: registered model 또는 version이 없음
-- `permission_error`: 인증 또는 권한 문제로 확인 불가
+```text
+반드시 보여줄 값:
+- 판단 결과
+- tracking target
+- experiment
+- latest run id
+- metrics status
+- artifact status
+- registry status
+- MLflow UI 또는 local path
+- 남은 차단 항목
+```
 
-## Safety
+성공 출력 UI:
+
+```text
+판단 결과: pass
+run: created
+metrics: pass
+artifacts: pass, artifacts/ai_studio/code/...
+registry: pass | warn
+```
+
+## Commands
+
+```text
+MLflow 확인:
+python .opencode/scripts/verify_mlflow.py --project <project>
+
+tracking URI 명시:
+python .opencode/scripts/verify_mlflow.py --project <project> --tracking-uri <uri>
+
+experiment 명시:
+python .opencode/scripts/verify_mlflow.py --project <project> --experiment-name <name>
+```
+
+## Artifact Map
+
+```text
+local metrics   -> ai_studio/metrics/
+local code      -> ai_studio/code/
+MLflow artifact -> artifacts/ai_studio/code/
+tracking store  -> ai_studio/tracking/
+```
+
+<details>
+<summary>자세한 판단 기준 보기</summary>
+
+```text
+pass:
+- experiment 확인됨
+- latest run 생성됨
+- metrics 기록됨
+- artifact_path="ai_studio" 아래 code/ 확인됨
+
+warn:
+- registry만 없음
+- remote registry 확인 권한 부족이나 후속 확인 가능
+
+needs_user_input:
+- tracking URI 또는 experiment name이 모호함
+- registry 등록 여부를 사용자가 결정해야 함
+
+blocked:
+- tracking server 접근 실패
+- experiment 없음
+- run 없음
+- artifact 없음
+```
+
+</details>
+
+<details>
+<summary>문제 해결 보기</summary>
+
+```text
+증상: run은 있는데 artifact가 없음
+원인: log_artifacts 또는 artifact_path 설정 누락
+조치: artifact_path="ai_studio" 아래 code/ 구조를 확인
+
+증상: registry만 없음
+원인: 모델 등록을 수행하지 않았거나 권한 부족
+조치: warn으로 표시하고 등록 여부를 사용자에게 확인
+
+증상: remote tracking 접근 실패
+원인: URL, username, password, network, 권한 문제
+조치: secret 값은 숨기고 set/empty/missing 상태만 표시
+```
+
+</details>
+
+<details>
+<summary>전문가 상세 보기</summary>
+
+검증 대상:
+
+```text
+tracking target: local file store | local MLflow server | remote MLflow server
+experiment: name 또는 id
+run: latest run
+records: params, metrics, tags, artifacts
+pyfunc model: MLmodel, python_model.pkl, code/, signature, input example
+registry: registered model, version, source URI, alias/stage/tag
+```
+
+GenAI agent 추가 확인:
+
+```text
+traces
+chat sessions
+prompts
+judges
+datasets
+```
+
+</details>
+
+<details>
+<summary>Safety 규칙 보기</summary>
 
 - 인증 정보는 출력하지 않는다.
-- remote registry에 등록/삭제/alias 변경은 사용자가 명확히 요청한 경우에만 수행한다.
+- remote registry 등록/삭제/alias 변경은 사용자가 명확히 요청한 경우에만 수행한다.
 - artifact root가 sample 내부인지 별도 `ai_studio` 경로인지 구분해서 설명한다.
+- secret-like field는 `set`, `empty`, `missing` 상태만 말한다.
+
+</details>

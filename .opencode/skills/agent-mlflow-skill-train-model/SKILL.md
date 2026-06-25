@@ -11,158 +11,168 @@ metadata:
 
 # Local Training And Model Creation
 
-## When To Use
-
-- 실행 환경 검증 후 로컬 학습을 실행하거나 학습 가능 여부를 확인할 때
-- 학습 결과로 모델 artifact가 생성되는지 확인해야 할 때
-- `train.py`, notebook, `runtest.py`, `run_model.py --prepare-only`, custom training script 중 실제 학습 entrypoint를 판단해야 할 때
-- 학습 산출물이 MLflow 등록이나 추론 테스트에 충분한지 확인해야 할 때
-- Step 0에서 사용자가 선택한 샘플 폴더가 워크스페이스로 복사된 뒤 모델을 생성해야 할 때
-
-## Guidance Checks
-
-- Step 1에서 `model_found: true`이면 발견된 기존 프로젝트를 그대로 실행 대상으로 사용한다.
-- 기존 프로젝트가 있으면 샘플을 준비하거나 복사하지 않는다.
-- Step 1에서 `model_found: false`이면 먼저 `agent-mlflow-skill-sample-bootstrap`으로 샘플 폴더를 워크스페이스에 복사해야 한다.
-- Step 0에서 복사된 샘플 폴더를 실행 대상으로 사용한다.
-- 이 단계에서는 샘플 원본을 복사하지 않는다.
-- 학습 entrypoint 후보를 확인한다.
-- 기존 모델 프로젝트에서는 실행 전에 실제 사용하는 entrypoint를 먼저 확정한다.
-  - `train.py`
-  - `scripts/train.py`
-  - `run_model.py`
-  - `runtest.py`
-  - framework별 학습 스크립트
-- 학습 전에 필요한 입력 파일을 확인한다.
-  - dataset 경로
-  - config 파일
-  - `ai_studio.env`
-  - pretrained/model base 경로
-  - output directory
-- 학습 모델 생성 필수 설정을 확인한다.
-  - `mlflow_tracking_url`
-  - `mlflow_tracking_username`
-  - `mlflow_tracking_password`
-  - `mlflow_experiment_name`
-  - `mlflow_register_model_name`
-- MLflow tracking 설정은 사용자가 직접 `run_model.py` 또는 `runtest.py`의 설정 블록에 입력한다.
-  - `runtest.py` 또는 `run_model.py`는 tracking URL, username, password를 새로 만들거나 출력하지 않는다.
-  - `mlflow_tracking_password`는 상태만 확인하고 값을 출력하지 않는다.
-  - 안내에는 `mlflow_experiment_name=`, `mlflow_register_model_name=` 빈 값 형태를 포함한다.
-  - PyTorch 샘플 기본값은 `mlflow_experiment_name=pytorch_sample`, `mlflow_register_model_name=pytorch_sample_model`이다.
-- 학습 실행이 가능한 모드인지 확인한다.
-  - 실제 학습
-  - dry run
-  - prepare-only
-  - smoke test
-- 학습 후 생성되어야 하는 파일을 확인한다.
-  - model artifact
-  - tokenizer/preprocessor
-  - config
-  - input example
-  - metrics/log file
-- 생성된 모델 artifact의 위치와 크기를 확인한다.
-- artifact가 빈 파일이거나 placeholder인지 확인한다.
-- Windows에서는 framework native executable 또는 native model 직접 실행을 기본 경로로 안내하지 않는다.
-  - 네이티브 모델 파일은 참고 산출물로만 확인한다.
-  - 실행/검증은 `python`으로 `run_model.py`, `runtest.py`, 또는 사용자가 확정한 학습 entrypoint를 실행하는 흐름을 우선한다.
-  - Windows x86_64 standalone/native 실행이 불안정하면 즉시 Python 스크립트 기반 실행으로 우회하도록 안내한다.
-
-## Existing Model Execution
-
-사용자가 지정한 모델 프로젝트 폴더에 모델 프로젝트가 존재하는 경우, 이 단계의 책임은 기존 프로젝트를 기준으로 학습 또는 모델 생성 entrypoint를 실행하고 산출물을 확인하는 것이다.
-
-### Required Behavior
+## Result First
 
 ```text
-1. Step 1의 selected_project_path를 실행 기준 경로로 사용한다.
-2. train_entrypoint 또는 run_model.py를 확인한다.
-3. 필요한 config/input/dataset/model path를 확인한다.
-4. prepare-only, dry run, smoke test가 있으면 먼저 실행한다.
-5. `ai_studio.env` 필수 키가 모두 준비되었는지 확인한다.
-6. 실제 학습 또는 모델 export를 실행한다.
-7. 기존 artifact를 덮어쓸 가능성이 있으면 사용자 확인을 받는다.
-8. 생성 또는 갱신된 MLflow metrics/artifacts와 ai_studio/metrics, ai_studio/code 경로를 확인한다.
-9. Step 4 추론 테스트에 사용할 model path와 input example을 넘긴다.
+판단 결과: pass | warn | needs_user_input | blocked
+현재 단계: 6. 로컬 학습 모델 실행
+현재 대상: selected_project_path 또는 copied sample folder
+핵심 판단: entrypoint 확정, 실행 성공, ai_studio 산출물 생성
+다음 단계: 추론 테스트
 ```
 
-기존 모델 프로젝트가 있으면 `.opencode/samples`의 선택형 샘플은 사용하지 않는다.
-
-## Sample-Based Model Creation
-
-사용자가 지정한 모델 프로젝트 폴더에 모델이 없어 Step 0에서 선택형 샘플 폴더가 복사된 경우, 이 단계의 책임은 복사된 샘플 폴더에서 모델 artifact를 생성하는 것이다.
-
-### Required Behavior
+## Workflow
 
 ```text
-1. selected_sample 값을 확인한다. 허용값은 sklearn, pytorch, tensorflow이다.
-2. target_project_path를 확인한다.
-3. 복사된 샘플 폴더에 aiu_custom/, local_serving/, saved_model/이 있는지 확인한다.
-4. requirements/config/input_example을 확인한다.
-5. `ai_studio.env` 필수 키가 모두 준비되었는지 확인한다.
-6. prepare-only 또는 smoke test가 있으면 먼저 실행 가능성을 검증한다.
-7. 로컬 학습 또는 로컬 모델 export를 실행한다.
-8. 생성된 MLflow metrics/artifacts와 ai_studio/metrics, ai_studio/code 경로를 확인한다.
-9. 다음 단계의 inference-test에서 사용할 input example과 model path를 넘긴다.
+1. 실행 파일 확정
+2. 환경 검증
+3. 샘플 규격 확인/보충
+4. 환경 변수 입력/export
+5. 패키지 설치
+6. 로컬 학습 모델 실행
+7. 산출물 확인
 ```
 
-### Sample Selection Assumptions
-
-선택형 샘플은 아래 4개다.
+## What To Do Now
 
 ```text
-sklearn    -> .opencode/samples/sklearn_sample
-pytorch    -> .opencode/samples/pytorch_sample
-tensorflow -> .opencode/samples/tensorflow_sample
+1. 기존 모델이면 실제 entrypoint를 먼저 확정한다.
+2. 샘플 모델이면 복사된 샘플 폴더를 실행 대상으로 사용한다.
+3. run_model.py로 고정하지 않는다.
+4. 실행 전 MLflow/AI Studio 설정 블록을 확인한다.
+5. 실행 후 ai_studio/metrics, ai_studio/code를 확인한다.
 ```
 
-선택형 샘플 폴더가 복사되지 않았으면 이 단계에서 임의로 복사하지 않는다. `sample_bootstrap_required`로 분류하고 Step 0으로 돌아가 사용자의 샘플 선택을 받는다.
-
-### Expected Outputs From Sample
-
-샘플 기반 생성 후 최소한 아래 중 하나는 있어야 한다.
+## Output Contract
 
 ```text
-aiu_custom/
-local_serving/
-ai_studio/
-saved_model/
-model/
-artifacts/
-MLmodel
-python_model.pkl
-framework original/native model file (reference artifact only)
-input_example.json
+반드시 보여줄 값:
+- 판단 결과
+- 선택된 entrypoint
+- 실행 command
+- 실행 여부와 return code
+- 생성된 metrics/code 산출물
+- 누락된 산출물
+- 다음 단계
 ```
 
-## Output
+성공 출력 UI:
 
-- 선택된 학습 entrypoint
-- 기존 모델 프로젝트 실행 여부
-- 샘플 기반 생성 여부
-- 선택된 샘플 이름과 작업 경로
-- 학습 실행 방식
-- 필요한 입력 파일 목록
-- 생성된 모델 artifact 목록
-- 생성되지 않은 필수 산출물
-- 학습 로그 요약
-- 다음 단계: `agent-mlflow-skill-inference-test`
+```text
+판단 결과: pass
+entrypoint: run_model.py
+command: python run_model.py
+local outputs:
+- ai_studio/metrics/
+- ai_studio/code/
+MLflow artifact:
+- artifact_path="ai_studio" 아래 code/
+```
 
-## Failure Classification
+## Commands
 
-- `missing_train_entrypoint`: 학습 스크립트를 찾을 수 없음
-- `sample_not_found`: 선택된 샘플 원본을 찾을 수 없음
-- `sample_bootstrap_required`: 샘플 폴더가 아직 워크스페이스로 복사되지 않음
-- `missing_dataset`: 학습 데이터 또는 입력 파일이 없음
-- `missing_config`: 학습 설정 파일이 없음
-- `missing_env`: `ai_studio.env` 또는 필수 키가 없음
-- `runtime_error`: 학습 실행 중 예외 발생
-- `artifact_not_created`: 학습은 끝났지만 metrics/artifacts가 생성되지 않음
-- `artifact_invalid`: 생성 파일이 비어 있거나 로드 불가함
+```text
+실행 파일 자동 판단:
+python .opencode/scripts/run_training.py --project <project>
 
-## Safety
+로컬 학습 실행:
+python .opencode/scripts/run_training.py --project <project> --execute
 
-- 오래 걸리는 학습은 사용자에게 예상 비용과 시간을 먼저 설명한다.
-- 기존 artifact를 덮어쓸 수 있으면 실행 전 경로를 명확히 확인한다.
-- 샘플 원본을 직접 수정하지 않고 복사된 샘플 폴더에서 실행한다.
+명시적 entrypoint 실행:
+python .opencode/scripts/run_training.py --project <project> --entrypoint <file> --execute
+```
+
+## Artifact Map
+
+```text
+local metrics   -> ai_studio/metrics/
+local code      -> ai_studio/code/
+MLflow artifact -> artifact_path="ai_studio" 아래 code/
+tracking store  -> ai_studio/tracking/
+reference model -> saved_model/, model/, framework native model file
+```
+
+<details>
+<summary>자세한 판단 기준 보기</summary>
+
+```text
+pass:
+- entrypoint가 확정됨
+- 실행이 완료됨
+- ai_studio/metrics 또는 ai_studio/code 산출물이 생성됨
+
+warn:
+- Python 버전 경고가 있지만 실행은 가능함
+- MLflow logging은 실패했지만 로컬 ai_studio 산출물은 생성됨
+
+needs_user_input:
+- entrypoint 후보가 여러 개임
+- 기존 artifact 덮어쓰기 가능성이 있음
+- MLflow 설정 값을 사용자가 직접 입력해야 함
+
+blocked:
+- 학습/모델 생성 entrypoint 없음
+- 실행 후 산출물이 없음
+- 필수 입력 데이터/config 없음
+```
+
+</details>
+
+<details>
+<summary>문제 해결 보기</summary>
+
+```text
+증상: run_model.py가 없다는 이유로 중단됨
+원인: 실제 entrypoint 확인 없이 run_model.py로 고정함
+조치: train.py, runtest.py, scripts/train.py 등 후보를 찾고 사용자에게 실제 파일명을 확인한다.
+
+증상: 모델 실행 후 산출물이 안 보임
+원인: model_info.json만 확인하거나 ai_studio/code 기준이 빠짐
+조치: ai_studio/metrics, ai_studio/code, MLflow artifact_path="ai_studio" 아래 code/를 확인한다.
+
+증상: Windows native 실행 실패
+원인: standalone/native executable 경로 사용
+조치: python entrypoint, mlflow.pyfunc, aiu_custom wrapper 기반 실행으로 우회한다.
+```
+
+</details>
+
+<details>
+<summary>전문가 상세 보기</summary>
+
+기존 모델 흐름:
+
+```text
+1. selected_project_path를 실행 기준으로 사용
+2. 실제 entrypoint 확정
+3. config/input/dataset/model path 확인
+4. dry run 또는 smoke test 확인
+5. MLflow 설정 확인
+6. 학습 또는 export 실행
+7. ai_studio/metrics, ai_studio/code 확인
+```
+
+샘플 모델 흐름:
+
+```text
+1. selected_sample 확인
+2. target_project_path 확인
+3. aiu_custom/, local_serving/, saved_model/ 확인
+4. requirements.txt, input_example.json 확인
+5. run_model.py 또는 runtest.py 실행
+6. ai_studio 산출물 확인
+```
+
+</details>
+
+<details>
+<summary>Safety 규칙 보기</summary>
+
+- 오래 걸리는 학습은 예상 비용과 시간을 먼저 설명한다.
+- 기존 artifact를 덮어쓸 수 있으면 실행 전 사용자 확인을 받는다.
+- 샘플 원본을 직접 수정하지 않는다.
 - 원격 학습이나 외부 데이터 다운로드는 기본 동작으로 가정하지 않는다.
+- secret 값은 출력하지 않는다.
+- Windows native/standalone executable 실행은 기본 경로로 안내하지 않는다.
+
+</details>

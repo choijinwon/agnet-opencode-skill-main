@@ -4,6 +4,7 @@ import importlib.metadata
 import json
 import os
 import platform
+import re
 import sys
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
@@ -91,6 +92,7 @@ CORE_PACKAGES = [
 ]
 
 EXPECTED_PYTHON_VERSION = "3.11.9"
+REQUIREMENT_OPERATORS = ["==", "!=", ">=", "<=", "~=", ">", "<"]
 
 
 @dataclass
@@ -98,6 +100,16 @@ class PackageStatus:
     name: str
     status: str
     version: str | None = None
+
+
+@dataclass
+class RequirementStatus:
+    source: str
+    requirement: str
+    name: str
+    required_version: str
+    installed_version: str | None
+    status: str
 
 
 @dataclass
@@ -123,6 +135,7 @@ class EnvironmentReport:
     virtual_env: str
     dependency_files: list[str]
     packages: list[PackageStatus] = field(default_factory=list)
+    requirements: list[RequirementStatus] = field(default_factory=list)
     env_vars: list[EnvVarStatus] = field(default_factory=list)
     ai_studio_env: EnvFileStatus | None = None
     model_settings: EnvFileStatus | None = None
@@ -139,6 +152,124 @@ def package_version(name: str) -> str | None:
         return importlib.metadata.version(name)
     except importlib.metadata.PackageNotFoundError:
         return None
+
+
+def normalize_package_name(name: str) -> str:
+    return re.sub(r"[-_.]+", "-", name).lower()
+
+
+def parse_version_parts(value: str) -> tuple[int, ...] | None:
+    match = re.match(r"^\s*(\d+(?:\.\d+)*)", value)
+    if not match:
+        return None
+    return tuple(int(part) for part in match.group(1).split("."))
+
+
+def compare_versions(installed: str, required: str) -> int | None:
+    installed_parts = parse_version_parts(installed)
+    required_parts = parse_version_parts(required)
+    if installed_parts is None or required_parts is None:
+        return None
+    length = max(len(installed_parts), len(required_parts))
+    left = installed_parts + (0,) * (length - len(installed_parts))
+    right = required_parts + (0,) * (length - len(required_parts))
+    if left == right:
+        return 0
+    return 1 if left > right else -1
+
+
+def version_constraint_status(installed: str, required_spec: str) -> str:
+    if not required_spec:
+        return "installed"
+    constraints = [item.strip() for item in required_spec.split(",") if item.strip()]
+    unknown = False
+    for constraint in constraints:
+        operator = next((item for item in REQUIREMENT_OPERATORS if constraint.startswith(item)), None)
+        if operator is None:
+            unknown = True
+            continue
+        required = constraint[len(operator) :].strip()
+        if operator == "~=":
+            unknown = True
+            continue
+        if operator == "==":
+            if installed == required:
+                continue
+            comparison = compare_versions(installed, required)
+            if comparison == 0:
+                continue
+            return "version_mismatch"
+        elif operator == "!=":
+            if installed == required:
+                return "version_mismatch"
+            comparison = compare_versions(installed, required)
+            if comparison == 0:
+                return "version_mismatch"
+        else:
+            comparison = compare_versions(installed, required)
+            if comparison is None:
+                unknown = True
+                continue
+            if operator == ">=" and comparison < 0:
+                return "version_mismatch"
+            if operator == ">" and comparison <= 0:
+                return "version_mismatch"
+            if operator == "<=" and comparison > 0:
+                return "version_mismatch"
+            if operator == "<" and comparison >= 0:
+                return "version_mismatch"
+    return "version_unchecked" if unknown else "version_match"
+
+
+def strip_inline_comment(line: str) -> str:
+    if " #" in line:
+        return line.split(" #", 1)[0].strip()
+    return line.strip()
+
+
+def parse_requirement_line(raw_line: str) -> tuple[str, str] | None:
+    line = strip_inline_comment(raw_line)
+    if not line or line.startswith("#"):
+        return None
+    if line.startswith(("-", "git+", "http://", "https://", "file:")):
+        return None
+    line = line.split(";", 1)[0].strip()
+    match = re.match(r"^([A-Za-z0-9_.-]+)(?:\[[^\]]+\])?\s*(.*)$", line)
+    if not match:
+        return None
+    name = normalize_package_name(match.group(1))
+    spec = match.group(2).strip()
+    if spec.startswith("@"):
+        spec = spec
+    return name, spec
+
+
+def requirement_statuses(project: Path) -> list[RequirementStatus]:
+    statuses: list[RequirementStatus] = []
+    requirements_path = project / "requirements.txt"
+    if not requirements_path.exists():
+        return statuses
+    for raw_line in requirements_path.read_text(encoding="utf-8", errors="ignore").splitlines():
+        parsed = parse_requirement_line(raw_line)
+        if parsed is None:
+            continue
+        name, required_spec = parsed
+        installed = package_version(name)
+        if installed is None:
+            status = "missing"
+        else:
+            status = version_constraint_status(installed, required_spec)
+        statuses.append(
+            RequirementStatus(
+                source="requirements.txt",
+                requirement=strip_inline_comment(raw_line),
+                name=name,
+                required_version=required_spec or "any",
+                installed_version=installed,
+                status=status,
+            )
+        )
+    return statuses
 
 
 def env_status(name: str) -> str:
@@ -309,6 +440,7 @@ def build_report(project: Path) -> EnvironmentReport:
     for package in CORE_PACKAGES:
         version = package_version(package)
         packages.append(PackageStatus(package, "set" if version else "missing", version))
+    requirements = requirement_statuses(project)
 
     env_vars = [EnvVarStatus(key, env_status(key)) for key in ENV_KEYS]
     ai_env = ai_studio_env_status(project)
@@ -362,6 +494,14 @@ def build_report(project: Path) -> EnvironmentReport:
     if not deps:
         failures.append("missing_dependency_file")
         next_steps.append("Add or confirm requirements.txt, pyproject.toml, or environment.yml.")
+    missing_requirements = [item.name for item in requirements if item.status == "missing"]
+    mismatched_requirements = [item.name for item in requirements if item.status == "version_mismatch"]
+    if missing_requirements:
+        failures.append("missing_requirements:" + ",".join(missing_requirements))
+        next_steps.append("Install missing packages from requirements.txt.")
+    if mismatched_requirements:
+        failures.append("version_mismatch_requirements:" + ",".join(mismatched_requirements))
+        next_steps.append("Resolve package version mismatches before model execution.")
     if package_version("mlflow") is None:
         failures.append("missing_dependency:mlflow")
         next_steps.append("Install or activate an environment that includes mlflow.")
@@ -393,6 +533,7 @@ def build_report(project: Path) -> EnvironmentReport:
         virtual_env=virtual_env,
         dependency_files=deps,
         packages=packages,
+        requirements=requirements,
         env_vars=env_vars,
         ai_studio_env=ai_env,
         model_settings=model_settings,
@@ -416,6 +557,14 @@ def print_text(report: EnvironmentReport):
     for package in report.packages:
         suffix = f" {package.version}" if package.version else ""
         print(f"- {package.name}: {package.status}{suffix}")
+    if report.requirements:
+        print("\nDependency check from requirements.txt:")
+        for item in report.requirements:
+            installed = item.installed_version if item.installed_version else "missing"
+            print(
+                f"- {item.name}: {item.status} "
+                f"(required: {item.required_version}, installed: {installed})"
+            )
     print("\nEnvironment variables:")
     for item in report.env_vars:
         print(f"- {item.name}: {item.status}")

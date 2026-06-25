@@ -9,9 +9,11 @@ from __future__ import annotations
 
 import argparse
 import ast
+import importlib.metadata
 import json
 import os
 import platform
+import re
 import sys
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
@@ -123,6 +125,7 @@ MODEL_SUFFIXES = {
     ".keras",
     ".safetensors",
 }
+REQUIREMENT_OPERATORS = ["==", "!=", ">=", "<=", "~=", ">", "<"]
 
 GENERATED_SKIP_DIRS = {
     ".git",
@@ -153,6 +156,111 @@ class DoctorReport:
     expected_python: str
     checks: list[DoctorCheck]
     next_steps: list[str]
+
+
+def package_version(name: str) -> str | None:
+    try:
+        return importlib.metadata.version(name)
+    except importlib.metadata.PackageNotFoundError:
+        return None
+
+
+def normalize_package_name(name: str) -> str:
+    return re.sub(r"[-_.]+", "-", name).lower()
+
+
+def parse_version_parts(value: str) -> tuple[int, ...] | None:
+    match = re.match(r"^\s*(\d+(?:\.\d+)*)", value)
+    if not match:
+        return None
+    return tuple(int(part) for part in match.group(1).split("."))
+
+
+def compare_versions(installed: str, required: str) -> int | None:
+    installed_parts = parse_version_parts(installed)
+    required_parts = parse_version_parts(required)
+    if installed_parts is None or required_parts is None:
+        return None
+    length = max(len(installed_parts), len(required_parts))
+    left = installed_parts + (0,) * (length - len(installed_parts))
+    right = required_parts + (0,) * (length - len(required_parts))
+    if left == right:
+        return 0
+    return 1 if left > right else -1
+
+
+def version_constraint_status(installed: str, required_spec: str) -> str:
+    if not required_spec:
+        return "installed"
+    constraints = [item.strip() for item in required_spec.split(",") if item.strip()]
+    unknown = False
+    for constraint in constraints:
+        operator = next((item for item in REQUIREMENT_OPERATORS if constraint.startswith(item)), None)
+        if operator is None:
+            unknown = True
+            continue
+        required = constraint[len(operator) :].strip()
+        if operator == "~=":
+            unknown = True
+            continue
+        if operator == "==":
+            comparison = compare_versions(installed, required)
+            if installed == required or comparison == 0:
+                continue
+            return "version_mismatch"
+        if operator == "!=":
+            comparison = compare_versions(installed, required)
+            if installed == required or comparison == 0:
+                return "version_mismatch"
+            continue
+        comparison = compare_versions(installed, required)
+        if comparison is None:
+            unknown = True
+            continue
+        if operator == ">=" and comparison < 0:
+            return "version_mismatch"
+        if operator == ">" and comparison <= 0:
+            return "version_mismatch"
+        if operator == "<=" and comparison > 0:
+            return "version_mismatch"
+        if operator == "<" and comparison >= 0:
+            return "version_mismatch"
+    return "version_unchecked" if unknown else "version_match"
+
+
+def strip_inline_comment(line: str) -> str:
+    if " #" in line:
+        return line.split(" #", 1)[0].strip()
+    return line.strip()
+
+
+def parse_requirement_line(raw_line: str) -> tuple[str, str] | None:
+    line = strip_inline_comment(raw_line)
+    if not line or line.startswith("#"):
+        return None
+    if line.startswith(("-", "git+", "http://", "https://", "file:")):
+        return None
+    line = line.split(";", 1)[0].strip()
+    match = re.match(r"^([A-Za-z0-9_.-]+)(?:\[[^\]]+\])?\s*(.*)$", line)
+    if not match:
+        return None
+    return normalize_package_name(match.group(1)), match.group(2).strip()
+
+
+def requirement_rows(project: Path) -> list[tuple[str, str, str | None, str]]:
+    rows = []
+    path = project / "requirements.txt"
+    if not path.exists():
+        return rows
+    for raw_line in path.read_text(encoding="utf-8", errors="ignore").splitlines():
+        parsed = parse_requirement_line(raw_line)
+        if parsed is None:
+            continue
+        name, required_spec = parsed
+        installed = package_version(name)
+        status = "missing" if installed is None else version_constraint_status(installed, required_spec)
+        rows.append((name, required_spec or "any", installed, status))
+    return rows
 
 
 def rel(path: Path, base: Path) -> str:
@@ -265,6 +373,51 @@ def check_python_version() -> DoctorCheck:
         [sys.executable],
         [f"Python {EXPECTED_PYTHON_VERSION} 환경에서 최종 QA를 실행하세요."],
     )
+
+
+def check_pip_requirements(project: Path) -> DoctorCheck:
+    path = project / "requirements.txt"
+    if not path.exists():
+        return DoctorCheck(
+            "패키지 설치 상태",
+            "warn",
+            "requirements.txt가 없습니다.",
+            [],
+            ["사용자 모델의 pip 필요 패키지 목록을 확인하거나 requirements.txt를 추가하세요."],
+        )
+    rows = requirement_rows(project)
+    if not rows:
+        return DoctorCheck(
+            "패키지 설치 상태",
+            "warn",
+            "requirements.txt에서 확인 가능한 pip 패키지를 찾지 못했습니다.",
+            ["requirements.txt"],
+            ["requirements.txt 형식을 확인하세요."],
+        )
+    missing = [name for name, _, installed, _ in rows if installed is None]
+    mismatched = [name for name, _, _, status in rows if status == "version_mismatch"]
+    unchecked = [name for name, _, _, status in rows if status == "version_unchecked"]
+    evidence = []
+    for name, required, installed, status in rows[:20]:
+        installed_text = installed or "missing"
+        evidence.append(f"{name}: {status} (required: {required}, installed: {installed_text})")
+    if missing or mismatched:
+        return DoctorCheck(
+            "패키지 설치 상태",
+            "warn",
+            "미설치 또는 버전 불일치 패키지가 있습니다.",
+            evidence,
+            ["requirements.txt 기준으로 누락/버전 불일치 패키지를 먼저 맞추세요."],
+        )
+    if unchecked:
+        return DoctorCheck(
+            "패키지 설치 상태",
+            "warn",
+            "일부 복잡한 버전 조건은 자동 판정이 필요합니다.",
+            evidence,
+            ["version_unchecked 항목은 사용자가 설치 버전 호환성을 직접 확인하세요."],
+        )
+    return DoctorCheck("패키지 설치 상태", "pass", "requirements.txt 패키지가 현재 환경에 설치되어 있습니다.", evidence)
 
 
 def check_opencode(workspace: Path) -> DoctorCheck:
@@ -455,6 +608,7 @@ def build_report(workspace: Path, project: Path, sample: str, setting_file: str 
     checks = [
         check_opencode(workspace),
         check_python_version(),
+        check_pip_requirements(project),
         check_entrypoint(project, setting_file),
         check_sample_spec(project, workspace, sample),
         check_env_settings(project, setting_file),

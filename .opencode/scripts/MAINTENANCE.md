@@ -35,6 +35,7 @@ bootstrap_sample_project.py
 
 check_environment.py
   Python, dependency, MLflow 설정, 소스 내 필수 설정값을 확인합니다.
+  requirements.txt의 pip 패키지 설치/버전 상태를 상세 비교합니다.
   환경 변수 값과 소스 설정값을 set/missing/empty 상태로 표시합니다.
 
 run_training.py
@@ -71,6 +72,7 @@ test_local_sample.py
 - OpenCode 패키지 상태를 확인합니다.
 - 01~06 스킬 폴더가 순서대로 있는지 확인합니다.
 - Python 3.11.9 여부를 확인합니다.
+- `requirements.txt` 기준 pip 패키지 설치/버전 상태를 요약합니다.
 - 실행 파일 후보를 확정하거나 사용자 입력 필요 상태를 표시합니다.
 - 샘플 규격 폴더/파일 누락을 찾습니다.
 - MLflow 필수 5개 설정값을 소스 또는 환경 변수에서 확인합니다.
@@ -153,6 +155,7 @@ build_tod_guide()          복사 후 사용자에게 보여줄 TOD 단계
 책임:
 
 - Python 버전, venv, dependency 파일, 설치 패키지를 확인합니다.
+- `requirements.txt`의 필요 패키지, 요구 버전, 현재 설치 버전, 미설치/버전 불일치를 확인합니다.
 - 환경 변수 `MLFLOW_*` 상태를 확인합니다.
 - `run_model.py` 또는 `runtest.py` 안의 설정 블록을 AST로 파싱합니다.
 - 사용자가 직접 소스에 입력해야 하는 값만 알려줍니다.
@@ -167,6 +170,7 @@ ENTRYPOINTS                실행 파일 후보
 SETTING_ALIASES            설정명 alias
 CORE_PACKAGES              설치 여부를 확인할 핵심 패키지
 EXPECTED_PYTHON_VERSION    Python 기준 버전
+REQUIREMENT_OPERATORS      자동 비교할 버전 연산자
 ```
 
 주의:
@@ -174,6 +178,7 @@ EXPECTED_PYTHON_VERSION    Python 기준 버전
 - `ai_studio.env`는 보조 확인용입니다. 현재 흐름은 소스 직접 입력을 우선합니다.
 - AST 파싱은 문자열 literal만 안전하게 읽습니다. 동적 표현식은 값을 추론하지 않습니다.
 - password는 값이 있어도 `set`만 출력합니다.
+- 복잡한 pip specifier는 `version_unchecked`로 표시하고 사용자가 호환성을 직접 확인하게 합니다.
 
 ## run_training.py
 

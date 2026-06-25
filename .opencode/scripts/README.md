@@ -77,10 +77,11 @@ python .opencode/scripts/doctor.py --workspace . --project <model-project-folder
 ```text
 1. OpenCode 패키지/opencode.json/01~06 스킬 폴더
 2. Python 3.11.9 환경
-3. 실행 파일 확정
-4. 샘플 규격 폴더/파일
-5. MLflow 필수 5개 설정값 입력/export
-6. 모델/메트릭/코드 산출물
+3. requirements.txt 패키지 설치/버전 상태
+4. 실행 파일 확정
+5. 샘플 규격 폴더/파일
+6. MLflow 필수 5개 설정값 입력/export
+7. 모델/메트릭/코드 산출물
 ```
 
 ### validate_mlflow_project.py
@@ -149,6 +150,7 @@ python .opencode/scripts/bootstrap_sample_project.py --project <model-project-fo
 
 Python, dependency, MLflow, `ai_studio.env` 상태를 확인한다.
 Python 기준 버전은 3.11.9이다. 다른 버전이면 `version_mismatch:python`으로 분류한다.
+`requirements.txt`가 있으면 필요한 pip 패키지 목록, 현재 설치 여부, 설치된 버전, 요구 버전, 버전 불일치 여부를 함께 출력한다.
 Python 버전이 다르면 `차단 항목 요약`에 다음 형식으로 표시한다.
 
 ```text

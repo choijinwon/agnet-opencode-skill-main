@@ -16,6 +16,7 @@ PATTERNS = [
     "__pycache__/",
     "*.py[cod]",
     ".DS_Store",
+    ".opencode/.launch_seen",
     ".pytest_cache/",
     ".mypy_cache/",
     ".ruff_cache/",
@@ -34,10 +35,26 @@ PATTERNS = [
     "mlflow.db",
     "ai_studio/tracking/",
     "ai_studio/metrics/",
+    "ai_studio/code/",
+    "ai_studio/artifacts/",
     "artifacts/",
+    "runs/",
+    "wandb/",
+    "lightning_logs/",
+    "checkpoints/",
+    "dataset/",
+    "datasets/",
+    "data/raw/",
+    "data/processed/",
     "model/",
     "models/",
     "saved_model/",
+    "*.log",
+    "*.csv",
+    "*.tsv",
+    "*.parquet",
+    "*.npy",
+    "*.npz",
     "*.pt",
     "*.pth",
     "*.onnx",
@@ -67,7 +84,9 @@ def replace_or_append(text: str, block: str) -> tuple[str, str]:
     if START in text and END in text:
         before, rest = text.split(START, 1)
         _, after = rest.split(END, 1)
-        return before.rstrip() + "\n\n" + block + after.lstrip("\n"), "updated"
+        prefix = before.rstrip()
+        separator = "\n\n" if prefix else ""
+        return prefix + separator + block + after.lstrip("\n"), "updated"
     if text.strip():
         return text.rstrip() + "\n\n" + block, "appended"
     return block, "created"

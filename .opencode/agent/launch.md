@@ -96,7 +96,8 @@ OpenCode MLflow Launch
    - Bun 사용 금지: bun, bunx, bun install, bun run
    - JavaScript 설치가 필요하고 package.json이 있으면 npm i 사용
    - WSL wheelhouse가 있으면 bash .opencode/wsl/install_offline.sh 우선
-   - 인덱싱이 느리면 python .opencode/scripts/apply_index_ignore.py --project . 실행
+   - 응답/인덱싱이 느리면 python .opencode/scripts/response_speed_check.py --project . 실행
+   - 진단 후 python .opencode/scripts/apply_index_ignore.py --project . 실행
    - Windows standaloneExecutable/native 실행 대신 python 스크립트 우선
 
 추천 첫 요청

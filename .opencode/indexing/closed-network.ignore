@@ -10,7 +10,6 @@ ENV/
 __pycache__/
 *.py[cod]
 .DS_Store
-.opencode/.launch_seen
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
@@ -21,8 +20,6 @@ dist/
 build/
 .cache/
 
-.opencode/wsl/wheelhouse/
-**/.opencode/wsl/wheelhouse/
 *.whl
 *.tar.gz
 *.zip

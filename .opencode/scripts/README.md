@@ -57,7 +57,7 @@ python .opencode/scripts/response_speed_check.py --project .
 python .opencode/scripts/apply_index_ignore.py --project .
 ```
 
-이 명령은 워크스페이스 루트의 `.ignore`, `.rgignore`, `.gitignore`에 관리 블록을 추가한다. 제외 대상은 `.venv/`, `node_modules/`, `.opencode/wsl/wheelhouse/`, `mlruns/`, `ai_studio/tracking/`, `ai_studio/code/`, `saved_model/`, `datasets/`, `*.pt`, `*.pkl`, `*.safetensors` 같은 생성물과 대용량 모델 파일이다.
+이 명령은 워크스페이스 루트의 `.ignore`, `.rgignore`, `.gitignore`에 관리 블록을 추가한다. 제외 대상은 `.venv/`, `node_modules/`, `mlruns/`, `ai_studio/tracking/`, `ai_studio/code/`, `saved_model/`, `datasets/`, `*.pt`, `*.pkl`, `*.safetensors` 같은 생성물과 대용량 모델 파일이다. `.opencode` 경로는 제외 패턴에 넣지 않는다.
 
 자세한 운영 기준은 `.opencode/performance/CLOSED_NETWORK_SPEED.md`를 본다.
 

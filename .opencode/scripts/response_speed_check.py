@@ -12,7 +12,6 @@ from pathlib import Path
 EXPECTED_IGNORE_PATTERNS = [
     ".venv/",
     "node_modules/",
-    ".opencode/wsl/wheelhouse/",
     "mlruns/",
     "ai_studio/tracking/",
     "ai_studio/metrics/",

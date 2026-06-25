@@ -30,7 +30,6 @@ Build mode:
 ```text
 .venv/
 node_modules/
-.opencode/wsl/wheelhouse/
 mlruns/
 ai_studio/tracking/
 ai_studio/metrics/
@@ -58,5 +57,6 @@ WSL:
 
 - Bun은 사용하지 않습니다.
 - JavaScript 프로젝트에서 `package.json`이 있으면 `npm i`만 사용합니다.
-- 폐쇄망 WSL 패키지는 `.opencode/wsl/wheelhouse/` + `install_offline.sh`를 우선합니다.
+- 폐쇄망 WSL 패키지는 WSL 설치 가이드의 wheelhouse 절차를 우선합니다.
+- `.opencode` 폴더는 런치/빌드 가이드와 스킬을 포함하므로 ignore 패턴에 넣지 않습니다.
 - 데이터셋이나 모델 바이너리를 분석해야 할 때는 폴더 전체를 열지 말고 필요한 파일명만 지정합니다.

@@ -112,3 +112,4 @@ metadata:
 - 환경 검증의 차단/경고 항목은 프로세스를 종료시키는 실패가 아니라 보고서 항목으로 출력한다.
 - Bun 런타임은 사용하지 않는다. `bun`, `bunx`, `bun install`, `bun run` 대신 Python 스크립트만 실행한다.
 - Windows에서는 `standaloneExecutable` 경로를 사용하지 않고 워크스페이스 기준 `python ...` 명령으로 스크립트를 직접 실행한다.
+- Windows x86_64에서는 native/standalone executable 모델 실행을 기본 경로로 안내하지 않는다. Python entrypoint, `mlflow.pyfunc`, `aiu_custom` wrapper 기반 검증을 우선한다.

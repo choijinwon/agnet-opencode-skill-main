@@ -34,9 +34,12 @@ metadata:
   - README 예제
   - test fixture
 - 모델 로드 방식을 확인한다.
-  - framework native load
   - `mlflow.pyfunc.load_model`
   - custom wrapper load
+  - framework native load (Windows에서는 기본 경로로 안내하지 않고 보조 확인으로만 사용)
+- Windows x86_64 환경에서는 native/standalone executable 기반 추론을 기본 실행 경로로 사용하지 않는다.
+  - 네이티브 로드가 불안정하거나 실패하면 실패로 고정하지 말고 `mlflow.pyfunc.load_model`, `aiu_custom` wrapper, `run_model.py`, `runtest.py` 기반 검증으로 우회한다.
+  - 사용자가 별도로 요청하지 않는 한 native executable 실행 명령을 안내하지 않는다.
 - `ModelWrapper`가 있으면 다음 계약을 확인한다.
   - `mlflow.pyfunc.PythonModel` 상속 여부
   - `load_context` 구현 여부

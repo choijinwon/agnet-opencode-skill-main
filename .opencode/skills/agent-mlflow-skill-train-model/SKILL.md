@@ -63,6 +63,10 @@ metadata:
   - metrics/log file
 - 생성된 모델 artifact의 위치와 크기를 확인한다.
 - artifact가 빈 파일이거나 placeholder인지 확인한다.
+- Windows에서는 framework native executable 또는 native model 직접 실행을 기본 경로로 안내하지 않는다.
+  - 네이티브 모델 파일은 참고 산출물로만 확인한다.
+  - 실행/검증은 `python`으로 `run_model.py`, `runtest.py`, 또는 사용자가 확정한 학습 entrypoint를 실행하는 흐름을 우선한다.
+  - Windows x86_64 standalone/native 실행이 불안정하면 즉시 Python 스크립트 기반 실행으로 우회하도록 안내한다.
 
 ## Existing Model Execution
 
@@ -127,7 +131,7 @@ model/
 artifacts/
 MLmodel
 python_model.pkl
-framework native model file
+framework original/native model file (reference artifact only)
 input_example.json
 ```
 

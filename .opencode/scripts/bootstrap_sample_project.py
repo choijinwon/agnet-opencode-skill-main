@@ -191,8 +191,6 @@ def copy_sample(sample: Path, project: Path, force: bool, execute: bool, copy_mo
     skipped: list[str] = []
     skip_run_model = (project / "runtest.py").exists() or (target_root / "runtest.py").exists()
 
-    if target_root.exists() and copy_mode == "folder" and not force:
-        raise FileExistsError(f"target_sample_folder_exists:{target_root}")
     if target_root.exists() and copy_mode == "folder" and force and execute:
         shutil.rmtree(target_root)
 
@@ -202,6 +200,9 @@ def copy_sample(sample: Path, project: Path, force: bool, execute: bool, copy_mo
         display_relative = Path(sample.name) / relative if copy_mode == "folder" else relative
 
         if source.is_dir():
+            if target.exists() and not force:
+                skipped.append(str(display_relative) + "/")
+                continue
             if execute:
                 target.mkdir(parents=True, exist_ok=True)
             copied.append(str(display_relative) + "/")

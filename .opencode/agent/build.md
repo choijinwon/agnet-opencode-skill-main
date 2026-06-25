@@ -68,7 +68,7 @@ Concrete examples:
 3 -> python .opencode/scripts/bootstrap_sample_project.py --project <workspace-root> --sample tensorflow --execute
 ```
 
-If the target sample folder already exists, stop and ask before using `--force`.
+If the target sample folder already exists, run the same copy command without `--force` to supplement only missing files and folders such as `saved_model/`. Existing files must be skipped, not overwritten. Ask before using `--force` only when the user explicitly wants a clean overwrite.
 
 After sample copy, report:
 

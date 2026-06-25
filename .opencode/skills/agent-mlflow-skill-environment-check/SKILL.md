@@ -110,6 +110,7 @@ metadata:
 - 폐쇄망에서는 내부 패키지 저장소 정책을 우선 확인해야 한다.
 - 폐쇄망에서는 GitHub issue 생성, 외부 crash report, telemetry, bug-report URL 열기를 시도하지 않는다.
 - 환경 검증의 차단/경고 항목은 프로세스를 종료시키는 실패가 아니라 보고서 항목으로 출력한다.
+- 폐쇄망에서 OpenCode 인덱싱 또는 파일 트리 스캔이 느리면 `python .opencode/scripts/apply_index_ignore.py --project .`를 먼저 실행해 생성물/대용량 파일을 제외한다.
 - opencode Bun 런타임 환경에서 파일 트리 오류 처리 중 세그멘테이션 폴트가 발생할 수 있으므로 Bun 런타임은 사용하지 않는다. `bun`, `bunx`, `bun install`, `bun run`을 절대 실행하지 않는다.
 - JavaScript 패키지 설치가 필요하고 대상 프로젝트에 `package.json`이 있으면 `npm i`만 사용한다.
 - Python 샘플/모델 의존성은 `requirements.txt` 기준으로 `python -m pip install -r requirements.txt`를 사용한다.

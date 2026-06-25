@@ -19,6 +19,7 @@ If the user arrived here by switching from the Launch tab to the Build tab, do n
 - If a secret-like field must be discussed, report only `set`, `empty`, or `missing`.
 - Prefer local and closed-network assumptions unless the user explicitly asks for external network use.
 - In closed-network/offline mode, never create or open GitHub issues, crash reports, telemetry reports, or external bug-report URLs. Treat environment-check problems as report findings and continue the chat.
+- In closed-network/offline mode, if OpenCode indexing or file-tree scanning is slow, first run `python .opencode/scripts/apply_index_ignore.py --project .` to exclude generated dependency/model folders from indexing.
 - Do not use Bun. The opencode Bun runtime can segfault while handling file-tree errors, so never run `bun`, `bunx`, `bun install`, or `bun run`.
 - If JavaScript package installation is needed and `package.json` exists in the target project, use `npm i` only.
 - This `.opencode` package itself uses Python scripts and does not require a JavaScript package manager.

@@ -126,19 +126,73 @@ The first next action after folder copy must be environment validation. The seco
 
 ## Existing Model Flow
 
-If `model_found: true`, do not ask the user to choose a sample. Continue with the discovered model project path and use the model-found 7-step process:
+If `model_found: true`, do not ask the user to choose a sample. Continue with the discovered model project path and use the model-found 12-step process.
+
+Existing model assumptions:
+
+- The user's model file must stay under the project root `data/` tree, for example `data/model.pkl`, `data/checkpoints/model.pt`, or `data/models/model.safetensors`.
+- Do not copy the selected model file into `ai_studio/`.
+- `ai_studio/` is for execution/logging templates and generated outputs only.
+- The confirmed entrypoint must read the selected model from its original `data/**` path.
+- Secret values must never be printed; report only `set`, `empty`, or `missing`.
+
+Model-found detailed process:
 
 ```text
-1. 실행 파일 확정
-2. 환경 검증
-3. 샘플 규격 확인/보충
-4. 환경 변수 입력/export
-5. 패키지 설치
-6. 로컬 학습 모델 실행
-7. 산출물 확인
+Step 1. 프로젝트 기준 경로 확인
+        selected_project_path와 workspace root를 확정한다.
+
+Step 2. data/** 모델 원본 경로 확인
+        data/ 하위에서 .pkl, .joblib, .pt, .pth, .onnx, .h5, .keras, .safetensors, MLmodel 등을 찾는다.
+        선택된 모델은 data/** 원본 경로에서 직접 읽는다.
+        모델 파일을 ai_studio/로 복사하지 않는다.
+
+Step 3. model_found/framework 판단
+        model_found: true를 먼저 출력하고 sklearn/pytorch/tensorflow/onnx/huggingface/custom 후보를 표시한다.
+
+Step 4. 실행 파일 확정
+        run_model.py로 고정하지 않는다.
+        run.py, train.py, runtest.py 등 실제 로컬 학습/모델 생성 파일을 확정한다.
+        파일이 없으면 자동 생성하지 말고 사용자가 직접 넣도록 안내한다.
+        후보가 여러 개면 사용자가 --entrypoint <file>로 지정하게 한다.
+
+Step 5. AI Studio 코드 적합성 확인
+        확정된 entrypoint가 data/** 모델 경로를 읽는지 확인한다.
+        MLflow 설정 블록, MLFLOW_* export, artifact_path="ai_studio", aiu_custom/code_paths가 필요한지 확인한다.
+        수정이 필요하면 먼저 adapt_ai_studio.py dry-run을 실행한다.
+
+Step 6. 샘플 규격 확인/보충
+        aiu_custom/, local_serving/, saved_model/, requirements.txt, input_example.json을 확인한다.
+        부족한 경우 --scaffold-existing으로 템플릿 골격만 복사한다.
+        기존 모델 파일과 data/** 원본은 덮어쓰거나 이동하지 않는다.
+
+Step 7. 환경 검증
+        Python 3.11.9, OS/Windows 경로, requirements.txt, pip 설치/버전 상태를 확인한다.
+
+Step 8. 환경 변수 입력/export
+        사용자가 entrypoint 설정 블록에 필수 5개 값을 직접 입력하게 안내한다.
+        mlflow_tracking_url, mlflow_tracking_username, mlflow_tracking_password,
+        mlflow_experiment_name, mlflow_register_model_name 상태를 set/empty/missing으로만 확인한다.
+
+Step 9. 패키지 설치
+        폐쇄망 WSL은 .opencode/wsl/install_offline.sh를 우선한다.
+        requirements.txt가 있으면 python -m pip install -r requirements.txt를 사용한다.
+        Bun은 사용하지 않는다.
+
+Step 10. 로컬 학습 모델 실행
+        확정된 entrypoint를 python으로 실행한다.
+        실행 파일은 선택된 data/** 모델 원본을 직접 읽어야 한다.
+
+Step 11. 산출물 확인
+        ai_studio/metrics/, ai_studio/code/와 MLflow artifact_path="ai_studio" 아래 code/를 확인한다.
+        model_info.json 하나만으로 완료 처리하지 않는다.
+
+Step 12. 다음 조치
+        추론 테스트, MLflow run/artifact/registry 검증, QA 재실행 중 다음 하나를 안내한다.
+        실패 또는 미입력 항목이 있으면 TOD Guide로 바로 다음 작업만 제시한다.
 ```
 
-The first Build step for an existing model is always confirming the actual training/model-creation entrypoint. Do not assume `run_model.py`. If the project has exactly one Python file, such as `run.py`, treat it as the entrypoint candidate. If no Python entrypoint can be found, do not create one automatically; ask the user to place the real training/model-creation Python file in the project and provide its filename. If candidates are ambiguous, ask the user to choose the exact file with `--entrypoint <file>`.
+The first Build step for an existing model is always confirming the project path, the `data/**` model source path, and the actual training/model-creation entrypoint. Do not assume `run_model.py`. If the project has exactly one Python file, such as `run.py`, treat it as the entrypoint candidate. If no Python entrypoint can be found, do not create one automatically; ask the user to place the real training/model-creation Python file in the project and provide its filename. If candidates are ambiguous, ask the user to choose the exact file with `--entrypoint <file>`.
 
 ## MLflow Tracking Guide
 

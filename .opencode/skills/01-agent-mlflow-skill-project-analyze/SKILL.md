@@ -18,26 +18,31 @@ metadata:
 현재 단계: 1. 프로젝트 분석
 현재 대상: workspace root 또는 user project path
 핵심 판단: model_found: true | false
-다음 단계: 모델 있음 -> 환경 검증 / 모델 없음 -> 샘플 선택
+다음 단계: 모델 있음 -> data/** 모델 원본 경로와 실행 파일 확정 / 모델 없음 -> 샘플 선택
 ```
 
 ## Workflow
 
 ```text
-1. 프로젝트 분석
-2. 환경 검증
-3. 샘플 규격 확인/보충
-4. 환경 변수 입력/export
-5. 패키지 설치
-6. 로컬 학습 모델 실행
-7. 산출물 확인
+1. 프로젝트 기준 경로 확인
+2. data/** 모델 원본 경로 확인
+3. model_found/framework 판단
+4. 실행 파일 확정
+5. AI Studio 코드 적합성 확인
+6. 샘플 규격 확인/보충
+7. 환경 검증
+8. 환경 변수 입력/export
+9. 패키지 설치
+10. 로컬 학습 모델 실행
+11. 산출물 확인
+12. 다음 조치
 ```
 
 ## What To Do Now
 
 ```text
 1. 현재 워크스페이스 경로를 확인한다.
-2. 모델 파일, 실행 entrypoint, 필수 폴더를 찾는다.
+2. data/** 모델 원본 파일, 실행 entrypoint, 필수 폴더를 찾는다.
 3. model_found 값을 먼저 결정한다.
 4. 모델이 있으면 샘플 선택을 묻지 않는다.
 5. 모델이 없으면 1 sklearn / 2 pytorch / 3 tensorflow 선택지를 보여준다.
@@ -53,6 +58,7 @@ metadata:
 - train_entrypoint
 - inference_entrypoint
 - model_artifact_path
+- selected_data_model_path
 - input_example_path
 - 발견 항목
 - 누락 항목
@@ -103,6 +109,7 @@ blocked:
 필수 폴더: aiu_custom/, local_serving/, saved_model/
 모델 wrapper: aiu_custom/model_wrapper.py, aiu_custom/predict.py
 모델 artifact: ai_studio/, saved_model/, model/, artifacts/, .pkl, .joblib, .pt, .pth, .h5, .keras
+사용자 모델 원본: data/**/*.pkl, data/**/*.joblib, data/**/*.pt, data/**/*.pth, data/**/*.onnx, data/**/*.h5, data/**/*.keras, data/**/*.safetensors
 MLflow model: MLmodel, python_model.pkl
 입력 예제: input_example.json
 ```
@@ -157,5 +164,6 @@ python .opencode/scripts/bootstrap_sample_project.py --project <model-project-fo
 - 샘플 규격 보충은 기존 모델 파일을 덮어쓰지 않는다.
 - secret 값은 출력하지 않는다.
 - 발견한 artifact를 이동하거나 복사하지 않는다.
+- data/** 모델 원본을 ai_studio/로 복사하지 않는다.
 
 </details>

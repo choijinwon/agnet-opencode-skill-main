@@ -1,34 +1,59 @@
 # OpenCode MLflow Scripts
 
-이 폴더는 `.opencode/skills`의 MLflow 흐름을 보조하는 로컬 스크립트를 포함한다. 모델이 있으면 실행 파일 확정부터 시작하는 7단계, 모델이 없으면 샘플 복사 후 6단계로 진행한다.
+이 폴더는 `.opencode/skills`의 MLflow 흐름을 보조하는 로컬 스크립트를 포함한다. 모델이 있으면 `data/**` 모델 원본 경로와 실행 파일 확정부터 시작하는 12단계, 모델이 없으면 샘플 복사 후 6단계로 진행한다.
 
 대상은 사용자가 지정한 모델 프로젝트 폴더다.
+사용자 모델 파일은 프로젝트 루트의 `data/` 하위 트리에 두고, `ai_studio/`로 복사하지 않는다.
+`ai_studio/`는 실행 템플릿과 생성 산출물 폴더로만 사용한다.
 
 유지보수자는 먼저 `.opencode/scripts/MAINTENANCE.md`를 확인한다. 각 스크립트의 책임, 주요 함수, 수정 포인트, 주의사항을 파일별로 정리해두었다.
 
 ## Script Mapping
 
 ```text
-Step 1  프로젝트 구조 분석 / 실행 파일 확정
+Step 1  프로젝트 기준 경로 확인
         validate_mlflow_project.py
         doctor.py
+
+Step 2  data/** 모델 원본 경로 확인
+        validate_mlflow_project.py
+        doctor.py
+
+Step 3  model_found/framework 판단
+        validate_mlflow_project.py
+
+Step 4  실행 파일 확정
+        doctor.py
         adapt_ai_studio.py
+
+Step 5  AI Studio 코드 적합성 확인
+        adapt_ai_studio.py
+        doctor.py
+
+Step 6  샘플 규격 확인/보충
         bootstrap_sample_project.py
 
-Step 2  실행 환경 검증
+Step 7  환경 검증
         check_environment.py
 
-Step 3  환경 변수 입력/export
+Step 8  환경 변수 입력/export
+        check_environment.py
+        doctor.py
 
-Step 4  패키지 설치
+Step 9  패키지 설치
 
-Step 5  로컬 학습 실행 및 모델 생성 확인
+Step 10 로컬 학습 실행 및 모델 생성 확인
         run_training.py
         test_local_sample.py
 
-Step 6  산출물 확인
+Step 11 산출물 확인
+        run_training.py
         test_inference.py
         verify_mlflow.py
+
+Step 12 다음 조치
+        doctor.py
+        validate_mlflow_project.py
 ```
 
 패키지 설치 기준:
@@ -84,7 +109,7 @@ python .opencode/scripts/doctor.py --workspace . --project <model-project-folder
 5. AI Studio 코드 적합성
 6. 샘플 규격 폴더/파일
 7. MLflow 필수 5개 설정값 입력/export
-8. 모델/메트릭/코드 산출물
+8. data/** 모델 원본 경로와 모델/메트릭/코드 산출물
 ```
 
 ### adapt_ai_studio.py
@@ -106,6 +131,7 @@ python .opencode/scripts/adapt_ai_studio.py --project <model-project-folder> --e
 - ai_studio/metrics, ai_studio/code, ai_studio/tracking 경로 helper 삽입
 - aiu_custom/predict.py, local_serving/serve.py, saved_model/, input_example.json 보충
 - requirements.txt가 없으면 프레임워크/Import 기반 최소 패키지 작성
+- data/** 모델 원본은 복사하거나 이동하지 않음
 ```
 
 기존 파일은 기본적으로 덮어쓰지 않는다. 이미 adapter block이 있으면 `--force`가 없을 때 건너뛴다.

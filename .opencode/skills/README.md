@@ -7,6 +7,7 @@
 ```text
 01. Project Analyze
    model_found: true | false 결정
+   모델 있음이면 data/** 모델 원본 경로와 실행 파일을 먼저 확정
 
 02. Sample Bootstrap
    모델이 없으면 1 sklearn / 2 pytorch / 3 tensorflow 선택
@@ -22,6 +23,31 @@
 
 06. MLflow Verify
    run, metrics, artifact, registry 상태 확인
+```
+
+## Existing Model Process
+
+전제:
+
+- 사용자가 가져온 모델 파일은 프로젝트 루트의 `data/` 하위 트리에 둔다.
+- 모델 파일은 `ai_studio/`로 복사하지 않는다.
+- `ai_studio/`는 실행 템플릿과 생성 산출물 폴더로만 사용한다.
+- 선택된 모델은 `data/**` 원본 경로에서 직접 읽는다.
+- secret 값은 출력하지 않고 `set`, `empty`, `missing` 상태만 확인한다.
+
+```text
+Step 1. 프로젝트 기준 경로 확인
+Step 2. data/** 모델 원본 경로 확인
+Step 3. model_found/framework 판단
+Step 4. 실행 파일 확정
+Step 5. AI Studio 코드 적합성 확인
+Step 6. 샘플 규격 확인/보충
+Step 7. 환경 검증
+Step 8. 환경 변수 입력/export
+Step 9. 패키지 설치
+Step 10. 로컬 학습 모델 실행
+Step 11. 산출물 확인
+Step 12. 다음 조치
 ```
 
 ## Folder Order

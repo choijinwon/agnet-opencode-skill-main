@@ -10,9 +10,18 @@ MODEL_HINTS = [
     "train.py",
     "predict.py",
     "aiu_custom/",
+    "data/",
     "saved_model/",
     "MLmodel",
     "python_model.pkl",
+    ".pkl",
+    ".joblib",
+    ".pt",
+    ".pth",
+    ".onnx",
+    ".h5",
+    ".keras",
+    ".safetensors",
 ]
 
 
@@ -90,7 +99,8 @@ def main() -> int:
 
     print("- 다음 단계:")
     if model_found:
-        print("  - 샘플은 사용하지 않고 본인 모델 경로 기준으로 실행 파일 확정부터 시작하는 MLflow 7단계를 진행하세요.")
+        print("  - 샘플은 사용하지 않고 본인 모델 경로 기준으로 모델 있음 12단계를 진행하세요.")
+        print("  - 모델 파일은 data/** 원본 경로에서 직접 읽고 ai_studio/로 복사하지 않습니다.")
         print("  - 실제 분석/환경 검증/모델 실행은 OpenCode 빌드모드에서 선택해주세요.")
         print("  - 추천 요청: 내 모델 경로 기준으로 MLflow 모델 있음 프로세스 분석해줘.")
     else:

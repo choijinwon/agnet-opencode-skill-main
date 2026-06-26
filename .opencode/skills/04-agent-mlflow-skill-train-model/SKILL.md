@@ -24,23 +24,30 @@ metadata:
 ## Workflow
 
 ```text
-1. 실행 파일 확정
-2. 환경 검증
-3. 샘플 규격 확인/보충
-4. 환경 변수 입력/export
-5. 패키지 설치
-6. 로컬 학습 모델 실행
-7. 산출물 확인
+1. 프로젝트 기준 경로 확인
+2. data/** 모델 원본 경로 확인
+3. model_found/framework 판단
+4. 실행 파일 확정
+5. AI Studio 코드 적합성 확인
+6. 샘플 규격 확인/보충
+7. 환경 검증
+8. 환경 변수 입력/export
+9. 패키지 설치
+10. 로컬 학습 모델 실행
+11. 산출물 확인
+12. 다음 조치
 ```
 
 ## What To Do Now
 
 ```text
 1. 기존 모델이면 실제 entrypoint를 먼저 확정한다.
-2. 샘플 모델이면 복사된 샘플 폴더를 실행 대상으로 사용한다.
-3. run_model.py로 고정하지 않는다. run.py처럼 사용자 파일명이 다르면 실제 파일명을 확정한다.
-4. 실행 전 MLflow/AI Studio 설정 블록을 확인한다.
-5. 실행 후 ai_studio/metrics, ai_studio/code를 확인한다.
+2. 기존 모델 파일은 data/** 원본 경로에서 직접 읽는지 확인한다.
+3. 모델 파일은 ai_studio/로 복사하지 않는다.
+4. 샘플 모델이면 복사된 샘플 폴더를 실행 대상으로 사용한다.
+5. run_model.py로 고정하지 않는다. run.py처럼 사용자 파일명이 다르면 실제 파일명을 확정한다.
+6. 실행 전 MLflow/AI Studio 설정 블록을 확인한다.
+7. 실행 후 ai_studio/metrics, ai_studio/code를 확인한다.
 ```
 
 ## Output Contract
@@ -157,13 +164,18 @@ blocked:
 기존 모델 흐름:
 
 ```text
-1. selected_project_path를 실행 기준으로 사용
-2. 실제 entrypoint 확정
-3. config/input/dataset/model path 확인
-4. dry run 또는 smoke test 확인
-5. MLflow 설정 확인
-6. 학습 또는 export 실행
-7. ai_studio/metrics, ai_studio/code 확인
+1. selected_project_path와 workspace root 확인
+2. data/** 모델 원본 경로 확인
+3. model_found/framework 판단
+4. 실제 entrypoint 확정
+5. entrypoint가 data/** 모델 원본을 직접 읽는지 확인
+6. 샘플 규격 골격 확인/보충
+7. Python 3.11.9와 requirements 설치/버전 확인
+8. MLflow 필수 5개 설정값 입력/export 상태 확인
+9. 필요한 패키지 설치
+10. 학습 또는 export 실행
+11. ai_studio/metrics, ai_studio/code, artifact_path="ai_studio" 확인
+12. 추론 테스트 또는 MLflow 검증으로 이동
 ```
 
 샘플 모델 흐름:
@@ -188,5 +200,6 @@ blocked:
 - 원격 학습이나 외부 데이터 다운로드는 기본 동작으로 가정하지 않는다.
 - secret 값은 출력하지 않는다.
 - Windows native/standalone executable 실행은 기본 경로로 안내하지 않는다.
+- 기존 data/** 모델 원본을 이동하거나 ai_studio/로 복사하지 않는다.
 
 </details>

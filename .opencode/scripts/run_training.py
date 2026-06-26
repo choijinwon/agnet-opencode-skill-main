@@ -97,6 +97,8 @@ def has_model_project(project: Path) -> bool:
         return True
     if any((project / name).exists() for name in ARTIFACT_DIRS):
         return True
+    if find_artifacts(project):
+        return True
     return any(path.suffix in ARTIFACT_SUFFIXES for path in project.glob("*") if path.is_file())
 
 
@@ -326,13 +328,18 @@ def main():
     existing_model_flow = model_found and not is_sample_project(work_path)
     if existing_model_flow:
         process_checklist = [
-            EnvVarStatus("1. 실행 파일 확정", "done" if entrypoint else "needs_input"),
-            EnvVarStatus("2. 환경 검증", "done" if not missing_env else "needs_input"),
-            EnvVarStatus("3. 샘플 규격 확인/보충", "done" if not missing_dirs else "needs_scaffold"),
-            EnvVarStatus("4. 환경 변수 입력/export", "done" if not missing_env else "needs_input"),
-            EnvVarStatus("5. 패키지 설치", "manual_check"),
-            EnvVarStatus("6. 로컬 학습 모델 실행", "done" if args.execute and return_code == 0 else "pending"),
-            EnvVarStatus("7. 산출물 확인", "done" if artifacts else "pending"),
+            EnvVarStatus("1. 프로젝트 기준 경로 확인", "done"),
+            EnvVarStatus("2. data/** 모델 원본 경로 확인", "done" if artifacts else "needs_input"),
+            EnvVarStatus("3. model_found/framework 판단", "done"),
+            EnvVarStatus("4. 실행 파일 확정", "done" if entrypoint else "needs_input"),
+            EnvVarStatus("5. AI Studio 코드 적합성 확인", "manual_check"),
+            EnvVarStatus("6. 샘플 규격 확인/보충", "done" if not missing_dirs else "needs_scaffold"),
+            EnvVarStatus("7. 환경 검증", "manual_check"),
+            EnvVarStatus("8. 환경 변수 입력/export", "done" if not missing_env else "needs_input"),
+            EnvVarStatus("9. 패키지 설치", "manual_check"),
+            EnvVarStatus("10. 로컬 학습 모델 실행", "done" if args.execute and return_code == 0 else "pending"),
+            EnvVarStatus("11. 산출물 확인", "done" if artifacts else "pending"),
+            EnvVarStatus("12. 다음 조치", "pending"),
         ]
     else:
         process_checklist = [

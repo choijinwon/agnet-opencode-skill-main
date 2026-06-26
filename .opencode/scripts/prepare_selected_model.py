@@ -1,0 +1,353 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from dataclasses import asdict, dataclass, field
+from pathlib import Path
+
+
+SUPPORTED_MODEL_KINDS = {
+    ".pkl": "sklearn_pickle",
+    ".joblib": "sklearn_joblib",
+    ".pt": "pytorch",
+    ".pth": "pytorch",
+    ".onnx": "onnx",
+    ".keras": "tensorflow_keras",
+    ".h5": "tensorflow_h5",
+    ".safetensors": "safetensors",
+}
+
+REFERENCE_ENTRYPOINTS = ["runtest.py", "run_test.py"]
+AI_STUDIO_TEMPLATE_DIRS = ["ai_studio", "ai_studio/code", "ai_studio/metrics", "ai_studio/tracking"]
+
+
+@dataclass
+class PreparedModelReport:
+    project_path: str
+    data_root: str
+    model_artifact_paths: list[str]
+    selected_model_path: str | None
+    model_kind: str | None
+    reference_entrypoint: str | None
+    generated_entrypoint: str
+    execute: bool
+    copied_template_dirs: list[str] = field(default_factory=list)
+    skipped: list[str] = field(default_factory=list)
+    failures: list[str] = field(default_factory=list)
+    next_steps: list[str] = field(default_factory=list)
+
+
+def rel(path: Path, base: Path) -> str:
+    try:
+        return path.relative_to(base).as_posix()
+    except ValueError:
+        return path.as_posix()
+
+
+def model_kind(path: Path) -> str | None:
+    return SUPPORTED_MODEL_KINDS.get(path.suffix.lower())
+
+
+def scan_data_models(project: Path) -> list[Path]:
+    data_root = project / "data"
+    if not data_root.is_dir():
+        return []
+    found = []
+    for path in data_root.rglob("*"):
+        if path.is_file() and model_kind(path):
+            found.append(path)
+    return sorted(set(found))
+
+
+def resolve_model_selection(project: Path, models: list[Path], raw: str | None) -> tuple[Path | None, str | None]:
+    if not raw:
+        return None, "model_selection_required"
+    value = raw.strip()
+    if value.isdigit():
+        index = int(value)
+        if 1 <= index <= len(models):
+            return models[index - 1], None
+        return None, f"model_index_out_of_range:{value}"
+
+    candidate = Path(value).expanduser()
+    if not candidate.is_absolute():
+        candidate = project / candidate
+    candidate = candidate.resolve()
+    if not candidate.exists() or not candidate.is_file():
+        return None, f"model_path_not_found:{value}"
+    return candidate, None
+
+
+def ensure_under_data(project: Path, model_path: Path) -> bool:
+    try:
+        model_path.resolve().relative_to((project / "data").resolve())
+        return True
+    except ValueError:
+        return False
+
+
+def find_reference_entrypoint(project: Path) -> Path | None:
+    for name in REFERENCE_ENTRYPOINTS:
+        candidate = project / name
+        if candidate.is_file():
+            return candidate
+    return None
+
+
+def create_ai_studio_template_dirs(project: Path, execute: bool) -> tuple[list[str], list[str]]:
+    copied: list[str] = []
+    skipped: list[str] = []
+    for name in AI_STUDIO_TEMPLATE_DIRS:
+        path = project / name
+        if path.exists():
+            skipped.append(name + "/")
+            continue
+        if execute:
+            path.mkdir(parents=True, exist_ok=True)
+        copied.append(name + "/")
+    return copied, skipped
+
+
+def generated_runtest_text(project: Path, selected_model: Path, kind: str, reference: Path) -> str:
+    selected_relative = rel(selected_model, project)
+    reference_relative = rel(reference, project)
+    return f'''#!/usr/bin/env python3
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+
+PROJECT_DIR = Path(__file__).resolve().parent
+DATA_MODEL_PATH = PROJECT_DIR / "{selected_relative}"
+MODEL_PATH = DATA_MODEL_PATH
+MODEL_KIND = "{kind}"
+REFERENCE_ENTRYPOINT = PROJECT_DIR / "{reference_relative}"
+AI_STUDIO_DIR = PROJECT_DIR / "ai_studio"
+
+# MLflow/AI Studio settings
+# 사용자가 직접 입력합니다. password 값은 출력하지 않습니다.
+mlflow_tracking_url = ""
+mlflow_tracking_username = ""
+mlflow_tracking_password = ""
+mlflow_experiment_name = ""
+mlflow_register_model_name = ""
+
+
+def ensure_ai_studio_dirs() -> None:
+    for relative in ["code", "metrics", "tracking"]:
+        (AI_STUDIO_DIR / relative).mkdir(parents=True, exist_ok=True)
+
+
+def export_mlflow_env() -> None:
+    import os
+
+    mapping = {{
+        "MLFLOW_TRACKING_URI": mlflow_tracking_url,
+        "MLFLOW_TRACKING_USERNAME": mlflow_tracking_username,
+        "MLFLOW_TRACKING_PASSWORD": mlflow_tracking_password,
+        "MLFLOW_EXPERIMENT_NAME": mlflow_experiment_name,
+        "MLFLOW_REGISTER_MODEL_NAME": mlflow_register_model_name,
+    }}
+    for name, value in mapping.items():
+        if value:
+            os.environ[name] = value
+
+
+def load_selected_model():
+    if MODEL_KIND in {{"sklearn_pickle", "sklearn_joblib"}}:
+        import joblib
+
+        return joblib.load(MODEL_PATH)
+    if MODEL_KIND == "pytorch":
+        import torch
+
+        return torch.load(MODEL_PATH, map_location="cpu")
+    if MODEL_KIND == "onnx":
+        import onnxruntime as ort
+
+        return ort.InferenceSession(str(MODEL_PATH))
+    if MODEL_KIND in {{"tensorflow_keras", "tensorflow_h5"}}:
+        import tensorflow as tf
+
+        return tf.keras.models.load_model(MODEL_PATH)
+    if MODEL_KIND == "safetensors":
+        from safetensors.torch import load_file
+
+        return load_file(str(MODEL_PATH))
+    raise ValueError(f"unsupported MODEL_KIND: {{MODEL_KIND}}")
+
+
+def write_selection_summary() -> None:
+    ensure_ai_studio_dirs()
+    payload = {{
+        "model_path": str(MODEL_PATH),
+        "model_kind": MODEL_KIND,
+        "reference_entrypoint": str(REFERENCE_ENTRYPOINT),
+        "note": "Model file remains under data/** and is not copied into ai_studio/.",
+    }}
+    (AI_STUDIO_DIR / "code" / "selected_model.json").write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+
+
+def main() -> int:
+    ensure_ai_studio_dirs()
+    export_mlflow_env()
+    if not MODEL_PATH.is_file():
+        print(f"missing model file: {{MODEL_PATH}}")
+        return 1
+    write_selection_summary()
+    model = load_selected_model()
+    print(f"MODEL_PATH={{MODEL_PATH}}")
+    print(f"MODEL_KIND={{MODEL_KIND}}")
+    print(f"loaded_model_type={{type(model).__name__}}")
+    print("secret_status=not_printed")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+'''
+
+
+def write_runtest_2(project: Path, selected_model: Path, kind: str, reference: Path, execute: bool, force: bool) -> tuple[list[str], list[str], list[str]]:
+    target = project / "runtest_2.py"
+    changed: list[str] = []
+    skipped: list[str] = []
+    failures: list[str] = []
+    if target.exists() and not force:
+        skipped.append("runtest_2.py")
+        if execute:
+            failures.append("runtest_2_exists: use --force to overwrite")
+        return changed, skipped, failures
+    if execute:
+        target.write_text(generated_runtest_text(project, selected_model, kind, reference), encoding="utf-8")
+    changed.append("runtest_2.py")
+    return changed, skipped, failures
+
+
+def build_report(args: argparse.Namespace) -> PreparedModelReport:
+    project = Path(args.project).expanduser().resolve()
+    if not project.exists():
+        raise FileNotFoundError(f"project folder not found: {project}")
+
+    data_root = project / "data"
+    models = scan_data_models(project)
+    model_paths = [rel(path, project) for path in models]
+    selected_model, selection_error = resolve_model_selection(project, models, args.model)
+    selected_kind = model_kind(selected_model) if selected_model else None
+    reference = find_reference_entrypoint(project)
+
+    report = PreparedModelReport(
+        project_path=str(project),
+        data_root=str(data_root),
+        model_artifact_paths=model_paths,
+        selected_model_path=rel(selected_model, project) if selected_model else None,
+        model_kind=selected_kind,
+        reference_entrypoint=rel(reference, project) if reference else None,
+        generated_entrypoint="runtest_2.py",
+        execute=args.execute,
+    )
+
+    if not data_root.is_dir():
+        report.failures.append("data_folder_missing")
+        report.next_steps.append("프로젝트 루트 아래 data/ 폴더를 만들고 모델 파일을 넣어주세요.")
+    if not models:
+        report.failures.append("model_artifact_paths_empty")
+        report.next_steps.append("data/** 아래에 .pkl, .joblib, .pt, .pth, .onnx, .keras, .h5, .safetensors 모델 파일을 넣어주세요.")
+    if selection_error:
+        report.failures.append(selection_error)
+        if models:
+            report.next_steps.append("사용할 모델을 번호 또는 경로로 선택하세요. 예: --model 1 또는 --model data/torch/model.pt")
+    if selected_model and not ensure_under_data(project, selected_model):
+        report.failures.append("selected_model_outside_data")
+        report.next_steps.append("선택 모델은 <model-project-folder>/data/** 아래에 있어야 합니다.")
+    if selected_model and selected_kind is None:
+        report.failures.append("unsupported_model_suffix")
+    if reference is None:
+        report.failures.append("reference_entrypoint_missing:runtest.py_or_run_test.py")
+        report.next_steps.append("기존 runtest.py 또는 run_test.py를 프로젝트 루트에 넣어주세요.")
+
+    if report.failures:
+        return report
+
+    copied, skipped = create_ai_studio_template_dirs(project, args.execute)
+    report.copied_template_dirs.extend(copied)
+    report.skipped.extend(skipped)
+    changed, write_skipped, write_failures = write_runtest_2(project, selected_model, selected_kind, reference, args.execute, args.force)
+    report.copied_template_dirs.extend(changed)
+    report.skipped.extend(write_skipped)
+    report.failures.extend(write_failures)
+
+    if args.execute and not report.failures:
+        report.next_steps.extend(
+            [
+                "python .opencode/scripts/check_environment.py --project <model-project-folder> --entrypoint runtest_2.py",
+                "python runtest_2.py",
+                "python .opencode/scripts/test_inference.py --project <model-project-folder>",
+                "python .opencode/scripts/verify_mlflow.py --tracking-uri <tracking-uri> --experiment-name <experiment-name>",
+            ]
+        )
+    elif not report.failures:
+        report.next_steps.append("검토 후 --execute를 붙여 ai_studio/ 템플릿 폴더와 runtest_2.py를 생성하세요.")
+    return report
+
+
+def print_report(report: PreparedModelReport) -> None:
+    print(f"Project: {report.project_path}")
+    print(f"Data root: {report.data_root}")
+    print("model_artifact_paths:")
+    if report.model_artifact_paths:
+        for index, path in enumerate(report.model_artifact_paths, start=1):
+            print(f"{index}. {path}")
+    else:
+        print("- none")
+    print(f"Selected model: {report.selected_model_path or 'missing'}")
+    print(f"MODEL_KIND: {report.model_kind or 'missing'}")
+    print(f"Reference entrypoint: {report.reference_entrypoint or 'missing'}")
+    print(f"Generated entrypoint: {report.generated_entrypoint}")
+    print(f"Execute: {report.execute}")
+    if report.copied_template_dirs:
+        print("Prepared:")
+        for item in report.copied_template_dirs:
+            print(f"- {item}")
+    if report.skipped:
+        print("Skipped:")
+        for item in report.skipped:
+            print(f"- {item}")
+    if report.failures:
+        print("Failures:")
+        for failure in report.failures:
+            print(f"- {failure}")
+    if report.next_steps:
+        print("Next steps:")
+        for step in report.next_steps:
+            print(f"- {step}")
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Select a data/** model artifact and generate runtest_2.py without modifying runtest.py.")
+    parser.add_argument("--project", default=".", help="model project folder")
+    parser.add_argument("--model", help="model index from model_artifact_paths or a data/** path")
+    parser.add_argument("--execute", action="store_true", help="create ai_studio/ template dirs and runtest_2.py")
+    parser.add_argument("--force", action="store_true", help="overwrite existing runtest_2.py")
+    parser.add_argument("--json", action="store_true", help="print machine-readable JSON")
+    args = parser.parse_args()
+
+    report = build_report(args)
+    if args.json:
+        print(json.dumps(asdict(report), ensure_ascii=False, indent=2))
+    else:
+        print_report(report)
+    return 1 if report.failures else 0
+
+
+if __name__ == "__main__":
+    try:
+        raise SystemExit(main())
+    except KeyboardInterrupt:
+        raise SystemExit(130)

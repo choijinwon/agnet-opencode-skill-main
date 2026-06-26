@@ -20,7 +20,9 @@ SAMPLE_PRIORITY = ["sklearn_sample", "pytorch_sample", "tensorflow_sample"]
 # used only as hints when detecting a registration or inference entrypoint.
 ENTRYPOINT_NAMES = [
     "register_model.py",
+    "runtest_2.py",
     "runtest.py",
+    "run_test.py",
     "run_model.py",
     "run.py",
     "serve.py",
@@ -33,7 +35,9 @@ ENTRYPOINT_NAMES = [
 
 TRAINING_ENTRYPOINT_NAMES = [
     "register_model.py",
+    "runtest_2.py",
     "runtest.py",
+    "run_test.py",
     "run_model.py",
     "run.py",
     "main.py",
@@ -115,6 +119,7 @@ class ValidationReport:
     python: str
     checks: list[Check]
     next_steps: list[str]
+    model_artifact_paths: list[str] = field(default_factory=list)
 
 
 def read_text(path: Path) -> str:
@@ -724,7 +729,15 @@ def build_report(project: Path, reason: str, write_check: bool) -> ValidationRep
     if not next_steps:
         next_steps.append("Proceed to local/remote MLflow registration guidance.")
 
-    return ValidationReport(str(project), reason, platform.platform(), sys.version.split()[0], checks, next_steps)
+    return ValidationReport(
+        str(project),
+        reason,
+        platform.platform(),
+        sys.version.split()[0],
+        checks,
+        next_steps,
+        model_artifact_paths=[safe_relative(path, project) for path in artifacts],
+    )
 
 
 def print_text(report: ValidationReport):
@@ -732,6 +745,10 @@ def print_text(report: ValidationReport):
     print(f"Selection reason: {report.selection_reason}")
     print(f"OS: {report.os}")
     print(f"Python: {report.python}")
+    if report.model_artifact_paths:
+        print("Model artifact paths:")
+        for index, path in enumerate(report.model_artifact_paths, start=1):
+            print(f"{index}. {path}")
     print()
     for index, check in enumerate(report.checks, start=1):
         print(f"{index}. [{check.status}] {check.name}")

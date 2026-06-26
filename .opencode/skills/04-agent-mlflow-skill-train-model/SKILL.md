@@ -25,29 +25,28 @@ metadata:
 
 ```text
 1. 프로젝트 기준 경로 확인
-2. data/** 모델 원본 경로 확인
-3. model_found/framework 판단
-4. 실행 파일 확정
-5. AI Studio 코드 적합성 확인
-6. 샘플 규격 확인/보충
-7. 환경 검증
-8. 환경 변수 입력/export
-9. 패키지 설치
-10. 로컬 학습 모델 실행
-11. 산출물 확인
-12. 다음 조치
+2. 사용할 모델 선택
+3. 선택 모델 위치 확인
+4. 모델 형식 판별
+5. ai_studio 템플릿 폴더 준비
+6. 선택 모델 직접 읽기
+7. runtest.py 참조
+8. runtest_2.py 생성
+9. 환경 검증
+10. 추론 테스트
+11. MLflow 검증
 ```
 
 ## What To Do Now
 
 ```text
-1. 기존 모델이면 실제 entrypoint를 먼저 확정한다.
-2. 기존 모델 파일은 data/** 원본 경로에서 직접 읽는지 확인한다.
-3. 모델 파일은 ai_studio/로 복사하지 않는다.
-4. 샘플 모델이면 복사된 샘플 폴더를 실행 대상으로 사용한다.
-5. run_model.py로 고정하지 않는다. run.py처럼 사용자 파일명이 다르면 실제 파일명을 확정한다.
-6. 실행 전 MLflow/AI Studio 설정 블록을 확인한다.
-7. 실행 후 ai_studio/metrics, ai_studio/code를 확인한다.
+1. 기존 모델이면 data/** 모델 목록을 먼저 보여준다.
+2. 사용할 모델을 번호 또는 경로로 선택한다.
+3. MODEL_KIND를 확장자 기준으로 판별한다.
+4. 기존 runtest.py를 우선 참조하고 없으면 run_test.py를 참조한다.
+5. 기존 runtest.py는 수정하지 않고 runtest_2.py를 생성한다.
+6. 모델 파일은 ai_studio/로 복사하지 않는다.
+7. 실행 전 MLflow/AI Studio 설정 블록을 확인한다.
 ```
 
 ## Output Contract
@@ -88,6 +87,11 @@ python .opencode/scripts/run_training.py --project <project> --execute
 명시적 entrypoint 실행:
 python .opencode/scripts/run_training.py --project <project> --entrypoint <file> --execute
 python .opencode/scripts/run_training.py --project <project> --entrypoint run.py --execute
+
+선택 모델 준비:
+python .opencode/scripts/prepare_selected_model.py --project <project>
+python .opencode/scripts/prepare_selected_model.py --project <project> --model 1 --execute
+python .opencode/scripts/prepare_selected_model.py --project <project> --model data/torch/model.pt --execute
 
 AI Studio/MLflow 연결부 보강 dry-run:
 python .opencode/scripts/adapt_ai_studio.py --project <project> --entrypoint <file>
@@ -164,18 +168,17 @@ blocked:
 기존 모델 흐름:
 
 ```text
-1. selected_project_path와 workspace root 확인
-2. data/** 모델 원본 경로 확인
-3. model_found/framework 판단
-4. 실제 entrypoint 확정
-5. entrypoint가 data/** 모델 원본을 직접 읽는지 확인
-6. 샘플 규격 골격 확인/보충
-7. Python 3.11.9와 requirements 설치/버전 확인
-8. MLflow 필수 5개 설정값 입력/export 상태 확인
-9. 필요한 패키지 설치
-10. 학습 또는 export 실행
-11. ai_studio/metrics, ai_studio/code, artifact_path="ai_studio" 확인
-12. 추론 테스트 또는 MLflow 검증으로 이동
+1. data/** 모델 목록 확인
+2. model_artifact_paths에서 사용할 모델 선택
+3. 선택 모델이 data/** 아래인지 확인
+4. MODEL_KIND 판별
+5. ai_studio 템플릿 폴더 준비
+6. MODEL_PATH = DATA_MODEL_PATH 기준으로 직접 읽기
+7. runtest.py 또는 run_test.py 참조
+8. runtest_2.py 생성
+9. Python 3.11.9와 requirements 설치/버전 확인
+10. runtest_2.py 또는 aiu_custom/predict.py로 로드/추론 확인
+11. MLflow run, artifact, registered model 검증
 ```
 
 샘플 모델 흐름:

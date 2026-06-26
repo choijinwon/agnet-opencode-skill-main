@@ -7,7 +7,7 @@
 ```text
 01. Project Analyze
    model_found: true | false 결정
-   모델 있음이면 data/** 모델 원본 경로와 실행 파일을 먼저 확정
+   모델 있음이면 data/** 모델 목록과 사용할 모델을 먼저 확정
 
 02. Sample Bootstrap
    모델이 없으면 1 sklearn / 2 pytorch / 3 tensorflow 선택
@@ -16,7 +16,7 @@
    Python 3.11.9, dependency, MLflow, 설정 상태 확인
 
 04. Train Model
-   실제 entrypoint로 로컬 학습/모델 생성 실행
+   선택 모델 기준 runtest_2.py 생성 또는 실제 entrypoint 실행
 
 05. Inference Test
    input_example 기반 predict contract와 schema 확인
@@ -33,21 +33,26 @@
 - 모델 파일은 `ai_studio/`로 복사하지 않는다.
 - `ai_studio/`는 실행 템플릿과 생성 산출물 폴더로만 사용한다.
 - 선택된 모델은 `data/**` 원본 경로에서 직접 읽는다.
+- 기존 `runtest.py`는 수정하지 않고 `runtest_2.py`를 생성한다.
 - secret 값은 출력하지 않고 `set`, `empty`, `missing` 상태만 확인한다.
 
 ```text
-Step 1. 프로젝트 기준 경로 확인
-Step 2. data/** 모델 원본 경로 확인
-Step 3. model_found/framework 판단
-Step 4. 실행 파일 확정
-Step 5. AI Studio 코드 적합성 확인
-Step 6. 샘플 규격 확인/보충
-Step 7. 환경 검증
-Step 8. 환경 변수 입력/export
-Step 9. 패키지 설치
-Step 10. 로컬 학습 모델 실행
-Step 11. 산출물 확인
-Step 12. 다음 조치
+Step 1. data/** 모델 목록 확인
+Step 2. 사용할 모델 선택
+Step 3. 선택 모델 위치 확인
+Step 4. 모델 형식 판별
+Step 5. ai_studio 템플릿 폴더 준비
+Step 6. 선택 모델 직접 읽기
+Step 7. runtest.py 참조
+Step 8. runtest_2.py 생성
+Step 9. 환경 검증
+Step 10. 추론 테스트
+Step 11. MLflow 검증
+```
+
+```text
+python .opencode/scripts/prepare_selected_model.py --project <model-project-folder>
+python .opencode/scripts/prepare_selected_model.py --project <model-project-folder> --model 1 --execute
 ```
 
 ## Folder Order

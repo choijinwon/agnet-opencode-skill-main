@@ -1,59 +1,52 @@
 # OpenCode MLflow Scripts
 
-이 폴더는 `.opencode/skills`의 MLflow 흐름을 보조하는 로컬 스크립트를 포함한다. 모델이 있으면 `data/**` 모델 원본 경로와 실행 파일 확정부터 시작하는 12단계, 모델이 없으면 샘플 복사 후 6단계로 진행한다.
+이 폴더는 `.opencode/skills`의 MLflow 흐름을 보조하는 로컬 스크립트를 포함한다. 모델이 있으면 `data/**` 모델 목록 확인부터 시작하는 11단계, 모델이 없으면 샘플 복사 후 6단계로 진행한다.
 
 대상은 사용자가 지정한 모델 프로젝트 폴더다.
 사용자 모델 파일은 프로젝트 루트의 `data/` 하위 트리에 두고, `ai_studio/`로 복사하지 않는다.
 `ai_studio/`는 실행 템플릿과 생성 산출물 폴더로만 사용한다.
+기존 `runtest.py`는 수정하지 않고, 선택 모델 기준의 `runtest_2.py`를 생성한다.
 
 유지보수자는 먼저 `.opencode/scripts/MAINTENANCE.md`를 확인한다. 각 스크립트의 책임, 주요 함수, 수정 포인트, 주의사항을 파일별로 정리해두었다.
 
 ## Script Mapping
 
 ```text
-Step 1  프로젝트 기준 경로 확인
-        validate_mlflow_project.py
-        doctor.py
-
-Step 2  data/** 모델 원본 경로 확인
-        validate_mlflow_project.py
-        doctor.py
-
-Step 3  model_found/framework 판단
+Step 1  data/** 모델 목록 확인
+        prepare_selected_model.py
         validate_mlflow_project.py
 
-Step 4  실행 파일 확정
-        doctor.py
-        adapt_ai_studio.py
+Step 2  사용할 모델 선택
+        prepare_selected_model.py
 
-Step 5  AI Studio 코드 적합성 확인
-        adapt_ai_studio.py
-        doctor.py
+Step 3  선택 모델 위치 확인
+        prepare_selected_model.py
 
-Step 6  샘플 규격 확인/보충
-        bootstrap_sample_project.py
+Step 4  모델 형식 판별
+        prepare_selected_model.py
 
-Step 7  환경 검증
+Step 5  ai_studio 템플릿 폴더 준비
+        prepare_selected_model.py
+
+Step 6  선택 모델 직접 읽기
+        prepare_selected_model.py
+
+Step 7  runtest.py 참조
+        prepare_selected_model.py
+
+Step 8  runtest_2.py 생성
+        prepare_selected_model.py
+
+Step 9  환경 검증
         check_environment.py
-
-Step 8  환경 변수 입력/export
-        check_environment.py
         doctor.py
 
-Step 9  패키지 설치
-
-Step 10 로컬 학습 실행 및 모델 생성 확인
-        run_training.py
-        test_local_sample.py
-
-Step 11 산출물 확인
-        run_training.py
+Step 10 추론 테스트
+        runtest_2.py
         test_inference.py
-        verify_mlflow.py
 
-Step 12 다음 조치
-        doctor.py
-        validate_mlflow_project.py
+Step 11 MLflow 검증
+        verify_mlflow.py
 ```
 
 패키지 설치 기준:
@@ -105,11 +98,45 @@ python .opencode/scripts/doctor.py --workspace . --project <model-project-folder
 1. OpenCode 패키지/opencode.json/01~06 스킬 폴더
 2. Python 3.11.9 환경
 3. requirements.txt 패키지 설치/버전 상태
-4. 실행 파일 확정
-5. AI Studio 코드 적합성
-6. 샘플 규격 폴더/파일
-7. MLflow 필수 5개 설정값 입력/export
-8. data/** 모델 원본 경로와 모델/메트릭/코드 산출물
+4. model_artifact_paths와 MODEL_KIND
+5. 실행 파일 확정
+6. AI Studio 코드 적합성
+7. 샘플 규격 폴더/파일
+8. MLflow 필수 5개 설정값 입력/export
+9. data/** 모델 원본 경로와 모델/메트릭/코드 산출물
+```
+
+### prepare_selected_model.py
+
+`data/**` 아래 모델 파일 목록을 만들고, 사용자가 선택한 모델 기준으로 `ai_studio/` 실행 템플릿 폴더와 `runtest_2.py`를 준비한다.
+기존 `runtest.py`는 수정하지 않는다.
+
+```text
+python .opencode/scripts/prepare_selected_model.py --project <model-project-folder>
+python .opencode/scripts/prepare_selected_model.py --project <model-project-folder> --model 1 --execute
+python .opencode/scripts/prepare_selected_model.py --project <model-project-folder> --model data/torch/model.pt --execute
+```
+
+출력 항목:
+
+```text
+model_artifact_paths
+selected_model_path
+MODEL_KIND
+reference_entrypoint: runtest.py 또는 run_test.py
+generated_entrypoint: runtest_2.py
+```
+
+지원 모델 형식:
+
+```text
+.pkl        -> sklearn_pickle
+.joblib     -> sklearn_joblib
+.pt, .pth   -> pytorch
+.onnx       -> onnx
+.keras      -> tensorflow_keras
+.h5         -> tensorflow_h5
+.safetensors -> safetensors
 ```
 
 ### adapt_ai_studio.py

@@ -6,6 +6,9 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
 
+DATA_MODEL_SUFFIXES = {".pkl", ".joblib", ".pt", ".pth", ".onnx", ".h5", ".keras", ".safetensors"}
+
+
 @dataclass
 class InferenceReport:
     project_path: str
@@ -38,6 +41,11 @@ def find_model_path(project: Path) -> Path | None:
             return candidate
     if (project / "MLmodel").exists():
         return project
+    data_root = project / "data"
+    if data_root.is_dir():
+        for path in sorted(data_root.rglob("*")):
+            if path.is_file() and path.suffix.lower() in DATA_MODEL_SUFFIXES:
+                return path
     return None
 
 

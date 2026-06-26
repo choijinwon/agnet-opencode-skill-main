@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SAMPLES_DIR = ROOT / "samples"
 SAMPLE_OPTIONS = ["sklearn", "pytorch", "tensorflow"]
 SAMPLE_PROJECT_NAMES = {f"{name}_sample" for name in SAMPLE_OPTIONS}
-ENTRYPOINTS = ["runtest.py", "train.py", "run_model.py", "run.py", "main.py", "app.py", "scripts/train.py"]
+ENTRYPOINTS = ["runtest_2.py", "runtest.py", "run_test.py", "train.py", "run_model.py", "run.py", "main.py", "app.py", "scripts/train.py"]
 REQUIRED_DIRS = ["aiu_custom", "local_serving", "saved_model"]
 ARTIFACT_DIRS = ["saved_model", "model", "artifacts"]
 MLFLOW_OUTPUT_DIRS = {"metrics", "params", "artifacts", "tags", "code"}
@@ -23,7 +23,7 @@ AI_STUDIO_ENV_KEYS = [
     "mlflow_experiment_name",
     "mlflow_register_model_name",
 ]
-MODEL_SETTING_FILES = ["runtest.py", "run_model.py"]
+MODEL_SETTING_FILES = ["runtest_2.py", "runtest.py", "run_test.py", "run_model.py"]
 
 SETTING_ALIASES = {
     "mlflow_tracking_url": {
@@ -90,7 +90,7 @@ class TrainingReport:
 
 
 def has_model_project(project: Path) -> bool:
-    markers = ["runtest.py", "train.py", "run_model.py", "predict.py", "input_example.json", "MLmodel"]
+    markers = ["runtest_2.py", "runtest.py", "run_test.py", "train.py", "run_model.py", "predict.py", "input_example.json", "MLmodel"]
     if any((project / name).exists() for name in markers):
         return True
     if find_entrypoint_candidates(project):
@@ -328,18 +328,17 @@ def main():
     existing_model_flow = model_found and not is_sample_project(work_path)
     if existing_model_flow:
         process_checklist = [
-            EnvVarStatus("1. 프로젝트 기준 경로 확인", "done"),
-            EnvVarStatus("2. data/** 모델 원본 경로 확인", "done" if artifacts else "needs_input"),
-            EnvVarStatus("3. model_found/framework 판단", "done"),
-            EnvVarStatus("4. 실행 파일 확정", "done" if entrypoint else "needs_input"),
-            EnvVarStatus("5. AI Studio 코드 적합성 확인", "manual_check"),
-            EnvVarStatus("6. 샘플 규격 확인/보충", "done" if not missing_dirs else "needs_scaffold"),
-            EnvVarStatus("7. 환경 검증", "manual_check"),
-            EnvVarStatus("8. 환경 변수 입력/export", "done" if not missing_env else "needs_input"),
-            EnvVarStatus("9. 패키지 설치", "manual_check"),
-            EnvVarStatus("10. 로컬 학습 모델 실행", "done" if args.execute and return_code == 0 else "pending"),
-            EnvVarStatus("11. 산출물 확인", "done" if artifacts else "pending"),
-            EnvVarStatus("12. 다음 조치", "pending"),
+            EnvVarStatus("1. data/** 모델 목록 확인", "done" if artifacts else "needs_input"),
+            EnvVarStatus("2. 사용할 모델 선택", "done" if artifacts else "needs_input"),
+            EnvVarStatus("3. 선택 모델 위치 확인", "done" if artifacts else "needs_input"),
+            EnvVarStatus("4. 모델 형식 판별", "done" if artifacts else "needs_input"),
+            EnvVarStatus("5. ai_studio 템플릿 폴더 준비", "done" if (work_path / "ai_studio").exists() else "pending"),
+            EnvVarStatus("6. 선택 모델 직접 읽기", "done" if entrypoint else "needs_input"),
+            EnvVarStatus("7. runtest.py 참조", "done" if (work_path / "runtest.py").exists() or (work_path / "run_test.py").exists() else "needs_input"),
+            EnvVarStatus("8. runtest_2.py 생성", "done" if (work_path / "runtest_2.py").exists() else "pending"),
+            EnvVarStatus("9. 환경 검증", "manual_check"),
+            EnvVarStatus("10. 추론 테스트", "done" if args.execute and return_code == 0 else "pending"),
+            EnvVarStatus("11. MLflow 검증", "pending"),
         ]
     else:
         process_checklist = [

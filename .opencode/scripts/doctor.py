@@ -42,7 +42,9 @@ SAMPLE_SPEC_FILES = [
 ]
 
 ENTRYPOINT_CANDIDATES = [
+    "runtest_2.py",
     "runtest.py",
+    "run_test.py",
     "run_model.py",
     "run.py",
     "train.py",
@@ -52,7 +54,9 @@ ENTRYPOINT_CANDIDATES = [
 ]
 
 SETTING_FILES = [
+    "runtest_2.py",
     "runtest.py",
+    "run_test.py",
     "run_model.py",
     "run.py",
     "train.py",

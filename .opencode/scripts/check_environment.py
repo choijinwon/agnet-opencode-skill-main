@@ -27,10 +27,10 @@ AI_STUDIO_ENV_KEYS = [
     "mlflow_register_model_name",
 ]
 
-MODEL_SETTING_FILES = ["runtest.py", "run_model.py", "run.py"]
-ENTRYPOINTS = ["runtest.py", "train.py", "run_model.py", "run.py", "main.py", "app.py", "scripts/train.py"]
+MODEL_SETTING_FILES = ["runtest_2.py", "runtest.py", "run_test.py", "run_model.py", "run.py"]
+ENTRYPOINTS = ["runtest_2.py", "runtest.py", "run_test.py", "train.py", "run_model.py", "run.py", "main.py", "app.py", "scripts/train.py"]
 SAMPLE_PROJECT_NAMES = {"sklearn_sample", "pytorch_sample", "tensorflow_sample"}
-MODEL_MARKERS = ["runtest.py", "train.py", "run_model.py", "predict.py", "input_example.json", "MLmodel"]
+MODEL_MARKERS = ["runtest_2.py", "runtest.py", "run_test.py", "train.py", "run_model.py", "predict.py", "input_example.json", "MLmodel"]
 ARTIFACT_SUFFIXES = {".pkl", ".joblib", ".pt", ".pth", ".h5", ".keras", ".onnx", ".safetensors"}
 ARTIFACT_DIRS = ["ai_studio", "saved_model", "model", "artifacts"]
 
@@ -434,12 +434,12 @@ def export_ready_status(project: Path, entrypoint_name: str | None = None) -> li
 
 def source_input_required_status(model_settings: EnvFileStatus | None) -> list[EnvVarStatus]:
     if model_settings is None:
-        return [EnvVarStatus(key, "missing") for key in AI_STUDIO_ENV_KEYS[:3]]
+        return [EnvVarStatus(key, "missing") for key in AI_STUDIO_ENV_KEYS]
     required = []
     for item in model_settings.key_status:
-        if item.name not in AI_STUDIO_ENV_KEYS[:3]:
+        if item.name not in AI_STUDIO_ENV_KEYS:
             continue
-        if item.status in {"missing", "empty"}:
+        if item.status in {"missing", "empty", "local_default"}:
             required.append(item)
     return required
 
@@ -473,13 +473,17 @@ def build_report(project: Path, entrypoint_name: str | None = None) -> Environme
     if existing_model_flow:
         entrypoint_display = entrypoint or "사용자가 실제 사용하는 파일명"
         tod_guide = [
-            "1. 실행 파일 확정: run_model.py로 고정하지 말고 실제 로컬 학습/모델 생성 파일을 확정한다.",
-            "2. 환경 검증: 현재 출력의 Python, dependency, MLflow, 설정 상태를 확인한다.",
-            f"3. 샘플 규격 확인/보충: {project}의 aiu_custom/, local_serving/, saved_model/, requirements.txt, input_example.json을 확인한다.",
-            f"4. 환경 변수 입력/export: {entrypoint_display}의 설정 블록 값을 직접 입력하고 실행 시 MLFLOW_*로 export한다.",
-            "5. 패키지 설치: 폐쇄망 WSL은 bash .opencode/wsl/install_offline.sh를 우선 사용하고, wheelhouse가 없으면 온라인 WSL에서 bash .opencode/wsl/download_wheels.sh로 먼저 준비한다.",
-            f"6. 로컬 학습 모델 실행: python {entrypoint_display}",
-            "7. 산출물 확인: MLflow artifact_path='ai_studio' 아래 ai_studio/code 또는 로컬 ai_studio/metrics, ai_studio/code 생성 여부를 확인한다.",
+            "1. data/** 모델 목록 확인: model_artifact_paths에서 사용할 모델 후보를 확인한다.",
+            "2. 사용할 모델 선택: prepare_selected_model.py --model <번호|경로>로 선택한다.",
+            "3. 선택 모델 위치 확인: 선택 모델이 <model-project-folder>/data/** 아래인지 확인한다.",
+            "4. 모델 형식 판별: 확장자 기준 MODEL_KIND를 확인한다.",
+            "5. ai_studio 템플릿 폴더 준비: 모델 파일은 복사하지 않고 ai_studio/ 실행 폴더만 준비한다.",
+            "6. 선택 모델 직접 읽기: MODEL_PATH = DATA_MODEL_PATH 기준으로 설정한다.",
+            "7. runtest.py 참조: 없으면 run_test.py를 참조한다.",
+            "8. runtest_2.py 생성: 기존 runtest.py는 수정하지 않는다.",
+            "9. 환경 검증: 현재 출력의 Python, dependency, MLflow, 설정 상태를 확인한다.",
+            f"10. 추론 테스트: python {entrypoint_display} 또는 aiu_custom/predict.py 기준으로 로드/추론 확인한다.",
+            "11. MLflow 검증: Run, artifact, registered model 기록을 확인한다.",
         ]
         if entrypoint is None:
             if entrypoint_candidates:

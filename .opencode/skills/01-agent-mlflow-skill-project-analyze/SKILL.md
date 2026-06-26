@@ -18,33 +18,32 @@ metadata:
 현재 단계: 1. 프로젝트 분석
 현재 대상: workspace root 또는 user project path
 핵심 판단: model_found: true | false
-다음 단계: 모델 있음 -> data/** 모델 원본 경로와 실행 파일 확정 / 모델 없음 -> 샘플 선택
+다음 단계: 모델 있음 -> data/** 모델 목록과 사용할 모델 선택 / 모델 없음 -> 샘플 선택
 ```
 
 ## Workflow
 
 ```text
-1. 프로젝트 기준 경로 확인
-2. data/** 모델 원본 경로 확인
-3. model_found/framework 판단
-4. 실행 파일 확정
-5. AI Studio 코드 적합성 확인
-6. 샘플 규격 확인/보충
-7. 환경 검증
-8. 환경 변수 입력/export
-9. 패키지 설치
-10. 로컬 학습 모델 실행
-11. 산출물 확인
-12. 다음 조치
+1. data/** 모델 목록 확인
+2. 사용할 모델 선택
+3. 선택 모델 위치 확인
+4. 모델 형식 판별
+5. ai_studio 템플릿 폴더 준비
+6. 선택 모델 직접 읽기
+7. runtest.py 참조
+8. runtest_2.py 생성
+9. 환경 검증
+10. 추론 테스트
+11. MLflow 검증
 ```
 
 ## What To Do Now
 
 ```text
 1. 현재 워크스페이스 경로를 확인한다.
-2. data/** 모델 원본 파일, 실행 entrypoint, 필수 폴더를 찾는다.
+2. data/** 모델 원본 파일을 model_artifact_paths로 나열한다.
 3. model_found 값을 먼저 결정한다.
-4. 모델이 있으면 샘플 선택을 묻지 않는다.
+4. 모델이 있으면 사용할 모델 번호 또는 경로 선택을 요청한다.
 5. 모델이 없으면 1 sklearn / 2 pytorch / 3 tensorflow 선택지를 보여준다.
 ```
 
@@ -58,7 +57,9 @@ metadata:
 - train_entrypoint
 - inference_entrypoint
 - model_artifact_path
+- model_artifact_paths
 - selected_data_model_path
+- MODEL_KIND
 - input_example_path
 - 발견 항목
 - 누락 항목
@@ -110,6 +111,7 @@ blocked:
 모델 wrapper: aiu_custom/model_wrapper.py, aiu_custom/predict.py
 모델 artifact: ai_studio/, saved_model/, model/, artifacts/, .pkl, .joblib, .pt, .pth, .h5, .keras
 사용자 모델 원본: data/**/*.pkl, data/**/*.joblib, data/**/*.pt, data/**/*.pth, data/**/*.onnx, data/**/*.h5, data/**/*.keras, data/**/*.safetensors
+MODEL_KIND: .pkl -> sklearn_pickle, .joblib -> sklearn_joblib, .pt/.pth -> pytorch, .onnx -> onnx, .keras -> tensorflow_keras, .h5 -> tensorflow_h5, .safetensors -> safetensors
 MLflow model: MLmodel, python_model.pkl
 입력 예제: input_example.json
 ```
@@ -151,6 +153,8 @@ custom pyfunc: mlflow.pyfunc.PythonModel, aiu_custom, ModelWrapper
 보충 명령:
 
 ```text
+python .opencode/scripts/prepare_selected_model.py --project <model-project-folder>
+python .opencode/scripts/prepare_selected_model.py --project <model-project-folder> --model 1 --execute
 python .opencode/scripts/bootstrap_sample_project.py --project <model-project-folder> --sample <sklearn|pytorch|tensorflow> --scaffold-existing --execute
 ```
 

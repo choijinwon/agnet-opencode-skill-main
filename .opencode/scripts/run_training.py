@@ -330,16 +330,11 @@ def main():
         process_checklist = [
             EnvVarStatus("1. 루트/data 모델 목록 확인", "done" if artifacts else "needs_input"),
             EnvVarStatus("2. 사용할 모델 선택", "done" if artifacts else "needs_input"),
-            EnvVarStatus("3. 선택 모델 위치 확인", "done" if artifacts else "needs_input"),
-            EnvVarStatus("4. 모델 형식 판별", "done" if artifacts else "needs_input"),
-            EnvVarStatus("5. ai_studio 템플릿 폴더 준비", "done" if (work_path / "ai_studio").exists() else "pending"),
-            EnvVarStatus("6. 선택 모델 직접 읽기", "done" if entrypoint else "needs_input"),
-            EnvVarStatus("7. runtest.py 참조", "done" if (work_path / "runtest.py").exists() or (work_path / "run_test.py").exists() else "needs_input"),
-            EnvVarStatus("8. runtest_2.py 생성", "done" if (work_path / "runtest_2.py").exists() else "pending"),
-            EnvVarStatus("9. 환경 검증", "manual_check"),
-            EnvVarStatus("10. 모델 환경변수 체크", "done" if not missing_env else "needs_input"),
-            EnvVarStatus("11. 추론 테스트", "done" if args.execute and return_code == 0 else "pending"),
-            EnvVarStatus("12. MLflow 검증", "pending"),
+            EnvVarStatus("3. 자동 준비 실행", "done" if (work_path / "ai_studio").exists() and (work_path / "runtest_2.py").exists() else "pending"),
+            EnvVarStatus("4. 환경 검증", "manual_check"),
+            EnvVarStatus("5. 모델 환경변수 체크", "done" if not missing_env else "needs_input"),
+            EnvVarStatus("6. 추론 테스트", "done" if args.execute and return_code == 0 else "pending"),
+            EnvVarStatus("7. MLflow 검증", "pending"),
         ]
     else:
         process_checklist = [

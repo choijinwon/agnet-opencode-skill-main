@@ -475,16 +475,11 @@ def build_report(project: Path, entrypoint_name: str | None = None) -> Environme
         tod_guide = [
             "1. 루트/data 모델 목록 확인: 프로젝트 루트 전체와 data/**에서 사용할 모델 후보를 확인한다.",
             "2. 사용할 모델 선택: prepare_selected_model.py --model <번호|경로>로 선택한다.",
-            "3. 선택 모델 위치 확인: 선택 모델이 <model-project-folder> 아래인지 확인한다.",
-            "4. 모델 형식 판별: 확장자 기준 MODEL_KIND를 확인한다.",
-            "5. ai_studio 템플릿 폴더 준비: 모델 파일은 복사하지 않고 ai_studio/ 실행 폴더만 준비한다.",
-            "6. 선택 모델 직접 읽기: MODEL_PATH = SOURCE_MODEL_PATH 기준으로 설정한다.",
-            "7. runtest.py 참조: 없으면 run_test.py를 참조한다.",
-            "8. runtest_2.py 생성: 기존 runtest.py는 수정하지 않는다.",
-            "9. 환경 검증: 현재 출력의 Python, dependency, MLflow 설치 상태를 확인한다.",
-            f"10. 모델 환경변수 체크: {entrypoint_display}의 MLflow 필수 5개 값을 set/empty/missing으로 확인한다.",
-            f"11. 추론 테스트: python {entrypoint_display} 또는 aiu_custom/predict.py 기준으로 로드/추론 확인한다.",
-            "12. MLflow 검증: Run, artifact, registered model 기록을 확인한다.",
+            "3. 자동 준비 실행: ai_studio/ 준비와 runtest_2.py 생성은 prepare_selected_model.py가 처리한다.",
+            "4. 환경 검증: 현재 출력의 Python, dependency, MLflow 설치 상태를 확인한다.",
+            f"5. 모델 환경변수 체크: {entrypoint_display}의 MLflow 필수 5개 값을 set/empty/missing으로 확인한다.",
+            f"6. 추론 테스트: python {entrypoint_display} 또는 aiu_custom/predict.py 기준으로 로드/추론 확인한다.",
+            "7. MLflow 검증: Run, artifact, registered model 기록을 확인한다.",
         ]
         if entrypoint is None:
             if entrypoint_candidates:

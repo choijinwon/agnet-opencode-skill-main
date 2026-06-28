@@ -26,16 +26,11 @@ metadata:
 ```text
 1. 프로젝트 기준 경로 확인
 2. 사용할 모델 선택
-3. 선택 모델 위치 확인
-4. 모델 형식 판별
-5. ai_studio 템플릿 폴더 준비
-6. 선택 모델 직접 읽기
-7. runtest.py 참조
-8. runtest_2.py 생성
-9. 환경 검증
-10. 모델 환경변수 체크
-11. 추론 테스트
-12. MLflow 검증
+3. 자동 준비 실행
+4. 환경 검증
+5. 모델 환경변수 체크
+6. 추론 테스트
+7. MLflow 검증
 ```
 
 ## What To Do Now
@@ -171,16 +166,11 @@ blocked:
 ```text
 1. 루트/data 모델 목록 확인
 2. model_artifact_paths에서 사용할 모델 선택
-3. 선택 모델이 <model-project-folder> 아래인지 확인
-4. MODEL_KIND 판별
-5. ai_studio 템플릿 폴더 준비
-6. MODEL_PATH = SOURCE_MODEL_PATH 기준으로 직접 읽기
-7. runtest.py 또는 run_test.py 참조
-8. runtest_2.py 생성
-9. Python 3.11.9와 requirements 설치/버전 확인
-10. MLflow 필수 5개 모델 환경변수 상태 확인
-11. runtest_2.py 또는 aiu_custom/predict.py로 로드/추론 확인
-12. MLflow run, artifact, registered model 검증
+3. 자동 준비 실행: ai_studio/ 준비, MODEL_KIND 판별, runtest_2.py 생성
+4. Python 3.11.9와 requirements 설치/버전 확인
+5. MLflow 필수 5개 모델 환경변수 상태 확인
+6. runtest_2.py 또는 aiu_custom/predict.py로 로드/추론 확인
+7. MLflow run, artifact, registered model 검증
 ```
 
 샘플 모델 흐름:

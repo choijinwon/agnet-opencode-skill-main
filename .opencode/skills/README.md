@@ -39,16 +39,11 @@
 ```text
 Step 1. 루트/data 모델 목록 확인
 Step 2. 사용할 모델 선택
-Step 3. 선택 모델 위치 확인
-Step 4. 모델 형식 판별
-Step 5. ai_studio 템플릿 폴더 준비
-Step 6. 선택 모델 직접 읽기
-Step 7. runtest.py 참조
-Step 8. runtest_2.py 생성
-Step 9. 환경 검증
-Step 10. 모델 환경변수 체크
-Step 11. 추론 테스트
-Step 12. MLflow 검증
+Step 3. 자동 준비 실행
+Step 4. 환경 검증
+Step 5. 모델 환경변수 체크
+Step 6. 추론 테스트
+Step 7. MLflow 검증
 ```
 
 ```text

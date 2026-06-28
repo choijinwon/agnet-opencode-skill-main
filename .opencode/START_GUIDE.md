@@ -3,19 +3,13 @@
 ## Quick View
 
 ```text
-Launch  -> 읽기 전용, 워크스페이스 분석, model_found 결정
-Build   -> 파일 복사/수정/설치/실행 가능
+Launch  -> 읽기 전용, model_found 확인
+Build   -> 생성/수정/설치/실행
 
-모델 있음  -> 루트/data 모델 목록 -> 모델 선택 -> runtest_2.py 생성
-              환경 검증 -> 추론 테스트 -> MLflow 검증
-              모델 파일은 ai_studio/로 복사하지 않음
-모델 없음  -> Build 모드에서 1 sklearn / 2 pytorch / 3 tensorflow 선택
+모델 있음  -> 루트/data 모델 목록 -> 모델 선택
+모델 없음  -> 1 sklearn / 2 pytorch / 3 tensorflow
 
-폐쇄망 기준
-- Bun 사용 금지
-- package.json이 있으면 npm i
-- WSL wheelhouse가 있으면 install_offline.sh
-- 응답/인덱싱이 느리면 response_speed_check.py 후 apply_index_ignore.py
+주의 -> 모델 파일은 ai_studio/로 복사하지 않음, secret 값은 출력하지 않음
 ```
 
 ## Mode Priority

@@ -13,11 +13,6 @@ SAMPLE_OPTIONS = ["sklearn", "pytorch", "tensorflow"]
 SAMPLE_PROJECT_NAMES = {f"{name}_sample" for name in SAMPLE_OPTIONS}
 ENTRYPOINTS = [
     "runtest_2.py",
-    "aiu_studio/runtest_2.py",
-    "aiu_studio/runtest.py",
-    "aiu_studio/run_test.py",
-    "aui_studio/runtest.py",
-    "aui_studio/run_test.py",
     "runtest.py",
     "run_test.py",
     "train.py",
@@ -44,11 +39,6 @@ AUTO_DEFAULT_SETTING_KEYS = {
 }
 MODEL_SETTING_FILES = [
     "runtest_2.py",
-    "aiu_studio/runtest_2.py",
-    "aiu_studio/runtest.py",
-    "aiu_studio/run_test.py",
-    "aui_studio/runtest.py",
-    "aui_studio/run_test.py",
     "runtest.py",
     "run_test.py",
     "run_model.py",
@@ -62,8 +52,6 @@ MODEL_SCAN_SKIP_DIRS = {
     ".venv",
     "__pycache__",
     "ai_studio",
-    "aiu_studio",
-    "aui_studio",
     "build",
     "dist",
     "env",
@@ -140,17 +128,12 @@ def has_model_project(project: Path) -> bool:
         return False
     markers = [
         "runtest_2.py",
-        "aiu_studio/runtest_2.py",
         "runtest.py",
         "run_test.py",
-        "aiu_studio/runtest.py",
-        "aiu_studio/run_test.py",
-        "aui_studio/runtest.py",
-        "aui_studio/run_test.py",
         "train.py",
         "run_model.py",
         "predict.py",
-        "aiu_studio/input_example.json",
+        "input_example.json",
         "MLmodel",
     ]
     if any((project / name).exists() for name in markers):
@@ -222,7 +205,7 @@ def find_artifacts(project: Path) -> list[str]:
         path = project / name
         if path.is_file() or (path.is_dir() and any(child.name != ".gitkeep" for child in path.iterdir())):
             found.append(str(path))
-    for ai_studio in [project / "aiu_studio", project / "ai_studio"]:
+    for ai_studio in [project / "ai_studio"]:
         if not ai_studio.exists():
             continue
         for path in ai_studio.rglob("*"):

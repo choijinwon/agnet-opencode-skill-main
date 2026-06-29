@@ -34,15 +34,10 @@ GENERIC_MODEL_STEMS = {
 }
 
 REFERENCE_ENTRYPOINTS = [
-    "aiu_studio/runtest.py",
-    "aiu_studio/run_test.py",
-    "aui_studio/runtest.py",
-    "aui_studio/run_test.py",
     "runtest.py",
     "run_test.py",
 ]
 ROOT = Path(__file__).resolve().parents[1]
-AIU_STUDIO_DIR_NAME = "aiu_studio"
 AIU_STUDIO_SAMPLE_DIR_NAME = "aiu_studio"
 AIU_STUDIO_SAMPLE_DIR = ROOT / "samples" / AIU_STUDIO_SAMPLE_DIR_NAME
 PYTORCH_REFERENCE_ENTRYPOINT = ROOT / "samples" / "pytorch_sample" / "runtest.py"
@@ -66,8 +61,6 @@ MODEL_SCAN_SKIP_DIRS = {
     ".venv",
     "__pycache__",
     "ai_studio",
-    "aiu_studio",
-    "aui_studio",
     "build",
     "dist",
     "env",
@@ -573,11 +566,6 @@ def model_profile(project: Path, selected_model: Path, kind: str) -> dict[str, s
 
 def runtime_project_path_expr(project: Path, path: Path) -> str:
     relative = rel(path, project)
-    aiu_prefix = AIU_STUDIO_DIR_NAME + "/"
-    if relative == AIU_STUDIO_DIR_NAME:
-        return "AI_STUDIO_DIR"
-    if relative.startswith(aiu_prefix):
-        return f'AI_STUDIO_DIR / "{relative[len(aiu_prefix):]}"'
     if Path(relative).is_absolute():
         return f'_AIUPath({relative!r})'
     return f'PROJECT_DIR / "{relative}"'
@@ -779,9 +767,9 @@ def input_example_literal_expression(token_text: str) -> str | None:
     if not isinstance(value, str):
         return None
     normalized = normalize_path_text(value)
-    if normalized in {"input_example.json", "aiu_studio/input_example.json"}:
+    if normalized == "input_example.json":
         return "str(INPUT_EXAMPLE_PATH)"
-    if normalized in {"sample_input.json", "aiu_studio/sample_input.json", "example.json", "aiu_studio/example.json"}:
+    if normalized in {"sample_input.json", "example.json"}:
         return "str(INPUT_EXAMPLE_PATH)"
     return None
 
@@ -912,7 +900,7 @@ def rewrite_code_paths_argument(line: str) -> str:
     if converted == body:
         return line
     code, comment = split_inline_comment(converted)
-    converted_comment = comment or "# AIU Studio 변환: aiu_studio/ 내부 실제 코드 폴더 경로를 사용합니다."
+    converted_comment = comment or "# AIU Studio 변환: 워크스페이스 내부 실제 코드 폴더 경로를 사용합니다."
     return f"{code}  {converted_comment}{suffix}"
 
 
@@ -930,7 +918,7 @@ def converted_code_paths_line(line: str) -> str:
     indent = line[: len(line) - len(line.lstrip())]
     return (
         f"{indent}code_paths=AIU_CODE_PATHS  "
-        "# AIU Studio 변환: aiu_studio/ 내부 실제 코드 폴더 경로를 사용합니다."
+        "# AIU Studio 변환: 워크스페이스 내부 실제 코드 폴더 경로를 사용합니다."
         f"{suffix}"
     )
 
@@ -1545,7 +1533,7 @@ AIU_LOAD_HINT = "{load_hint}"
 REFERENCE_ENTRYPOINT = {reference_expr}
 
 # AIU Studio 변환: 선택 모델 원본 경로 {selected_relative} 기준 추론 테스트입니다.
-# 모델 파일은 aiu_studio/로 복사하지 않고 프로젝트 내 원본 위치에서 직접 읽습니다.
+# 모델 파일은 템플릿 폴더로 복사하지 않고 프로젝트 내 원본 위치에서 직접 읽습니다.
 # MODEL_KIND={kind}, loader={load_hint}
 
 {loader}

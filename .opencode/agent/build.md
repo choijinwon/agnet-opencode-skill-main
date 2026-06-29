@@ -125,7 +125,7 @@ next_action:
   6. 산출물 확인
 ```
 
-The first next action after folder copy must be environment validation. The second next action must confirm or supplement the sample-spec scaffold (`aiu_custom/`, `local_serving/`, `saved_model/`, `requirements.txt`, `aiu_studio/input_example.json`) without overwriting existing model files. The third next action must guide the user to fill the needed MLflow/AI Studio values directly in `run_model.py`, `runtest.py`, or `aiu_studio/runtest.py` and explain that execution exports those values to `MLFLOW_*` environment variables. The package-install step should prefer `bash .opencode/wsl/install_offline.sh` in closed-network WSL when `.opencode/wsl/wheelhouse/` exists.
+The first next action after folder copy must be environment validation. The second next action must confirm or supplement the sample-spec scaffold (`aiu_custom/`, `local_serving/`, `saved_model/`, `requirements.txt`, `input_example.json`) without overwriting existing model files. The third next action must guide the user to fill the needed MLflow/AI Studio values directly in `run_model.py`, `runtest.py`, or `runtest_2.py` and explain that execution exports those values to `MLFLOW_*` environment variables. The package-install step should prefer `bash .opencode/wsl/install_offline.sh` in closed-network WSL when `.opencode/wsl/wheelhouse/` exists.
 
 ## Existing Model Flow
 
@@ -181,18 +181,18 @@ Step 7. 모델 형식별 샘플 참조
         PyTorch/safetensors는 .opencode/samples/pytorch_sample/runtest.py를 참조한다.
         sklearn/joblib/xgboost는 .opencode/samples/sklearn_sample/run_model.py를 참조한다.
         tensorflow/keras/h5는 .opencode/samples/tensorflow_sample/run_model.py를 참조한다.
-        형식별 샘플이 없을 때만 aiu_studio/runtest.py, 루트 runtest.py, run_test.py 순서로 참조한다.
+        형식별 샘플이 없을 때만 루트 runtest.py, run_test.py 순서로 참조한다.
 
 Step 8. runtest_2.py 변환/갱신
         워크스페이스 루트의 runtest_2.py 또는 참조 파일을 선택 모델 경로와 MODEL_KIND 기준으로 변환/갱신한다.
         MODEL_KIND별 load_selected_model()과 required_package/load_hint를 생성한다.
-        데이터 준비 블록도 MODEL_KIND 기준으로 변환한다. PyTorch/safetensors는 synthetic image tensor, sklearn/joblib/xgboost는 synthetic tabular input, onnx/tensorflow는 synthetic tensor input을 aiu_studio/input_example.json에 생성한다.
+        데이터 준비 블록도 MODEL_KIND 기준으로 변환한다. PyTorch/safetensors는 synthetic image tensor, sklearn/joblib/xgboost는 synthetic tabular input, onnx/tensorflow는 synthetic tensor input을 input_example.json에 생성한다.
         외부 데이터셋(FashionMNIST 등)은 자동 다운로드하지 않는다.
-        aiu_studio/runtest.py를 참조한 경우 REFERENCE_ENTRYPOINT와 실행 보조 파일 경로는 복사된 aiu_studio/ 기준으로 생성한다.
+        runtest.py를 참조한 경우 REFERENCE_ENTRYPOINT와 실행 보조 파일 경로는 워크스페이스 루트 기준으로 생성한다.
         변환은 참조한 runtest.py 구조를 기반으로 한다.
         함수 내부의 기존 모델 경로 문자열과 모델 로딩 호출은 선택 모델 기준 load_selected_model() 호출로 변환한다.
         선택 모델 로더와 맞지 않는 기존 모델 프레임워크 import는 주석 처리한다.
-        mlflow.pyfunc.log_model의 code_paths=[] 또는 code_paths=None은 aiu_studio/ 내부의 실제 코드 폴더 경로인 AIU_CODE_PATHS로 변환한다.
+        mlflow.pyfunc.log_model의 code_paths=[] 또는 code_paths=None은 워크스페이스 내부의 실제 코드 폴더 경로인 AIU_CODE_PATHS로 변환한다.
         모델 경로/MODEL_KIND/로더 관련 주석은 선택 모델 기준으로 변환하고, 그 외 주석은 유지한다.
         기존 runtest.py는 절대 수정하지 않는다.
 
@@ -301,7 +301,7 @@ The first Build step for an existing model is always listing model artifacts dir
 
 ## MLflow Tracking Guide
 
-For the confirmed entrypoint file, such as `run.py`, `runtest.py`, `aiu_studio/runtest.py`, `train.py`, or `run_model.py`, guide the user to fill MLflow tracking settings directly in that file's setting block. Do not generate, infer, or print secret values.
+For the confirmed entrypoint file, such as `run.py`, `runtest.py`, `runtest_2.py`, `train.py`, or `run_model.py`, guide the user to fill MLflow tracking settings directly in that file's setting block. Do not generate, infer, or print secret values.
 
 Required user input keys:
 

@@ -39,11 +39,6 @@ SSL_BLOCKED_SETTING_KEYS = {
 
 MODEL_SETTING_FILES = [
     "runtest_2.py",
-    "aiu_studio/runtest_2.py",
-    "aiu_studio/runtest.py",
-    "aiu_studio/run_test.py",
-    "aui_studio/runtest.py",
-    "aui_studio/run_test.py",
     "runtest.py",
     "run_test.py",
     "run_model.py",
@@ -51,11 +46,6 @@ MODEL_SETTING_FILES = [
 ]
 ENTRYPOINTS = [
     "runtest_2.py",
-    "aiu_studio/runtest_2.py",
-    "aiu_studio/runtest.py",
-    "aiu_studio/run_test.py",
-    "aui_studio/runtest.py",
-    "aui_studio/run_test.py",
     "runtest.py",
     "run_test.py",
     "train.py",
@@ -68,17 +58,12 @@ ENTRYPOINTS = [
 SAMPLE_PROJECT_NAMES = {"sklearn_sample", "pytorch_sample", "tensorflow_sample"}
 MODEL_MARKERS = [
     "runtest_2.py",
-    "aiu_studio/runtest_2.py",
-    "aiu_studio/runtest.py",
-    "aiu_studio/run_test.py",
-    "aui_studio/runtest.py",
-    "aui_studio/run_test.py",
     "runtest.py",
     "run_test.py",
     "train.py",
     "run_model.py",
     "predict.py",
-    "aiu_studio/input_example.json",
+    "input_example.json",
     "MLmodel",
 ]
 ARTIFACT_SUFFIXES = {".pkl", ".joblib", ".pt", ".pth", ".h5", ".keras", ".onnx", ".safetensors", ".bst", ".ubj"}
@@ -92,8 +77,6 @@ MODEL_SCAN_SKIP_DIRS = {
     ".venv",
     "__pycache__",
     "ai_studio",
-    "aiu_studio",
-    "aui_studio",
     "build",
     "dist",
     "env",
@@ -450,7 +433,6 @@ def selected_model_status(project: Path) -> tuple[str | None, str | None, str | 
             path
             for path in [
                 project / "aiu_custom" / "mapping.json",
-                project / "aiu_studio" / "aiu_custom" / "mapping.json",
             ]
             if path.is_file()
         ),
@@ -483,8 +465,6 @@ def selected_model_status(project: Path) -> tuple[str | None, str | None, str | 
                 )
 
     runtest_path = project / "runtest_2.py"
-    if not runtest_path.is_file():
-        runtest_path = project / "aiu_studio" / "runtest_2.py"
     values = parse_python_literal_assignments(runtest_path)
     selected_path = None
     model_kind = values.get("MODEL_KIND")
@@ -1026,10 +1006,10 @@ def build_report(project: Path, entrypoint_name: str | None = None) -> Environme
             next_steps.append("실행 파일을 찾지 못했습니다. 사용자가 실제 학습/모델 생성 Python 파일을 프로젝트에 직접 넣고 --entrypoint <file>로 지정하세요.")
             source_input_required = []
     else:
-        entrypoint_display = setting_file or "run_model.py, runtest.py 또는 aiu_studio/runtest.py"
+        entrypoint_display = setting_file or "run_model.py, runtest.py 또는 run_test.py"
         tod_guide = [
             "1. 환경 검증: 현재 출력의 Python, dependency, MLflow, 설정 상태를 확인한다.",
-            f"2. 샘플 규격 확인/보충: {project}의 aiu_custom/, local_serving/, saved_model/, requirements.txt, aiu_studio/input_example.json을 확인한다.",
+            f"2. 샘플 규격 확인/보충: {project}의 aiu_custom/, local_serving/, saved_model/, requirements.txt, input_example.json을 확인한다.",
             f"3. 환경 변수 입력/export: {entrypoint_display}의 설정 블록 값을 직접 입력하고 실행 시 MLFLOW_*로 export한다.",
             "4. 패키지 설치: 폐쇄망 WSL은 bash .opencode/wsl/install_offline.sh를 우선 사용하고, wheelhouse가 없으면 온라인 WSL에서 bash .opencode/wsl/download_wheels.sh로 먼저 준비한다.",
             f"5. 모델 실행 및 원격 MLflow 기록: python {entrypoint_display}",
@@ -1187,7 +1167,7 @@ def print_text(report: EnvironmentReport):
         for item in report.model_settings.key_status:
             print(f"- {item.name}: {item.status}")
     if report.source_input_required:
-        source_path = report.model_settings.path if report.model_settings else "run_model.py, runtest.py 또는 aiu_studio/runtest.py"
+        source_path = report.model_settings.path if report.model_settings else "run_model.py, runtest.py 또는 run_test.py"
         print(f"\n입력이 필요한 {len(report.source_input_required)}개 값:")
         print(f"- 사용자가 직접 소스에 입력: {source_path}")
         for item in report.source_input_required:

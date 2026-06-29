@@ -83,6 +83,12 @@ MODEL_RELATED_SETTING_NAMES = {
     "code_paths",
     "MLFLOW_CODE_PATHS",
     "mlflow_code_paths",
+    "INPUT_EXAMPLE_PATH",
+    "input_example_path",
+    "INPUT_EXAMPLE_FILE",
+    "input_example_file",
+    "SAMPLE_INPUT_PATH",
+    "sample_input_path",
 }
 MODEL_PATH_VARIABLE_NAMES = {
     "SOURCE_MODEL_PATH",
@@ -95,6 +101,14 @@ MODEL_PATH_VARIABLE_NAMES = {
     "model_file",
     "CHECKPOINT_PATH",
     "checkpoint_path",
+}
+INPUT_EXAMPLE_VARIABLE_NAMES = {
+    "INPUT_EXAMPLE_PATH",
+    "input_example_path",
+    "INPUT_EXAMPLE_FILE",
+    "input_example_file",
+    "SAMPLE_INPUT_PATH",
+    "sample_input_path",
 }
 MODEL_COMMENT_HINT_PATTERN = re.compile(
     r"(모델|로드|로딩|추론|model|load|loading|predict|inference|"
@@ -305,8 +319,8 @@ def safe_mlflow_name(value: str, fallback: str) -> str:
     return normalized or fallback
 
 
-def default_mlflow_names(project: Path) -> tuple[str, str]:
-    experiment_name = safe_mlflow_name(project.name, "aiu_studio")
+def default_mlflow_names(selected_model: Path) -> tuple[str, str]:
+    experiment_name = safe_mlflow_name(selected_model.stem, "aiu_studio")
     return experiment_name, f"{experiment_name}_model"
 
 
@@ -672,7 +686,7 @@ def aiu_injected_block(project: Path, selected_model: Path, kind: str, reference
     selected_relative = rel(selected_model, project)
     aiu_model_relative = aiu_model_relative_path(selected_model, kind)
     reference_expr = runtime_project_path_expr(project, reference)
-    default_experiment_name, default_register_model_name = default_mlflow_names(project)
+    default_experiment_name, default_register_model_name = default_mlflow_names(selected_model)
     profile = model_profile(project, selected_model, kind)
     details = MODEL_KIND_DETAILS.get(kind, {})
     required_package = details.get("required_package", "unknown")
@@ -696,6 +710,7 @@ ORIGINAL_MODEL_PATH = PROJECT_DIR / "{selected_relative}"
 SOURCE_MODEL_PATH = AI_STUDIO_DIR / "{aiu_model_relative}"
 DATA_MODEL_PATH = SOURCE_MODEL_PATH
 MODEL_PATH = SOURCE_MODEL_PATH
+INPUT_EXAMPLE_PATH = AI_STUDIO_DIR / "input_example.json"
 MODEL_KIND = "{kind}"
 MODEL_PROFILE = {json.dumps(profile, ensure_ascii=False, indent=4)}
 AIU_REQUIRED_PACKAGE = "{required_package}"
@@ -706,6 +721,10 @@ REFERENCE_ENTRYPOINT = {reference_expr}
 source_model_path = str(SOURCE_MODEL_PATH)
 data_model_path = str(DATA_MODEL_PATH)
 model_path = str(MODEL_PATH)
+input_example_path = str(INPUT_EXAMPLE_PATH)
+
+# Step 6 실행 중 상대경로 산출물은 프로젝트 루트가 아니라 aiu_studio/ 아래에 생성되도록 고정합니다.
+_aiu_os.chdir(AI_STUDIO_DIR)
 
 def _aiu_existing_code_paths():
     candidates = [
@@ -723,7 +742,7 @@ mlflow_code_paths = AIU_CODE_PATHS
 
 # MLflow/AI Studio settings
 # tracking URL, username, password는 사용자가 직접 입력합니다.
-# experiment/model name은 프로젝트명 기준으로 자동 생성됩니다.
+# experiment/model name은 선택 모델 파일명 기준으로 자동 생성됩니다.
 # password 값은 출력하지 않습니다.
 mlflow_tracking_url = ""
 mlflow_tracking_username = ""
@@ -754,7 +773,7 @@ def generated_runtest_text(project: Path, selected_model: Path, kind: str, refer
     reference_text = reference.read_text(encoding="utf-8", errors="ignore")
     selected_relative = rel(selected_model, project)
     aiu_model_relative = aiu_model_relative_path(selected_model, kind)
-    default_experiment_name, default_register_model_name = default_mlflow_names(project)
+    default_experiment_name, default_register_model_name = default_mlflow_names(selected_model)
     details = MODEL_KIND_DETAILS.get(kind, {})
     required_package = details.get("required_package", "unknown")
     load_hint = details.get("load_hint", "custom loader required")
@@ -763,6 +782,12 @@ def generated_runtest_text(project: Path, selected_model: Path, kind: str, refer
         "DATA_MODEL_PATH": "SOURCE_MODEL_PATH",
         "MODEL_PATH": "SOURCE_MODEL_PATH",
         "MODEL_KIND": repr(kind),
+        "INPUT_EXAMPLE_PATH": 'AI_STUDIO_DIR / "input_example.json"',
+        "input_example_path": "str(INPUT_EXAMPLE_PATH)",
+        "INPUT_EXAMPLE_FILE": "INPUT_EXAMPLE_PATH",
+        "input_example_file": "str(INPUT_EXAMPLE_PATH)",
+        "SAMPLE_INPUT_PATH": "INPUT_EXAMPLE_PATH",
+        "sample_input_path": "str(INPUT_EXAMPLE_PATH)",
         "source_model_path": "str(SOURCE_MODEL_PATH)",
         "data_model_path": "str(DATA_MODEL_PATH)",
         "model_path": "str(MODEL_PATH)",

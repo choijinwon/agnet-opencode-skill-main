@@ -43,7 +43,7 @@
 - 모델 경로/MODEL_KIND/로더 관련 주석은 선택 모델 기준으로 변환하고, 그 외 주석은 유지한다.
 - 선택된 모델 종류에 맞춰 `load_selected_model()`, `required_package`, `load_hint`를 생성한다.
 - 사용자가 직접 입력할 값은 `mlflow_tracking_url`, `mlflow_tracking_username`, `mlflow_tracking_password` 3개다.
-- `mlflow_experiment_name`, `mlflow_register_model_name`은 프로젝트명 기준으로 자동 생성한다.
+- `mlflow_experiment_name`, `mlflow_register_model_name`은 선택 모델 파일명에서 확장자를 제거한 이름 기준으로 자동 생성한다.
 - secret 값은 출력하지 않고 `set`, `empty`, `missing` 상태만 확인한다.
 
 ```text

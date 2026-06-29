@@ -128,6 +128,7 @@ SETTING_ALIASES = {
     },
     "mlflow_register_model_name": {
         "mlflow_register_model_name",
+        "mlflow_register_mdoel_name",
         "register_model_name",
         "registered_model_name",
         "MLFLOW_REGISTER_MODEL_NAME",

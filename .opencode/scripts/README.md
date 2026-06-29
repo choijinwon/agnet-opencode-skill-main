@@ -34,6 +34,7 @@ Step 5  모델 환경변수 체크
 
 Step 6  runtest_2.py 실행
         aiu_studio/runtest_2.py
+        input_example.json과 상대경로 산출물은 aiu_studio/ 아래에 생성되도록 실행 시 작업 디렉터리를 aiu_studio/로 고정한다.
 
 Step 7  추론 테스트
         aiu_studio/local_serving/localservingtest.py
@@ -41,6 +42,14 @@ Step 7  추론 테스트
 Step 8  MLflow 검증
         verify_mlflow.py
 ```
+
+기존 모델 흐름에서 `aiu_studio/runtest_2.py`가 있으면 Build 모드 숫자 입력은 TOD 단계로 처리한다.
+
+```text
+5 -> python .opencode/scripts/check_environment.py --project . --entrypoint aiu_studio/runtest_2.py
+```
+
+`5`는 모델 환경변수 체크이며, MLflow 입력값 3개와 자동값 2개를 `set`, `empty`, `missing`, `auto_default`, `ssl_not_allowed` 상태로만 표시한다. secret 값은 출력하지 않는다.
 
 패키지 설치 기준:
 
@@ -279,7 +288,7 @@ mlflow_tracking_username=
 mlflow_tracking_password=
 ```
 
-`mlflow_experiment_name`, `mlflow_register_model_name`은 프로젝트명 기준으로 자동 생성한다. 사용자는 해당 파일의 MLflow/AI Studio 설정 블록에 tracking URL, username, password만 직접 입력한다.
+`mlflow_experiment_name`, `mlflow_register_model_name`은 선택 모델 파일명에서 확장자를 제거한 이름 기준으로 자동 생성한다. 사용자는 해당 파일의 MLflow/AI Studio 설정 블록에 tracking URL, username, password만 직접 입력한다.
 SSL은 사용하지 않는다. `mlflow_tracking_url`은 `https://`가 아니라 `http://` 또는 `file://`를 사용한다.
 환경 변수 입력 후 `run_model.py`는 설정 블록 값을 아래 환경 변수로 export한다.
 

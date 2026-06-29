@@ -207,6 +207,20 @@ Step 9. aiu_custom 파일 변환/갱신
 8. MLflow 검증
 ```
 
+## Existing Model TOD Number Input
+
+If the project has `aiu_studio/runtest_2.py` and the user enters only a TOD number, treat it as the existing-model TOD step. Do not show the Launch Guide again.
+
+```text
+4 -> python .opencode/scripts/check_environment.py --project . --entrypoint aiu_studio/runtest_2.py
+5 -> python .opencode/scripts/check_environment.py --project . --entrypoint aiu_studio/runtest_2.py
+6 -> python aiu_studio/runtest_2.py
+7 -> python aiu_studio/local_serving/localservingtest.py
+8 -> python .opencode/scripts/verify_mlflow.py --tracking-uri <tracking-uri> --experiment-name <experiment-name>
+```
+
+For `5`, always report it as `모델 환경변수 체크`. The output must show the MLflow input values as `set`, `empty`, `missing`, `auto_default`, or `ssl_not_allowed`; never print secret values.
+
 Step 9. 환경 검증
         Python, dependency, MLflow 설치 상태를 확인한다.
 
@@ -214,10 +228,13 @@ Step 10. 모델 환경변수 체크
         aiu_studio/runtest_2.py 또는 확정 entrypoint의 MLflow 입력값 3개와 자동값 2개를 확인한다.
         사용자가 입력할 값: mlflow_tracking_url, mlflow_tracking_username, mlflow_tracking_password.
         자동 생성값: mlflow_experiment_name, mlflow_register_model_name.
+        두 자동값은 선택한 모델 파일명에서 확장자를 제거한 이름 기준으로 생성한다.
         상태는 set/empty/missing/auto_default로 표시한다.
 
 Step 11. runtest_2.py 실행
         생성된 aiu_studio/runtest_2.py를 먼저 실행해 선택 모델 기준 변환/실행 파일을 확인한다.
+        실행 시 작업 디렉터리는 aiu_studio/로 고정한다.
+        input_example.json, saved_model/, outputs/, mlruns/ 같은 상대경로 파일/산출물은 프로젝트 루트가 아니라 aiu_studio/ 아래에 생성되어야 한다.
 
 Step 12. 추론 테스트
         aiu_studio/local_serving/localservingtest.py 기준으로 입력/출력 스키마를 확인한다.
@@ -267,7 +284,7 @@ mlflow_tracking_password     password, never print the value
 Auto-generated keys:
 
 ```text
-mlflow_experiment_name       generated from the project folder name
+mlflow_experiment_name       generated from the selected model filename without extension
 mlflow_register_model_name   generated as <experiment_name>_model
 ```
 

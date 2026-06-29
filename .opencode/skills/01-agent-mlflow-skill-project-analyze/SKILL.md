@@ -112,7 +112,7 @@ blocked:
 예: model.joblib, models/model.joblib, data/<임의폴더>/model.joblib, data/sklearn/model.pkl, data/checkpoints/model.pt, data/xgboost/model.ubj
 MODEL_KIND: .pkl -> sklearn_pickle, .joblib -> sklearn_joblib, .pt/.pth -> pytorch, .onnx -> onnx, .keras -> tensorflow_keras, .h5 -> tensorflow_h5, .safetensors -> safetensors, .bst -> xgboost_bst, .ubj -> xgboost_ubj
 MLflow model: MLmodel, python_model.pkl
-입력 예제: input_example.json
+입력 예제: aiu_studio/input_example.json
 ```
 
 </details>

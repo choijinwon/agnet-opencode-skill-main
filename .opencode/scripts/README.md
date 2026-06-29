@@ -167,7 +167,7 @@ python .opencode/scripts/adapt_ai_studio.py --project <model-project-folder> --e
 - entrypoint 백업 생성: <file>.ai_studio.bak
 - MLflow 입력값 3개, 자동 생성값 2개, MLFLOW_* export helper 삽입
 - ai_studio/metrics, ai_studio/code, aiu_studio/local_serving/aiu_studio 경로 helper 삽입
-- aiu_custom/predict.py, local_serving/serve.py, saved_model/, input_example.json 보충
+- aiu_custom/predict.py, local_serving/serve.py, saved_model/, aiu_studio/input_example.json 보충
 - requirements.txt가 없으면 프레임워크/Import 기반 최소 패키지 작성
 - 루트/data 모델 원본은 복사하거나 이동하지 않음
 ```

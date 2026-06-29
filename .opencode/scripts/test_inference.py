@@ -40,7 +40,11 @@ def load_json(path: Path):
 
 
 def find_input_example(project: Path) -> Path | None:
-    for name in ["input_example.json", "sample_input.json", "example.json"]:
+    for name in [
+        "aiu_studio/input_example.json",
+        "aiu_studio/sample_input.json",
+        "aiu_studio/example.json",
+    ]:
         candidate = project / name
         if candidate.exists():
             return candidate
@@ -129,7 +133,7 @@ def run_aiu_custom(project: Path, payload):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Test local model inference with input_example.json.")
+    parser = argparse.ArgumentParser(description="Test local model inference with aiu_studio/input_example.json.")
     parser.add_argument("--project", default=".", help="model project folder")
     parser.add_argument("--model-path", help="explicit model path")
     parser.add_argument("--input-example", help="explicit input example JSON path")

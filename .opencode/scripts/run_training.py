@@ -151,7 +151,7 @@ def has_model_project(project: Path) -> bool:
         "train.py",
         "run_model.py",
         "predict.py",
-        "input_example.json",
+        "aiu_studio/input_example.json",
         "MLmodel",
     ]
     if any((project / name).exists() for name in markers):

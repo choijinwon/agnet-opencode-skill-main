@@ -25,7 +25,7 @@ metadata:
 
 ```text
 1. 로컬 학습 산출물 확인
-2. input_example.json 확인
+2. aiu_studio/input_example.json 확인
 3. 추론 entrypoint 확인: aiu_studio/local_serving/localservingtest.py
 4. 모델 로드 방식 결정
 5. predict 실행
@@ -37,7 +37,7 @@ metadata:
 ## What To Do Now
 
 ```text
-1. input_example.json을 확인한다.
+1. aiu_studio/input_example.json을 확인한다.
 2. aiu_studio/local_serving/localservingtest.py를 확인한다.
 3. localservingtest.py의 선택 모델 경로, MODEL_KIND, load_selected_model()을 확인한다.
 4. Windows native load는 보조 확인으로만 둔다.
@@ -62,7 +62,7 @@ metadata:
 
 ```text
 판단 결과: pass
-input_example: input_example.json
+input_example: aiu_studio/input_example.json
 load mode: aiu_custom wrapper
 schema: JSON serializable
 result_path: not written
@@ -115,7 +115,7 @@ blocked:
 
 증상: input_example 없음
 원인: 테스트 입력 누락
-조치: input_example.json 또는 README 예제를 먼저 확정
+조치: aiu_studio/input_example.json 또는 README 예제를 먼저 확정
 
 증상: predict 결과를 JSON으로 못 바꿈
 원인: numpy/pandas/object 반환값 직렬화 처리 누락

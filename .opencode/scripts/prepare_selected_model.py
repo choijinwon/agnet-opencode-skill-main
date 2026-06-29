@@ -24,6 +24,14 @@ SUPPORTED_MODEL_KINDS = {
     ".bst": "xgboost_bst",
     ".ubj": "xgboost_ubj",
 }
+GENERIC_MODEL_STEMS = {
+    "best",
+    "checkpoint",
+    "final",
+    "model",
+    "pytorch_model",
+    "weights",
+}
 
 REFERENCE_ENTRYPOINTS = [
     "aiu_studio/runtest.py",
@@ -291,6 +299,50 @@ def scan_model_artifacts(project: Path) -> list[Path]:
     return sorted(set(found))
 
 
+def artifacts_under(path: Path) -> list[Path]:
+    if path.is_file() and model_kind(path):
+        return [path]
+    if not path.is_dir():
+        return []
+    found = []
+    for child in path.rglob("*"):
+        if child.is_file() and model_kind(child):
+            found.append(child)
+    return sorted(set(found))
+
+
+def resolve_single_artifact(project: Path, candidates: list[Path], raw: str) -> tuple[Path | None, str | None]:
+    candidates = sorted(set(path.resolve() for path in candidates))
+    if len(candidates) == 1:
+        return candidates[0], None
+    if not candidates:
+        return None, f"model_path_not_found:{raw}"
+    relative_candidates = ", ".join(rel(path, project) for path in candidates[:10])
+    suffix = "" if len(candidates) <= 10 else f", ...(+{len(candidates) - 10})"
+    return None, f"model_path_ambiguous:{raw}:[{relative_candidates}{suffix}]"
+
+
+def match_model_by_text(project: Path, models: list[Path], raw: str) -> tuple[Path | None, str | None]:
+    value = normalize_path_text(raw.strip()).strip("/")
+    lowered = value.lower()
+    matches = []
+    for model in models:
+        relative = rel(model, project)
+        relative_lower = relative.lower()
+        parts_lower = [part.lower() for part in Path(relative).parts]
+        if lowered in {
+            model.name.lower(),
+            model.stem.lower(),
+            model.parent.name.lower(),
+            relative_lower,
+        }:
+            matches.append(model)
+            continue
+        if lowered in parts_lower or relative_lower.endswith("/" + lowered):
+            matches.append(model)
+    return resolve_single_artifact(project, matches, raw)
+
+
 def stored_selected_model_path(project: Path) -> Path | None:
     mapping_path = project / AIU_STUDIO_DIR_NAME / "aiu_custom" / "mapping.json"
     if not mapping_path.is_file():
@@ -325,9 +377,9 @@ def resolve_model_selection(project: Path, models: list[Path], raw: str | None) 
     if not candidate.is_absolute():
         candidate = project / candidate
     candidate = candidate.resolve()
-    if not candidate.exists() or not candidate.is_file():
-        return None, f"model_path_not_found:{value}"
-    return candidate, None
+    if candidate.exists():
+        return resolve_single_artifact(project, artifacts_under(candidate), value)
+    return match_model_by_text(project, models, value)
 
 
 def ensure_under_project(project: Path, model_path: Path) -> bool:
@@ -357,8 +409,22 @@ def safe_mlflow_name(value: str, fallback: str) -> str:
     return normalized or fallback
 
 
-def default_mlflow_names(selected_model: Path) -> tuple[str, str]:
-    experiment_name = safe_mlflow_name(selected_model.stem, "aiu_studio")
+def selected_model_display_name(project: Path, selected_model: Path) -> str:
+    stem = selected_model.stem
+    parent_name = selected_model.parent.name
+    try:
+        relative_parts = selected_model.relative_to(project).parts
+    except ValueError:
+        relative_parts = selected_model.parts
+    if stem.lower() in GENERIC_MODEL_STEMS and parent_name not in {"", ".", "data"}:
+        return parent_name
+    if len(relative_parts) >= 3 and relative_parts[0] == "data" and stem.lower() in GENERIC_MODEL_STEMS:
+        return relative_parts[-2]
+    return stem
+
+
+def default_mlflow_names(project: Path, selected_model: Path) -> tuple[str, str]:
+    experiment_name = safe_mlflow_name(selected_model_display_name(project, selected_model), "aiu_studio")
     return experiment_name, f"{experiment_name}_model"
 
 
@@ -366,6 +432,7 @@ def model_profile(project: Path, selected_model: Path, kind: str) -> dict[str, s
     details = MODEL_KIND_DETAILS.get(kind, {})
     return {
         "model_name": selected_model.name,
+        "selected_model_name": selected_model_display_name(project, selected_model),
         "model_suffix": selected_model.suffix.lower(),
         "model_kind": kind,
         "model_relative_path": rel(selected_model, project),
@@ -738,7 +805,7 @@ def transform_reference_text(
 def aiu_injected_block(project: Path, selected_model: Path, kind: str, reference: Path) -> str:
     selected_relative = rel(selected_model, project)
     reference_expr = runtime_project_path_expr(project, reference)
-    default_experiment_name, default_register_model_name = default_mlflow_names(selected_model)
+    default_experiment_name, default_register_model_name = default_mlflow_names(project, selected_model)
     profile = model_profile(project, selected_model, kind)
     details = MODEL_KIND_DETAILS.get(kind, {})
     required_package = details.get("required_package", "unknown")
@@ -845,7 +912,7 @@ _aiu_atexit.register(_aiu_print_existing_model_tod)
 def generated_runtest_text(project: Path, selected_model: Path, kind: str, reference: Path) -> str:
     reference_text = reference.read_text(encoding="utf-8", errors="ignore")
     selected_relative = rel(selected_model, project)
-    default_experiment_name, default_register_model_name = default_mlflow_names(selected_model)
+    default_experiment_name, default_register_model_name = default_mlflow_names(project, selected_model)
     details = MODEL_KIND_DETAILS.get(kind, {})
     required_package = details.get("required_package", "unknown")
     load_hint = details.get("load_hint", "custom loader required")

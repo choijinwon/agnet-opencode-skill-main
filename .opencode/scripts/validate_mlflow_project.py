@@ -53,17 +53,17 @@ TRAINING_ENTRYPOINT_NAMES = [
 
 CONFIG_NAMES = [
     "ai_studio.env",
-    "config.json",
-    "model_config.json",
-    "mlflow_config.json",
-    "config.yaml",
-    "config.yml",
+    "aiu_studio/config/config.json",
+    "aiu_studio/config/model_config.json",
+    "aiu_studio/config/mlflow_config.json",
+    "aiu_studio/config/config.yaml",
+    "aiu_studio/config/config.yml",
 ]
 
 INPUT_EXAMPLE_NAMES = [
-    "input_example.json",
-    "sample_input.json",
-    "example.json",
+    "aiu_studio/input_example.json",
+    "aiu_studio/sample_input.json",
+    "aiu_studio/example.json",
 ]
 
 ARTIFACT_SUFFIXES = [
@@ -115,7 +115,7 @@ REQUIRED_DIRS = [
 
 SAMPLE_SPEC_FILES = [
     "requirements.txt",
-    "input_example.json",
+    "aiu_studio/input_example.json",
 ]
 
 AI_STUDIO_ENV_KEYS = [
@@ -173,8 +173,8 @@ def has_project_markers(path: Path) -> bool:
         "pyproject.toml",
         "environment.yml",
         "environment.yaml",
-        "config.json",
-        "input_example.json",
+        "aiu_studio/config/config.json",
+        "aiu_studio/input_example.json",
         "register_model.py",
         "runtest.py",
         "run_model.py",

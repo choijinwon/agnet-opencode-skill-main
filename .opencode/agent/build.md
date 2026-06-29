@@ -125,7 +125,7 @@ next_action:
   6. 산출물 확인
 ```
 
-The first next action after folder copy must be environment validation. The second next action must confirm or supplement the sample-spec scaffold (`aiu_custom/`, `local_serving/`, `saved_model/`, `requirements.txt`, `input_example.json`) without overwriting existing model files. The third next action must guide the user to fill the needed MLflow/AI Studio values directly in `run_model.py`, `runtest.py`, or `aiu_studio/runtest.py` and explain that execution exports those values to `MLFLOW_*` environment variables. The package-install step should prefer `bash .opencode/wsl/install_offline.sh` in closed-network WSL when `.opencode/wsl/wheelhouse/` exists.
+The first next action after folder copy must be environment validation. The second next action must confirm or supplement the sample-spec scaffold (`aiu_custom/`, `local_serving/`, `saved_model/`, `requirements.txt`, `aiu_studio/input_example.json`) without overwriting existing model files. The third next action must guide the user to fill the needed MLflow/AI Studio values directly in `run_model.py`, `runtest.py`, or `aiu_studio/runtest.py` and explain that execution exports those values to `MLFLOW_*` environment variables. The package-install step should prefer `bash .opencode/wsl/install_offline.sh` in closed-network WSL when `.opencode/wsl/wheelhouse/` exists.
 
 ## Existing Model Flow
 

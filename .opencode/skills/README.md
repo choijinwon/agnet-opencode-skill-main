@@ -33,7 +33,7 @@
 - `data/sklearn/model.pkl`, `data/checkpoints/model.pt`처럼 `data/` 아래 폴더명이 달라도 모델로 인식한다.
 - 지원 확장자: `.pkl`, `.joblib`, `.pt`, `.pth`, `.onnx`, `.h5`, `.keras`, `.safetensors`, `.bst`, `.ubj`.
 - 모델 파일은 `aiu_studio/`로 복사하지 않는다.
-- `.opencode/templates/aiu_studio/` 템플릿 폴더를 프로젝트 루트의 `aiu_studio/`로 폴더째 복사한다.
+- `.opencode/samples/aiu_studio/` 템플릿 폴더를 프로젝트 루트의 `aiu_studio/`로 폴더째 복사한다.
 - 선택된 모델은 원본 경로에서 직접 읽는다.
 - 기존 `runtest.py`는 루트 또는 `aiu_studio/` 아래에 둘 수 있고, 수정하지 않고 `runtest_2.py`를 생성한다.
 - 사용자가 직접 입력할 값은 `mlflow_tracking_url`, `mlflow_tracking_username`, `mlflow_tracking_password` 3개다.

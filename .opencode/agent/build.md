@@ -158,7 +158,7 @@ Step 4. 모델 형식 판별
         예: .pkl -> sklearn_pickle, .pt -> pytorch, .onnx -> onnx
 
 Step 5. aiu_studio 템플릿 폴더 복사
-        .opencode/templates/aiu_studio/ 실행 템플릿 폴더를 프로젝트 루트의 aiu_studio/로 폴더째 복사한다.
+        .opencode/samples/aiu_studio/ 실행 템플릿 폴더를 프로젝트 루트의 aiu_studio/로 폴더째 복사한다.
         모델 파일은 aiu_studio/로 복사하지 않는다.
 
 Step 6. 선택 모델 직접 읽기

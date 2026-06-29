@@ -33,7 +33,8 @@ REFERENCE_ENTRYPOINTS = [
 ]
 ROOT = Path(__file__).resolve().parents[1]
 AIU_STUDIO_DIR_NAME = "aiu_studio"
-AIU_STUDIO_TEMPLATE_DIR = ROOT / "templates" / AIU_STUDIO_DIR_NAME
+AIU_STUDIO_SAMPLE_DIR_NAME = "aiu_studio"
+AIU_STUDIO_SAMPLE_DIR = ROOT / "samples" / AIU_STUDIO_SAMPLE_DIR_NAME
 MODEL_SCAN_SKIP_DIRS = {
     ".git",
     ".mypy_cache",
@@ -140,7 +141,7 @@ def default_mlflow_names(project: Path) -> tuple[str, str]:
     return experiment_name, f"{experiment_name}_model"
 
 
-def copy_aiu_studio_template(project: Path, execute: bool) -> tuple[list[str], list[str], list[str]]:
+def copy_aiu_studio_sample(project: Path, execute: bool) -> tuple[list[str], list[str], list[str]]:
     copied: list[str] = []
     skipped: list[str] = []
     failures: list[str] = []
@@ -148,11 +149,11 @@ def copy_aiu_studio_template(project: Path, execute: bool) -> tuple[list[str], l
     if target.exists():
         skipped.append(AIU_STUDIO_DIR_NAME + "/")
         return copied, skipped, failures
-    if not AIU_STUDIO_TEMPLATE_DIR.is_dir():
-        failures.append(f"aiu_studio_template_missing:{AIU_STUDIO_TEMPLATE_DIR}")
+    if not AIU_STUDIO_SAMPLE_DIR.is_dir():
+        failures.append(f"aiu_studio_sample_missing:{AIU_STUDIO_SAMPLE_DIR}")
         return copied, skipped, failures
     if execute:
-        shutil.copytree(AIU_STUDIO_TEMPLATE_DIR, target)
+        shutil.copytree(AIU_STUDIO_SAMPLE_DIR, target)
     copied.append(AIU_STUDIO_DIR_NAME + "/")
     return copied, skipped, failures
 
@@ -333,7 +334,7 @@ def build_report(args: argparse.Namespace) -> PreparedModelReport:
     if report.failures:
         return report
 
-    copied, skipped, copy_failures = copy_aiu_studio_template(project, args.execute)
+    copied, skipped, copy_failures = copy_aiu_studio_sample(project, args.execute)
     report.copied_template_dirs.extend(copied)
     report.skipped.extend(skipped)
     report.failures.extend(copy_failures)

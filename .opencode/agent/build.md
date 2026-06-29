@@ -218,7 +218,7 @@ For the confirmed entrypoint file, such as `run.py`, `runtest.py`, `train.py`, o
 Required user input keys:
 
 ```text
-mlflow_tracking_url          tracking server URL
+mlflow_tracking_url          tracking server URL, use http:// or file:// only; do not use https://
 mlflow_tracking_username     username
 mlflow_tracking_password     password, never print the value
 ```
@@ -256,6 +256,7 @@ mlflow_register_model_name=pytorch_sample_model
 ```
 
 If the user writes `mflow_tracking_url`, explain that the expected key is `mlflow_tracking_url`.
+If the user writes `https://...` for `mlflow_tracking_url`, explain that SSL is not allowed and they must use `http://...` or `file://...`.
 
 Use these skills by task:
 

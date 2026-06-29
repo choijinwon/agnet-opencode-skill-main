@@ -269,12 +269,13 @@ mlflow_register_model_name
 작성 예시:
 
 ```text
-mlflow_tracking_url=
+mlflow_tracking_url=http://<tracking-server>
 mlflow_tracking_username=
 mlflow_tracking_password=
 ```
 
 `mlflow_experiment_name`, `mlflow_register_model_name`은 프로젝트명 기준으로 자동 생성한다. 사용자는 해당 파일의 MLflow/AI Studio 설정 블록에 tracking URL, username, password만 직접 입력한다.
+SSL은 사용하지 않는다. `mlflow_tracking_url`은 `https://`가 아니라 `http://` 또는 `file://`를 사용한다.
 환경 변수 입력 후 `run_model.py`는 설정 블록 값을 아래 환경 변수로 export한다.
 
 ```text

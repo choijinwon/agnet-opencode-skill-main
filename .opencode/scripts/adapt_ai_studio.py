@@ -184,6 +184,8 @@ mlflow_register_model_name = globals().get("mlflow_register_model_name", "{frame
 
 def export_ai_studio_mlflow_env() -> None:
     AI_STUDIO_TRACKING_DIR.mkdir(parents=True, exist_ok=True)
+    if mlflow_tracking_url.lower().startswith("https://"):
+        raise ValueError("ssl_not_allowed: use http:// or file:// for mlflow_tracking_url")
     exports = {{
         "MLFLOW_TRACKING_URI": mlflow_tracking_url or AI_STUDIO_TRACKING_DIR.as_uri(),
         "MLFLOW_TRACKING_USERNAME": mlflow_tracking_username,

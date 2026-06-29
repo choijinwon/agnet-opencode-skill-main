@@ -75,11 +75,13 @@ MLflow 확인:
 python .opencode/scripts/verify_mlflow.py --project <project>
 
 tracking URI 명시:
-python .opencode/scripts/verify_mlflow.py --project <project> --tracking-uri <uri>
+python .opencode/scripts/verify_mlflow.py --project <project> --tracking-uri http://<tracking-server>
 
 experiment 명시:
 python .opencode/scripts/verify_mlflow.py --project <project> --experiment-name <name>
 ```
+
+`--tracking-uri`에는 `https://`를 쓰지 않는다. SSL은 금지이며 `http://` 또는 `file://`를 사용한다.
 
 ## Artifact Map
 

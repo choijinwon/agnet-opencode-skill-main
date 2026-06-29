@@ -311,6 +311,10 @@ def parse_env_file(path: Path) -> dict[str, str]:
     return values
 
 
+def ssl_not_allowed(value: str | None) -> bool:
+    return bool(value and value.strip().lower().startswith("https://"))
+
+
 def check_ai_studio_env(project: Path, code_settings: list[str]) -> Check:
     path = project / "ai_studio.env"
     values = parse_env_file(path)
@@ -322,6 +326,10 @@ def check_ai_studio_env(project: Path, code_settings: list[str]) -> Check:
     for key in AI_STUDIO_ENV_KEYS:
         found_in_env = key in values and values[key] != ""
         found_in_code = any(key in item for item in code_settings)
+        if key == "mlflow_tracking_url" and found_in_env and ssl_not_allowed(values[key]):
+            missing.append("mlflow_tracking_url_ssl_not_allowed")
+            evidence.append("mlflow_tracking_url: ssl_not_allowed")
+            continue
         if key in AUTO_DEFAULT_SETTING_KEYS and not found_in_env and not found_in_code:
             evidence.append(f"{key}: auto_default")
             continue

@@ -265,6 +265,10 @@ def find_model_settings(project: Path, entrypoint: Path | None = None) -> dict[s
     return {}
 
 
+def ssl_not_allowed(value: str | None) -> bool:
+    return bool(value and value.strip().lower().startswith("https://"))
+
+
 def missing_ai_studio_env(project: Path, entrypoint: Path | None = None) -> list[str]:
     path = project / "ai_studio.env"
     values = find_model_settings(project, entrypoint) or parse_env_file(path)
@@ -273,6 +277,9 @@ def missing_ai_studio_env(project: Path, entrypoint: Path | None = None) -> list
         missing.append("entrypoint_or_ai_studio_env_settings")
     for key in AI_STUDIO_ENV_KEYS:
         if key in AUTO_DEFAULT_SETTING_KEYS:
+            continue
+        if key == "mlflow_tracking_url" and ssl_not_allowed(values.get(key)):
+            missing.append("mlflow_tracking_url_ssl_not_allowed")
             continue
         if key not in values or values[key] == "":
             missing.append(key)

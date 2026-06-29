@@ -30,6 +30,9 @@ AUTO_DEFAULT_SETTING_KEYS = {
     "mlflow_experiment_name",
     "mlflow_register_model_name",
 }
+SSL_BLOCKED_SETTING_KEYS = {
+    "mlflow_tracking_url",
+}
 
 MODEL_SETTING_FILES = ["runtest_2.py", "runtest.py", "run_test.py", "run_model.py", "run.py"]
 ENTRYPOINTS = ["runtest_2.py", "runtest.py", "run_test.py", "train.py", "run_model.py", "run.py", "main.py", "app.py", "scripts/train.py"]
@@ -358,17 +361,26 @@ def parse_env_file(path: Path) -> dict[str, str]:
     return values
 
 
+def ssl_not_allowed(value: str | None) -> bool:
+    return bool(value and value.strip().lower().startswith("https://"))
+
+
+def setting_value_status(key: str, value: str | None, missing_status: str = "missing") -> str:
+    if value is None:
+        return "auto_default" if key in AUTO_DEFAULT_SETTING_KEYS else missing_status
+    if value == "":
+        return "auto_default" if key in AUTO_DEFAULT_SETTING_KEYS else "empty"
+    if key in SSL_BLOCKED_SETTING_KEYS and ssl_not_allowed(value):
+        return "ssl_not_allowed"
+    return "set"
+
+
 def ai_studio_env_status(project: Path) -> EnvFileStatus:
     path = project / "ai_studio.env"
     values = parse_env_file(path)
     statuses = []
     for key in AI_STUDIO_ENV_KEYS:
-        if key not in values:
-            status = "auto_default" if key in AUTO_DEFAULT_SETTING_KEYS else "missing"
-        elif values[key] == "":
-            status = "auto_default" if key in AUTO_DEFAULT_SETTING_KEYS else "empty"
-        else:
-            status = "set"
+        status = setting_value_status(key, values.get(key) if key in values else None)
         statuses.append(EnvVarStatus(key, status))
     return EnvFileStatus(str(path), statuses)
 
@@ -438,12 +450,7 @@ def model_settings_status(project: Path, entrypoint_name: str | None = None) -> 
     values = parse_python_string_assignments(path)
     statuses = []
     for key in AI_STUDIO_ENV_KEYS:
-        if key not in values:
-            status = "auto_default" if key in AUTO_DEFAULT_SETTING_KEYS else "missing"
-        elif values[key] == "":
-            status = "auto_default" if key in AUTO_DEFAULT_SETTING_KEYS else "empty"
-        else:
-            status = "set"
+        status = setting_value_status(key, values.get(key) if key in values else None)
         statuses.append(EnvVarStatus(key, status))
     return EnvFileStatus(str(path), statuses)
 
@@ -455,7 +462,11 @@ def export_ready_status(project: Path, entrypoint_name: str | None = None) -> li
     values = parse_python_string_assignments(path)
     statuses = []
     for setting_key, env_key in EXPORT_ENV_MAP.items():
-        if values.get(setting_key):
+        value = values.get(setting_key)
+        env_value = os.environ.get(env_key)
+        if ssl_not_allowed(value) or ssl_not_allowed(env_value):
+            status = "ssl_not_allowed"
+        elif value:
             status = "set"
         elif env_status(env_key) == "set":
             status = "exported"
@@ -474,7 +485,7 @@ def source_input_required_status(model_settings: EnvFileStatus | None) -> list[E
     for item in model_settings.key_status:
         if item.name not in AI_STUDIO_ENV_KEYS:
             continue
-        if item.status in {"missing", "empty", "local_default"}:
+        if item.status in {"missing", "empty", "local_default", "ssl_not_allowed"}:
             required.append(item)
     return required
 
@@ -512,7 +523,7 @@ def build_report(project: Path, entrypoint_name: str | None = None) -> Environme
             "2. 사용할 모델 선택: prepare_selected_model.py --model <번호|경로>로 선택한다.",
             "3. 자동 준비 실행: aiu_studio/ 템플릿 복사와 runtest_2.py 생성은 prepare_selected_model.py가 처리한다.",
             "4. 환경 검증: 현재 출력의 Python, dependency, MLflow 설치 상태를 확인한다.",
-            f"5. 모델 환경변수 체크: {entrypoint_display}의 MLflow 입력값 3개와 자동값 2개를 set/empty/missing/auto_default로 확인한다.",
+            f"5. 모델 환경변수 체크: {entrypoint_display}의 MLflow 입력값 3개와 자동값 2개를 set/empty/missing/auto_default/ssl_not_allowed로 확인한다.",
             f"6. 추론 테스트: python {entrypoint_display} 또는 aiu_custom/predict.py 기준으로 로드/추론 확인한다.",
             "7. MLflow 검증: Run, artifact, registered model 기록을 확인한다.",
         ]
@@ -565,8 +576,10 @@ def build_report(project: Path, entrypoint_name: str | None = None) -> Environme
         else:
             next_steps.append("Fill MLflow/AI Studio settings directly in the confirmed entrypoint file.")
     for item in setting_source.key_status:
-        if item.status in {"missing", "empty"}:
+        if item.status in {"missing", "empty", "ssl_not_allowed"}:
             failures.append(f"missing_env:{item.name}")
+            if item.status == "ssl_not_allowed":
+                next_steps.append("SSL is not allowed for mlflow_tracking_url. Use http:// or file:// instead of https://.")
 
     virtual_env = os.environ.get("VIRTUAL_ENV") or os.environ.get("CONDA_PREFIX") or "not detected"
     return EnvironmentReport(

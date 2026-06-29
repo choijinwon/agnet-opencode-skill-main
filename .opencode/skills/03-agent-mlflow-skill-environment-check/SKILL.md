@@ -120,15 +120,22 @@ blocked:
 - requirements/config를 읽을 수 없음
 ```
 
-필수 설정:
+사용자가 직접 입력할 설정:
 
 ```text
 mlflow_tracking_url
 mlflow_tracking_username
 mlflow_tracking_password
+```
+
+자동 생성되는 설정:
+
+```text
 mlflow_experiment_name
 mlflow_register_model_name
 ```
+
+`mlflow_tracking_url`은 `https://`를 사용하지 않는다. SSL은 금지이며 `http://` 또는 `file://`를 사용한다.
 
 </details>
 

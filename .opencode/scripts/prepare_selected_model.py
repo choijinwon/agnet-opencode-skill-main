@@ -188,6 +188,9 @@ def ensure_ai_studio_dirs() -> None:
 def export_mlflow_env() -> None:
     import os
 
+    if mlflow_tracking_url.lower().startswith("https://"):
+        raise ValueError("ssl_not_allowed: use http:// or file:// for mlflow_tracking_url")
+
     mapping = {{
         "MLFLOW_TRACKING_URI": mlflow_tracking_url,
         "MLFLOW_TRACKING_USERNAME": mlflow_tracking_username,

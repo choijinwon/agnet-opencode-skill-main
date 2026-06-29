@@ -1,45 +1,66 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
-
-AIU_CUSTOM_DIR = Path(__file__).resolve().parent
-AI_STUDIO_DIR = AIU_CUSTOM_DIR.parent
-PROJECT_DIR = AI_STUDIO_DIR.parent
-
-# AIU Studio template: prepare_selected_model.py rewrites these values for the selected model.
-SOURCE_MODEL_PATH = PROJECT_DIR / "data" / "model.joblib"
-DATA_MODEL_PATH = SOURCE_MODEL_PATH
-MODEL_PATH = SOURCE_MODEL_PATH
-MODEL_KIND = "unknown"
+import mlflow.pyfunc
+import torch
+from torch import nn
 
 
-def load_selected_model():
-    raise ValueError(f"unsupported MODEL_KIND: {MODEL_KIND}")
+class TinyTorchModel(nn.Module):
+    def __init__(self, input_dim: int = 4, output_dim: int = 2):
+        super().__init__()
+        self.linear = nn.Linear(input_dim, output_dim)
+
+    def forward(self, inputs):
+        return self.linear(inputs)
 
 
-class ModelWrapper:
-    def __init__(self):
-        self.model = None
+def _payload_to_tensor(payload) -> torch.Tensor:
+    if isinstance(payload, dict):
+        if "inputs" in payload and payload["inputs"]:
+            first_input = payload["inputs"][0]
+            if isinstance(first_input, dict) and "data" in first_input:
+                return torch.tensor(first_input["data"], dtype=torch.float32)
+        for key in ("data", "instances", "features", "x"):
+            if key in payload:
+                return torch.tensor(payload[key], dtype=torch.float32)
+    return torch.tensor(payload, dtype=torch.float32)
 
-    def load_context(self, context=None):
-        if self.model is None:
-            self.model = load_selected_model()
-        return self.model
 
-    def predict(self, context, model_input):
-        model = self.load_context(context)
-        if hasattr(model, "predict"):
-            return model.predict(model_input)
-        if callable(model):
-            return model(model_input)
+class ModelWrapper(mlflow.pyfunc.PythonModel):
+    def load_context(self, context):
+        config_path = Path(context.artifacts["config"])
+        model_path = Path(context.artifacts["model"])
+        config = json.loads(config_path.read_text(encoding="utf-8"))
+
+        self.model = TinyTorchModel(
+            input_dim=int(config.get("input_dim", 4)),
+            output_dim=int(config.get("output_dim", 2)),
+        )
+        state_dict = torch.load(model_path, map_location="cpu")
+        self.model.load_state_dict(state_dict)
+        self.model.eval()
+
+    def predict(self, context, model_input, params=None):
+        if not hasattr(self, "model"):
+            return {
+                "status": "model_not_loaded",
+                "detail": "MLflow calls load_context() before predict().",
+                "input": model_input,
+            }
+        tensor_input = _payload_to_tensor(model_input)
+        with torch.no_grad():
+            logits = self.model(tensor_input)
+            probabilities = torch.softmax(logits, dim=1)
+            prediction = probabilities.argmax(dim=1)
         return {
-            "status": "loaded",
-            "model_kind": MODEL_KIND,
-            "model_path": str(MODEL_PATH),
-            "input": model_input,
+            "prediction": prediction.cpu().tolist(),
+            "probabilities": probabilities.cpu().tolist(),
         }
 
 
 def predict(payload):
-    return ModelWrapper().predict(None, payload)
+    wrapper = ModelWrapper()
+    return wrapper.predict(None, payload)

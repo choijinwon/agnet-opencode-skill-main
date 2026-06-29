@@ -1,12 +1,25 @@
-import os
+from __future__ import annotations
+
 import io
 import json
-import sys
 import logging
+import os
+import sys
 from pathlib import Path
+
+import mlflow
+import numpy as np
+import torch
+from torch import nn
+
+from aiu_custom.predict import ModelWrapper
+
+
+logging.getLogger("mlflow").setLevel(logging.ERROR)
 
 
 def configure_utf8_stdio() -> None:
+    """Windows console encoding guard."""
     if os.name != "nt":
         return
     for stream_name in ("stdout", "stderr"):
@@ -17,27 +30,22 @@ def configure_utf8_stdio() -> None:
             setattr(sys, stream_name, io.TextIOWrapper(stream.buffer, encoding="utf-8"))
 
 
-def quiet_mlflow_logging() -> None:
-    for logger_name in ("mlflow", "mlflow.tracking", "mlflow.tracking.fluent"):
-        logging.getLogger(logger_name).setLevel(logging.ERROR)
-
-
 configure_utf8_stdio()
-quiet_mlflow_logging()
 
 PROJECT_DIR = Path(__file__).resolve().parent
-AI_STUDIO_DIR = PROJECT_DIR / "ai_studio"
-AI_STUDIO_CODE_DIR = AI_STUDIO_DIR / "code"
-AI_STUDIO_METRICS_DIR = AI_STUDIO_DIR / "metrics"
-AI_STUDIO_TRACKING_DIR = AI_STUDIO_DIR / "tracking"
 SOURCE_MODEL_PATH = PROJECT_DIR / "data" / "torch" / "model.pt"
 DATA_MODEL_PATH = SOURCE_MODEL_PATH
-MODEL_PATH = SOURCE_MODEL_PATH
 MODEL_KIND = "pytorch"
 MODEL_LOAD_HINT = "torch.load(MODEL_PATH, map_location='cpu')"
+INPUT_EXAMPLE_PATH = PROJECT_DIR / "input_example.json"
+CONFIG_DIR = PROJECT_DIR / "config"
+CONFIG_PATH = CONFIG_DIR / "config.json"
+MODEL_DIR = PROJECT_DIR / "saved_model"
+MODEL_PATH = MODEL_DIR / "model.pt"
 
-# MLflow/AI Studio settings
-# 사용자가 아래 값을 직접 입력합니다. 비밀번호 값은 출력하지 마세요.
+# AI 환경 설정
+# 할당 받은 MLflow tracking server 값을 사용자가 직접 입력합니다.
+# 비밀번호 값은 출력하지 않습니다.
 mlflow_tracking_url = ""
 mlflow_tracking_username = ""
 mlflow_tracking_password = ""
@@ -45,8 +53,13 @@ mlflow_experiment_name = "pytorch_sample"
 mlflow_register_model_name = "pytorch_sample_model"
 
 
-def is_todo_value(value: str) -> bool:
-    return value.strip().lower() in {"{todo}", "todo", "<todo>", "[todo]"}
+class TinyTorchModel(nn.Module):
+    def __init__(self, input_dim: int = 4, output_dim: int = 2):
+        super().__init__()
+        self.linear = nn.Linear(input_dim, output_dim)
+
+    def forward(self, inputs):
+        return self.linear(inputs)
 
 
 def missing_mlflow_settings() -> list[str]:
@@ -57,12 +70,13 @@ def missing_mlflow_settings() -> list[str]:
         "mlflow_experiment_name": mlflow_experiment_name,
         "mlflow_register_model_name": mlflow_register_model_name,
     }
-    return [name for name, value in required.items() if not value or is_todo_value(value)]
+    return [name for name, value in required.items() if not value]
 
 
 def export_mlflow_environment() -> None:
-    if is_todo_value(mlflow_tracking_url):
-        raise ValueError("mlflow_tracking_url_todo_not_allowed")
+    if mlflow_tracking_url.lower().startswith("https://"):
+        raise ValueError("ssl_not_allowed: use http:// or file:// for mlflow_tracking_url")
+
     exports = {
         "MLFLOW_TRACKING_URI": mlflow_tracking_url,
         "MLFLOW_TRACKING_USERNAME": mlflow_tracking_username,
@@ -75,59 +89,56 @@ def export_mlflow_environment() -> None:
             os.environ[name] = value
 
 
-def load_selected_model():
-    # AIU 변환 시 선택된 .pt/.pth 모델 경로와 torch.load 로더로 교체됩니다.
-    import torch
+def prepare_data():
+    # 데이터 준비: 외부 데이터셋을 다운로드하지 않는 PyTorch 샘플 tensor
+    rng = np.random.default_rng(seed=42)
+    train_x = torch.tensor(rng.normal(size=(32, 4)), dtype=torch.float32)
+    train_y = (train_x.sum(dim=1) > 0).long()
+    test_x = torch.tensor(rng.normal(size=(10, 4)), dtype=torch.float32)
+    test_y = (test_x.sum(dim=1) > 0).long()
+    return train_x, train_y, test_x, test_y
 
-    return torch.load(MODEL_PATH, map_location="cpu")
+
+def train_model(model: nn.Module, train_x: torch.Tensor, train_y: torch.Tensor) -> None:
+    # 모델 준비: 간단한 분류 모델을 짧게 학습합니다.
+    criterion = nn.CrossEntropyLoss()
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.05)
+    model.train()
+    for _ in range(5):
+        optimizer.zero_grad()
+        loss = criterion(model(train_x), train_y)
+        loss.backward()
+        optimizer.step()
 
 
-def write_visible_outputs() -> Path:
-    AI_STUDIO_METRICS_DIR.mkdir(parents=True, exist_ok=True)
-    AI_STUDIO_CODE_DIR.mkdir(parents=True, exist_ok=True)
-    model = load_selected_model()
-    metrics = {
-        "model_loaded": 1.0 if model is not None else 0.0,
-        "dataset_required": 0.0,
+def compute_metrics(model: nn.Module, test_x: torch.Tensor, test_y: torch.Tensor) -> dict[str, float]:
+    model.eval()
+    with torch.no_grad():
+        logits = model(test_x)
+        prediction = logits.argmax(dim=1)
+        accuracy = (prediction == test_y).float().mean().item()
+        loss = nn.CrossEntropyLoss()(logits, test_y).item()
+    return {"accuracy": float(accuracy), "loss": float(loss)}
+
+
+def write_input_example(test_x: torch.Tensor) -> dict:
+    # Input example 정의: request 테스트 payload
+    sample_data = test_x[:2].detach().cpu().numpy()
+    input_example = {
+        "inputs": [
+            {
+                "name": "pytorch_tensor_example",
+                "shape": list(sample_data.shape),
+                "datatype": str(sample_data.dtype),
+                "data": sample_data.tolist(),
+            }
+        ]
     }
-    for name, value in metrics.items():
-        (AI_STUDIO_METRICS_DIR / name).write_text(f"{value}\n", encoding="utf-8")
-    summary_path = AI_STUDIO_CODE_DIR / "training_summary.json"
-    summary_text = json.dumps(
-        {
-            "sample": "pytorch",
-            "status": "completed",
-            "dataset_required": False,
-            "metrics": metrics,
-            "artifact": "training_summary.json",
-        },
-        ensure_ascii=False,
-        indent=2,
+    INPUT_EXAMPLE_PATH.write_text(
+        json.dumps(input_example, ensure_ascii=False, indent=2),
+        encoding="utf-8",
     )
-    summary_path.write_text(summary_text, encoding="utf-8")
-    return summary_path
-
-
-def log_mlflow_outputs(summary_path: Path) -> None:
-    try:
-        import mlflow
-    except Exception as exc:
-        print(f"MLflow import failed; local ai_studio outputs were created. reason={exc}")
-        return
-
-    quiet_mlflow_logging()
-    try:
-        mlflow.set_tracking_uri(os.environ["MLFLOW_TRACKING_URI"])
-        mlflow.set_experiment(mlflow_experiment_name)
-        with mlflow.start_run(run_name="pytorch_sample_remote_deploy"):
-            mlflow.log_param("sample", "pytorch")
-            mlflow.log_param("dataset_required", False)
-            mlflow.log_metric("model_loaded", 1.0)
-            mlflow.log_artifact(str(summary_path), artifact_path="ai_studio/code")
-            active_run = mlflow.active_run()
-            print(f"MLflow run created: {active_run.info.run_id if active_run else 'unknown'}")
-    except Exception as exc:
-        print(f"MLflow remote deployment failed; ai_studio outputs were created. reason={exc}")
+    return input_example
 
 
 def main() -> None:
@@ -139,12 +150,44 @@ def main() -> None:
             print(f"- {name}")
         print("비밀번호 값은 출력하지 않습니다.")
         return
-    export_mlflow_environment()
 
-    summary_path = write_visible_outputs()
-    log_mlflow_outputs(summary_path)
-    print(f"metrics written: {AI_STUDIO_METRICS_DIR}")
-    print(f"code artifacts written: {AI_STUDIO_CODE_DIR}")
+    export_mlflow_environment()
+    mlflow.set_tracking_uri(mlflow_tracking_url)
+    mlflow.set_experiment(mlflow_experiment_name)
+
+    train_x, train_y, test_x, test_y = prepare_data()
+    model = TinyTorchModel(input_dim=train_x.shape[1], output_dim=2)
+    train_model(model, train_x, train_y)
+    metrics = compute_metrics(model, test_x, test_y)
+    input_example = write_input_example(test_x)
+
+    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    MODEL_DIR.mkdir(parents=True, exist_ok=True)
+    config = {"framework": "pytorch", "input_dim": train_x.shape[1], "output_dim": 2}
+    CONFIG_PATH.write_text(json.dumps(config, ensure_ascii=False, indent=4), encoding="utf-8")
+    torch.save(model.state_dict(), MODEL_PATH)
+
+    with mlflow.start_run(run_name=mlflow_register_model_name):
+        mlflow.set_tag("data.name", "synthetic_tensor(pytorch)")
+        mlflow.log_params(config)
+        mlflow.log_metrics(metrics)
+        mlflow.pyfunc.log_model(
+            artifact_path="ai_studio",
+            python_model=ModelWrapper(),
+            code_paths=["aiu_custom"],
+            artifacts={
+                "model": MODEL_PATH.as_posix(),
+                "config": CONFIG_PATH.as_posix(),
+            },
+            input_example=input_example,
+            registered_model_name=mlflow_register_model_name,
+            pip_requirements="requirements.txt",
+        )
+
+    print(f"input_example written: {INPUT_EXAMPLE_PATH}")
+    print(f"config written: {CONFIG_PATH}")
+    print(f"model written: {MODEL_PATH}")
+    print("MLflow model logged with artifact_path='ai_studio'")
 
 
 if __name__ == "__main__":

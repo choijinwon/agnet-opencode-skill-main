@@ -1075,6 +1075,25 @@ def transform_reference_text(
         if expression is None:
             output.append(rewrite_preserved_line(line) if preserve_code else rewrite_reference_line(line, selected_relative, kind, load_hint, required_package))
             continue
+        if preserve_code and name not in {
+            "AI_STUDIO_DIR",
+            "PROJECT_DIR",
+            "SOURCE_MODEL_PATH",
+            "DATA_MODEL_PATH",
+            "MODEL_PATH",
+            "MODEL_KIND",
+            "MODEL_LOAD_HINT",
+            "INPUT_EXAMPLE_PATH",
+            "CONFIG_DIR",
+            "CONFIG_PATH",
+            "mlflow_tracking_url",
+            "mlflow_tracking_username",
+            "mlflow_tracking_password",
+            "mlflow_experiment_name",
+            "mlflow_register_model_name",
+        }:
+            output.append(rewrite_preserved_line(line))
+            continue
 
         if not preserve_code and name in MLFLOW_SETTING_NAMES and not indent:
             output.append(f"# AIU Studio preserved original assignment; value is defined in the conversion block above.\n")
@@ -1386,11 +1405,168 @@ def insert_runtest_sequence_block(text: str, sequence: list[str]) -> str:
     return "".join(lines)
 
 
+def generated_selected_model_runtest_text(project: Path, selected_model: Path, kind: str, reference: Path) -> str:
+    selected_relative = rel(selected_model, project)
+    sequence = runtest_2_sequence(project, selected_model, kind, reference)
+    default_experiment_name, default_register_model_name = default_mlflow_names(project, selected_model)
+    details = MODEL_KIND_DETAILS.get(kind, {})
+    required_package = details.get("required_package", "unknown")
+    load_hint = details.get("load_hint", "custom loader required")
+    loader = details.get(
+        "loader",
+        """def load_selected_model():\n    raise ValueError(f\"unsupported MODEL_KIND: {MODEL_KIND}\")\n""",
+    )
+    return f'''from __future__ import annotations
+
+import io
+import json
+import logging
+import os
+import sys
+from pathlib import Path
+
+import mlflow
+
+from aiu_custom.predict import ModelWrapper
+
+
+logging.getLogger("mlflow").setLevel(logging.ERROR)
+
+
+RUNTEST_2_SEQUENCE = {json.dumps(sequence, ensure_ascii=False, indent=4)}
+PROJECT_DIR = Path({absolute_path_text(project)!r})
+AI_STUDIO_DIR = PROJECT_DIR
+SOURCE_MODEL_PATH = Path({absolute_path_text(selected_model)!r})
+DATA_MODEL_PATH = SOURCE_MODEL_PATH
+MODEL_PATH = SOURCE_MODEL_PATH
+MODEL_KIND = {kind!r}
+MODEL_LOAD_HINT = {load_hint!r}
+AIU_REQUIRED_PACKAGE = {required_package!r}
+REFERENCE_ENTRYPOINT = Path({absolute_path_text(reference)!r})
+INPUT_EXAMPLE_PATH = PROJECT_DIR / "input_example.json"
+CONFIG_DIR = PROJECT_DIR / "config"
+CONFIG_PATH = CONFIG_DIR / "config.json"
+AIU_CODE_PATHS = [str(path) for path in [PROJECT_DIR / "aiu_custom", PROJECT_DIR / "local_serving"] if path.exists()]
+
+# AI 환경 설정
+# 할당 받은 MLflow tracking server 값을 사용자가 직접 입력합니다.
+# 비밀번호 값은 출력하지 않습니다.
+mlflow_tracking_url = ""
+mlflow_tracking_username = ""
+mlflow_tracking_password = ""
+mlflow_experiment_name = {default_experiment_name!r}
+mlflow_register_model_name = {default_register_model_name!r}
+
+
+def configure_utf8_stdio() -> None:
+    """Windows console encoding guard."""
+    if os.name != "nt":
+        return
+    for stream_name in ("stdout", "stderr"):
+        stream = getattr(sys, stream_name)
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8")
+        elif hasattr(stream, "buffer"):
+            setattr(sys, stream_name, io.TextIOWrapper(stream.buffer, encoding="utf-8"))
+
+
+def missing_mlflow_settings() -> list[str]:
+    required = {{
+        "mlflow_tracking_url": mlflow_tracking_url,
+        "mlflow_tracking_username": mlflow_tracking_username,
+        "mlflow_tracking_password": mlflow_tracking_password,
+        "mlflow_experiment_name": mlflow_experiment_name,
+        "mlflow_register_model_name": mlflow_register_model_name,
+    }}
+    return [name for name, value in required.items() if not value]
+
+
+def export_mlflow_environment() -> None:
+    if mlflow_tracking_url.lower().startswith("https://"):
+        raise ValueError("ssl_not_allowed: use http:// or file:// for mlflow_tracking_url")
+    exports = {{
+        "MLFLOW_TRACKING_URI": mlflow_tracking_url,
+        "MLFLOW_TRACKING_USERNAME": mlflow_tracking_username,
+        "MLFLOW_TRACKING_PASSWORD": mlflow_tracking_password,
+        "MLFLOW_EXPERIMENT_NAME": mlflow_experiment_name,
+        "MLFLOW_REGISTER_MODEL_NAME": mlflow_register_model_name,
+    }}
+    for name, value in exports.items():
+        if value:
+            os.environ[name] = value
+
+
+{loader}
+
+{aiu_data_prep_block(kind)}
+
+
+def write_config() -> Path:
+    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    config = {{
+        "model_kind": MODEL_KIND,
+        "model_path": str(MODEL_PATH),
+        "model_relative_path": {selected_relative!r},
+        "load_hint": MODEL_LOAD_HINT,
+    }}
+    CONFIG_PATH.write_text(json.dumps(config, ensure_ascii=False, indent=2), encoding="utf-8")
+    return CONFIG_PATH
+
+
+def main() -> None:
+    configure_utf8_stdio()
+    missing = missing_mlflow_settings()
+    if missing:
+        print("원격 MLflow 등록 실행을 위해 MLflow/AI Studio 설정을 runtest_2.py에 직접 입력하세요.")
+        print("missing settings:")
+        for name in missing:
+            print(f"- {{name}}")
+        print("비밀번호 값은 출력하지 않습니다.")
+        return
+
+    export_mlflow_environment()
+    mlflow.set_tracking_uri(mlflow_tracking_url)
+    mlflow.set_experiment(mlflow_experiment_name)
+
+    model = load_selected_model()
+    input_example = _aiu_write_input_example()
+    config_path = write_config()
+
+    with mlflow.start_run(run_name=mlflow_register_model_name):
+        mlflow.set_tag("model.kind", MODEL_KIND)
+        mlflow.set_tag("model.source", {selected_relative!r})
+        mlflow.log_param("model_kind", MODEL_KIND)
+        mlflow.log_metric("model_loaded", 1.0 if model is not None else 0.0)
+        mlflow.pyfunc.log_model(
+            artifact_path="ai_studio",
+            python_model=ModelWrapper(),
+            code_paths=AIU_CODE_PATHS,
+            artifacts={{
+                "model": str(MODEL_PATH),
+                "config": str(config_path),
+            }},
+            input_example=input_example,
+            registered_model_name=mlflow_register_model_name,
+            pip_requirements="requirements.txt",
+        )
+
+    print(f"input_example written: {{INPUT_EXAMPLE_PATH}}")
+    print(f"config written: {{CONFIG_PATH}}")
+    print("MLflow model logged with artifact_path='ai_studio'")
+
+
+if __name__ == "__main__":
+    main()
+'''
+
+
 def generated_runtest_text(project: Path, selected_model: Path, kind: str, reference: Path) -> str:
     reference_text = reference.read_text(encoding="utf-8", errors="ignore")
     selected_relative = rel(selected_model, project)
     sequence = runtest_2_sequence(project, selected_model, kind, reference)
     preserve_code = preserve_reference_code(reference)
+    if preserve_code:
+        return generated_selected_model_runtest_text(project, selected_model, kind, reference)
     path_constructor = "Path" if preserve_code else "_AIUPath"
     aiu_studio_path = project
     default_experiment_name, default_register_model_name = default_mlflow_names(project, selected_model)

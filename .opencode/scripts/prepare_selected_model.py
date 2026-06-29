@@ -1838,6 +1838,24 @@ def generated_mapping_json(project: Path, selected_model: Path, kind: str) -> st
     return json.dumps(mapping, ensure_ascii=False, indent=2) + "\n"
 
 
+def generated_requirements_text(kind: str) -> str:
+    details = MODEL_KIND_DETAILS.get(kind, {})
+    required_package = details.get("required_package", "unknown")
+    packages = ["mlflow==3.13.0", "numpy"]
+    if required_package and required_package != "unknown":
+        packages.append(str(required_package))
+
+    unique_packages = []
+    seen = set()
+    for package in packages:
+        key = package.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        unique_packages.append(package)
+    return "\n".join(unique_packages) + "\n"
+
+
 def write_runtest_2(project: Path, selected_model: Path, kind: str, reference: Path, execute: bool, force: bool) -> tuple[list[str], list[str], list[str]]:
     target = project / "runtest_2.py"
     changed: list[str] = []
@@ -1853,6 +1871,18 @@ def write_runtest_2(project: Path, selected_model: Path, kind: str, reference: P
             failures.append(f"reference_entrypoint_modified:{rel(reference, project)}")
             return changed, skipped, failures
     changed.append("runtest_2.py sequence generated + transformed (refreshed)" if existed_before else "runtest_2.py sequence generated + transformed")
+    return changed, skipped, failures
+
+
+def write_requirements(project: Path, kind: str, execute: bool) -> tuple[list[str], list[str], list[str]]:
+    target = project / "requirements.txt"
+    changed: list[str] = []
+    skipped: list[str] = []
+    failures: list[str] = []
+    existed_before = target.exists()
+    if execute:
+        target.write_text(generated_requirements_text(kind), encoding="utf-8")
+    changed.append("requirements.txt (refreshed)" if existed_before else "requirements.txt")
     return changed, skipped, failures
 
 
@@ -2053,6 +2083,11 @@ def build_report(args: argparse.Namespace) -> PreparedModelReport:
     report.failures.extend(write_failures)
     if report.failures:
         return report
+
+    requirements_changed, requirements_skipped, requirements_failures = write_requirements(project, selected_kind, args.execute)
+    report.prepared_paths.extend(requirements_changed)
+    report.skipped.extend(requirements_skipped)
+    report.failures.extend(requirements_failures)
 
     inference_changed, inference_skipped, inference_failures = write_localservingtest(project, selected_model, selected_kind, reference, args.execute)
     report.prepared_paths.extend(inference_changed)

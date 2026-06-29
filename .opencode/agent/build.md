@@ -168,6 +168,7 @@ Step 4. 모델 형식 판별
 
 Step 5. aiu_studio 템플릿 복사
         .opencode/samples/aiu_studio/ 내부 파일/폴더를 워크스페이스 루트로 복사한다.
+        requirements.txt도 워크스페이스 루트로 복사하고 선택 모델 필수 패키지 기준으로 갱신한다.
         모델 파일은 템플릿 폴더로 복사하지 않는다.
         복사된 템플릿 코드는 선택 모델 기준으로 변환/갱신한다.
         기존 runtest.py는 수정하지 않는다.

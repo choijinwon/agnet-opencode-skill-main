@@ -6,7 +6,7 @@
 사용자 모델 파일은 현재 프로젝트 루트 바로 아래 또는 현재 프로젝트의 `data/**` 하위 트리 어디에나 둘 수 있으며, 자동 준비 시 모델 파일을 템플릿 폴더로 복사하지 않고 선택한 원본 경로에 연결하도록 코드를 변환한다.
 `data/` 아래 폴더명은 고정값이 아니며 사용자 프로젝트마다 다를 수 있다.
 예: `model.joblib`, `data/<임의폴더>/model.joblib`, `data/sklearn/model.pkl`, `data/checkpoints/model.pt`
-모델 있음 흐름에서는 `.opencode/samples/aiu_studio/` 내부 파일/폴더를 워크스페이스 루트로 복사한다. `aiu_custom/` 내부 템플릿 파일도 워크스페이스 루트의 `aiu_custom/`으로 함께 복사된다. 내부 파일 구성은 고정하지 않고 비교/수정하지 않는다.
+모델 있음 흐름에서는 `.opencode/samples/aiu_studio/` 내부 파일/폴더를 워크스페이스 루트로 복사한다. `aiu_custom/` 내부 템플릿 파일과 `requirements.txt`도 워크스페이스 루트로 함께 복사된다. 내부 파일 구성은 고정하지 않고 비교/수정하지 않는다.
 기존 `runtest.py`는 루트에서 참조하고, 수정하지 않고 복사된 템플릿 파일들을 선택 모델 원본 경로 기준으로 변환/갱신한다.
 Linux 경로에 Windows 구분자(`\`, `＼`, `￦`, `₩`)가 섞이면 생성 파일에서 `/`로 자동 정규화한다.
 
@@ -126,7 +126,8 @@ python .opencode/scripts/doctor.py --workspace . --project <model-project-folder
 
 ### prepare_selected_model.py
 
-현재 프로젝트 루트 바로 아래와 `data/**` 아래 모델 파일 목록을 만들고, 사용자가 선택한 모델 기준으로 `.opencode/samples/aiu_studio/` 내부 파일/폴더를 워크스페이스 루트로 복사하고 `runtest_2.py`, `aiu_custom/model.py`, `aiu_custom/predict.py`를 준비한다. 기존 모델 경로 문자열, 모델 로딩 호출, 데이터 준비, 관련 주석은 선택 모델 기준으로 변환한다.
+현재 프로젝트 루트 바로 아래와 `data/**` 아래 모델 파일 목록을 만들고, 사용자가 선택한 모델 기준으로 `.opencode/samples/aiu_studio/` 내부 파일/폴더를 워크스페이스 루트로 복사하고 `runtest_2.py`, `aiu_custom/model.py`, `aiu_custom/predict.py`, `requirements.txt`를 준비한다. 기존 모델 경로 문자열, 모델 로딩 호출, 데이터 준비, 관련 주석은 선택 모델 기준으로 변환한다.
+`requirements.txt`는 `mlflow==3.13.0`, `numpy`, 선택 모델 필수 패키지 기준으로 갱신한다.
 `runtest_2.py`는 외부 데이터셋을 다운로드하지 않고 MODEL_KIND에 맞는 synthetic `input_example.json`을 생성한다.
 `aiu_custom/model.py`는 선택 모델 로더/헬퍼이고, `aiu_custom/predict.py`는 AI Studio 배포 엔트리포인트로 갱신되어 `model.py`에 위임한다.
 기존 `runtest.py`는 수정하지 않는다.

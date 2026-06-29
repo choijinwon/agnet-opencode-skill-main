@@ -37,6 +37,7 @@ ROOT = Path(__file__).resolve().parents[1]
 AIU_STUDIO_DIR_NAME = "aiu_studio"
 AIU_STUDIO_SAMPLE_DIR_NAME = "aiu_studio"
 AIU_STUDIO_SAMPLE_DIR = ROOT / "samples" / AIU_STUDIO_SAMPLE_DIR_NAME
+PYTORCH_REFERENCE_ENTRYPOINT = ROOT / "samples" / "log_local_model" / "run_model.py"
 AIU_STUDIO_COPY_IGNORE_DIRS = {"code", "metrics", "tracking"}
 MODEL_SCAN_SKIP_DIRS = {
     ".git",
@@ -89,6 +90,11 @@ MODEL_RELATED_SETTING_NAMES = {
     "input_example_file",
     "SAMPLE_INPUT_PATH",
     "sample_input_path",
+    "AI_STUDIO_DIR",
+    "AI_STUDIO_CODE_DIR",
+    "AI_STUDIO_METRICS_DIR",
+    "AI_STUDIO_TRACKING_DIR",
+    "PROJECT_DIR",
 }
 MODEL_PATH_VARIABLE_NAMES = {
     "SOURCE_MODEL_PATH",
@@ -332,7 +338,9 @@ def ensure_under_project(project: Path, model_path: Path) -> bool:
         return False
 
 
-def find_reference_entrypoint(project: Path) -> Path | None:
+def find_reference_entrypoint(project: Path, kind: str | None = None) -> Path | None:
+    if kind == "pytorch" and PYTORCH_REFERENCE_ENTRYPOINT.is_file():
+        return PYTORCH_REFERENCE_ENTRYPOINT
     for name in REFERENCE_ENTRYPOINTS:
         candidate = project / name
         if candidate.is_file():
@@ -375,6 +383,8 @@ def runtime_project_path_expr(project: Path, path: Path) -> str:
         return "AI_STUDIO_DIR"
     if relative.startswith(aiu_prefix):
         return f'AI_STUDIO_DIR / "{relative[len(aiu_prefix):]}"'
+    if Path(relative).is_absolute():
+        return f'_AIUPath({relative!r})'
     return f'PROJECT_DIR / "{relative}"'
 
 
@@ -839,6 +849,11 @@ def generated_runtest_text(project: Path, selected_model: Path, kind: str, refer
     required_package = details.get("required_package", "unknown")
     load_hint = details.get("load_hint", "custom loader required")
     replacements = {
+        "AI_STUDIO_DIR": "AI_STUDIO_DIR",
+        "PROJECT_DIR": "PROJECT_DIR",
+        "AI_STUDIO_CODE_DIR": 'AI_STUDIO_DIR / "code"',
+        "AI_STUDIO_METRICS_DIR": 'AI_STUDIO_DIR / "metrics"',
+        "AI_STUDIO_TRACKING_DIR": "LOCAL_MLFLOW_STORE_DIR",
         "SOURCE_MODEL_PATH": f'PROJECT_DIR / "{selected_relative}"',
         "DATA_MODEL_PATH": "SOURCE_MODEL_PATH",
         "MODEL_PATH": "SOURCE_MODEL_PATH",
@@ -1243,7 +1258,7 @@ def build_report(args: argparse.Namespace) -> PreparedModelReport:
     if report.failures:
         return report
 
-    reference = find_reference_entrypoint(project)
+    reference = find_reference_entrypoint(project, selected_kind)
     report.reference_entrypoint = rel(reference, project) if reference else None
     if reference is None:
         report.failures.append("reference_entrypoint_missing:runtest.py_or_run_test.py")

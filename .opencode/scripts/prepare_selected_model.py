@@ -895,7 +895,7 @@ def aiu_injected_block(project: Path, selected_model: Path, kind: str, reference
         "loader",
         """def load_selected_model():\n    raise ValueError(f\"unsupported MODEL_KIND: {MODEL_KIND}\")\n""",
     )
-    data_prep = aiu_data_prep_block()
+    data_prep = aiu_data_prep_block(kind)
     return f'''
 
 # --- AIU Studio selected model conversion ---
@@ -1003,10 +1003,79 @@ _aiu_atexit.register(_aiu_print_existing_model_tod)
 '''
 
 
-def aiu_data_prep_block() -> str:
-    return r'''# 데이터 준비
+def aiu_data_prep_payload(kind: str) -> str:
+    if kind in {"pytorch", "safetensors"}:
+        return '''{
+        "inputs": [
+            {
+                "name": "synthetic_image",
+                "shape": [1, 1, 28, 28],
+                "datatype": "FP32",
+                "data": _aiu_flat_zeros(1 * 1 * 28 * 28),
+            }
+        ],
+        "model_kind": MODEL_KIND,
+        "model_path": str(MODEL_PATH),
+    }'''
+    if kind in {"sklearn_pickle", "sklearn_joblib", "xgboost_bst", "xgboost_ubj"}:
+        return '''{
+        "inputs": [
+            {
+                "name": "synthetic_tabular",
+                "shape": [1, 4],
+                "datatype": "FP32",
+                "data": [[0.0, 0.0, 0.0, 0.0]],
+            }
+        ],
+        "model_kind": MODEL_KIND,
+        "model_path": str(MODEL_PATH),
+    }'''
+    if kind == "onnx":
+        return '''{
+        "inputs": [
+            {
+                "name": "input",
+                "shape": [1, 4],
+                "datatype": "FP32",
+                "data": [[0.0, 0.0, 0.0, 0.0]],
+            }
+        ],
+        "model_kind": MODEL_KIND,
+        "model_path": str(MODEL_PATH),
+    }'''
+    if kind in {"tensorflow_keras", "tensorflow_h5"}:
+        return '''{
+        "inputs": [
+            {
+                "name": "synthetic_tensor",
+                "shape": [1, 4],
+                "datatype": "FP32",
+                "data": [[0.0, 0.0, 0.0, 0.0]],
+            }
+        ],
+        "model_kind": MODEL_KIND,
+        "model_path": str(MODEL_PATH),
+    }'''
+    return '''{
+        "inputs": [
+            {
+                "name": "synthetic_input",
+                "shape": [1],
+                "datatype": "FP32",
+                "data": [0.0],
+            }
+        ],
+        "model_kind": MODEL_KIND,
+        "model_path": str(MODEL_PATH),
+    }'''
+
+
+def aiu_data_prep_block(kind: str) -> str:
+    payload = aiu_data_prep_payload(kind)
+    return f'''# 데이터 준비
 # 선택 모델 종류에 맞는 최소 input_example을 생성합니다.
 # 외부 데이터셋(FashionMNIST 등)을 다운로드하지 않고 원격 배포/검증용 synthetic 입력만 만듭니다.
+# MODEL_KIND={kind} 기준으로 생성된 데이터 준비 코드입니다.
 import json as _aiu_json
 
 try:
@@ -1018,70 +1087,7 @@ def _aiu_flat_zeros(size):
     return [0.0 for _ in range(size)]
 
 def _aiu_model_input_example():
-    if MODEL_KIND in {"pytorch", "safetensors"}:
-        return {
-            "inputs": [
-                {
-                    "name": "synthetic_image",
-                    "shape": [1, 1, 28, 28],
-                    "datatype": "FP32",
-                    "data": _aiu_flat_zeros(1 * 1 * 28 * 28),
-                }
-            ],
-            "model_kind": MODEL_KIND,
-            "model_path": str(MODEL_PATH),
-        }
-    if MODEL_KIND in {"sklearn_pickle", "sklearn_joblib", "xgboost_bst", "xgboost_ubj"}:
-        return {
-            "inputs": [
-                {
-                    "name": "synthetic_tabular",
-                    "shape": [1, 4],
-                    "datatype": "FP32",
-                    "data": [[0.0, 0.0, 0.0, 0.0]],
-                }
-            ],
-            "model_kind": MODEL_KIND,
-            "model_path": str(MODEL_PATH),
-        }
-    if MODEL_KIND == "onnx":
-        return {
-            "inputs": [
-                {
-                    "name": "input",
-                    "shape": [1, 4],
-                    "datatype": "FP32",
-                    "data": [[0.0, 0.0, 0.0, 0.0]],
-                }
-            ],
-            "model_kind": MODEL_KIND,
-            "model_path": str(MODEL_PATH),
-        }
-    if MODEL_KIND in {"tensorflow_keras", "tensorflow_h5"}:
-        return {
-            "inputs": [
-                {
-                    "name": "synthetic_tensor",
-                    "shape": [1, 4],
-                    "datatype": "FP32",
-                    "data": [[0.0, 0.0, 0.0, 0.0]],
-                }
-            ],
-            "model_kind": MODEL_KIND,
-            "model_path": str(MODEL_PATH),
-        }
-    return {
-        "inputs": [
-            {
-                "name": "synthetic_input",
-                "shape": [1],
-                "datatype": "FP32",
-                "data": [0.0],
-            }
-        ],
-        "model_kind": MODEL_KIND,
-        "model_path": str(MODEL_PATH),
-    }
+    return {payload}
 
 def _aiu_write_input_example():
     INPUT_EXAMPLE_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -1093,11 +1099,11 @@ input_example = _aiu_write_input_example()
 '''
 
 
-def insert_preserved_data_prep_block(text: str) -> str:
+def insert_preserved_data_prep_block(text: str, kind: str) -> str:
     if "_aiu_model_input_example" in text:
         return text
     marker = "\ndef load_selected_model"
-    block = "\n\n" + aiu_data_prep_block().rstrip() + "\n"
+    block = "\n\n" + aiu_data_prep_block(kind).rstrip() + "\n"
     if marker in text:
         return text.replace(marker, block + marker, 1)
     main_marker = "\ndef main"
@@ -1181,7 +1187,7 @@ def generated_runtest_text(project: Path, selected_model: Path, kind: str, refer
         preserve_code=preserve_code,
     )
     if preserve_code:
-        transformed = insert_preserved_data_prep_block(transformed)
+        transformed = insert_preserved_data_prep_block(transformed, kind)
     return transformed.rstrip() + "\n"
 
 

@@ -80,6 +80,33 @@ MODEL_RELATED_SETTING_NAMES = {
     "REQUIRED_PACKAGE",
     "required_package",
 }
+MODEL_PATH_VARIABLE_NAMES = {
+    "SOURCE_MODEL_PATH",
+    "DATA_MODEL_PATH",
+    "MODEL_PATH",
+    "source_model_path",
+    "data_model_path",
+    "model_path",
+    "MODEL_FILE",
+    "model_file",
+    "CHECKPOINT_PATH",
+    "checkpoint_path",
+}
+MODEL_COMMENT_HINT_PATTERN = re.compile(
+    r"(모델|로드|로딩|추론|model|load|loading|predict|inference|"
+    r"sklearn|scikit|joblib|pickle|pytorch|torch|tensorflow|keras|onnx|xgboost|safetensors)",
+    re.IGNORECASE,
+)
+MODEL_IMPORT_PACKAGE_NAMES = {
+    "joblib": "joblib",
+    "sklearn": "joblib",
+    "torch": "torch",
+    "tensorflow": "tensorflow",
+    "keras": "tensorflow",
+    "onnxruntime": "onnxruntime",
+    "xgboost": "xgboost",
+    "safetensors": "safetensors",
+}
 MODEL_PATH_REFERENCE_PATTERN = re.compile(
     r"(?P<path>[A-Za-z0-9가-힣_./\\() -]+(?:"
     + "|".join(re.escape(suffix) for suffix in sorted(SUPPORTED_MODEL_KINDS, key=len, reverse=True))
@@ -343,14 +370,16 @@ def text_contains_model_path(value: str) -> bool:
     return any(suffix in value.lower() for suffix in SUPPORTED_MODEL_KINDS)
 
 
-def rewrite_model_comment(comment: str, selected_relative: str) -> str:
+def rewrite_model_comment(comment: str, selected_relative: str, kind: str, load_hint: str) -> str:
     if not text_contains_model_path(comment):
+        if MODEL_COMMENT_HINT_PATTERN.search(comment):
+            return f"# AIU Studio 변환: 선택 모델 {selected_relative} 기준 (MODEL_KIND={kind}, loader={load_hint})"
         return comment
     prefix = "#"
     body = comment[1:].strip() if comment.lstrip().startswith("#") else comment.strip()
     converted = MODEL_PATH_REFERENCE_PATTERN.sub(selected_relative, body)
     if converted == body:
-        return comment
+        return f"# AIU Studio 변환: 선택 모델 {selected_relative} 기준 (MODEL_KIND={kind}, loader={load_hint})"
     return f"{prefix} AIU Studio 변환: {converted}"
 
 
@@ -366,14 +395,14 @@ def model_path_literal_expression(token_text: str) -> str | None:
     return None
 
 
-def rewrite_model_string_literals(line: str, selected_relative: str) -> str:
-    if not text_contains_model_path(line):
+def rewrite_model_string_literals(line: str, selected_relative: str, kind: str, load_hint: str) -> str:
+    if not text_contains_model_path(line) and not MODEL_COMMENT_HINT_PATTERN.search(line):
         return line
     suffix = "\n" if line.endswith("\n") else ""
     body = line.rstrip("\n")
     if body.lstrip().startswith("#"):
         indent = body[: len(body) - len(body.lstrip())]
-        return f"{indent}{rewrite_model_comment(body.lstrip(), selected_relative)}{suffix}"
+        return f"{indent}{rewrite_model_comment(body.lstrip(), selected_relative, kind, load_hint)}{suffix}"
 
     code, comment = split_inline_comment(body)
 
@@ -385,15 +414,21 @@ def rewrite_model_string_literals(line: str, selected_relative: str) -> str:
         return expression if expression else literal
 
     converted_code = PYTHON_STRING_LITERAL_PATTERN.sub(replace_literal, code)
-    converted_comment = rewrite_model_comment(comment, selected_relative) if comment else ""
+    converted_comment = rewrite_model_comment(comment, selected_relative, kind, load_hint) if comment else ""
     if converted_comment:
         return f"{converted_code}  {converted_comment}{suffix}"
     return f"{converted_code}{suffix}"
 
 
+def loader_call_uses_model_path(code: str) -> bool:
+    if "MODEL_PATH" in code:
+        return True
+    return any(re.search(rf"\b{re.escape(name)}\b", code) for name in MODEL_PATH_VARIABLE_NAMES)
+
+
 def rewrite_model_loader_line(line: str, kind: str, load_hint: str) -> str:
     code, comment = split_inline_comment(line.rstrip("\n"))
-    if "MODEL_PATH" not in code or not MODEL_LOADER_CALL_PATTERN.search(code):
+    if not MODEL_LOADER_CALL_PATTERN.search(code) or not loader_call_uses_model_path(code):
         return line
     suffix = "\n" if line.endswith("\n") else ""
     indent = code[: len(code) - len(code.lstrip())]
@@ -407,8 +442,42 @@ def rewrite_model_loader_line(line: str, kind: str, load_hint: str) -> str:
     return f"{converted_code}  {converted_comment}{suffix}"
 
 
-def rewrite_reference_line(line: str, selected_relative: str, kind: str, load_hint: str) -> str:
-    converted = rewrite_model_string_literals(line, selected_relative)
+def import_package_for_line(line: str) -> tuple[str, str] | None:
+    stripped = line.strip()
+    match = re.match(r"import\s+([A-Za-z_][A-Za-z0-9_]*)\b", stripped)
+    if match:
+        module_name = match.group(1)
+        package_name = MODEL_IMPORT_PACKAGE_NAMES.get(module_name)
+        return (module_name, package_name) if package_name else None
+    match = re.match(r"from\s+([A-Za-z_][A-Za-z0-9_]*)\b\s+import\s+", stripped)
+    if match:
+        module_name = match.group(1)
+        package_name = MODEL_IMPORT_PACKAGE_NAMES.get(module_name)
+        return (module_name, package_name) if package_name else None
+    return None
+
+
+def rewrite_model_import_line(line: str, required_package: str) -> str:
+    package = import_package_for_line(line)
+    if package is None:
+        return line
+    module_name, package_name = package
+    if package_name == required_package:
+        return line
+    suffix = "\n" if line.endswith("\n") else ""
+    indent = line[: len(line) - len(line.lstrip())]
+    original = line.rstrip("\n")
+    return (
+        f"{indent}# AIU Studio 변환: 선택 모델 로더는 {required_package} 기준이라 {module_name} import를 비활성화합니다.{suffix}"
+        f"{indent}# {original.lstrip()}{suffix}"
+    )
+
+
+def rewrite_reference_line(line: str, selected_relative: str, kind: str, load_hint: str, required_package: str) -> str:
+    import_converted = rewrite_model_import_line(line, required_package)
+    if import_converted != line:
+        return import_converted
+    converted = rewrite_model_string_literals(line, selected_relative, kind, load_hint)
     return rewrite_model_loader_line(converted, kind, load_hint)
 
 
@@ -465,13 +534,13 @@ def transform_reference_text(
                             continue
         match = assignment_pattern.match(stripped.rstrip("\n"))
         if not match:
-            output.append(rewrite_reference_line(line, selected_relative, kind, load_hint))
+            output.append(rewrite_reference_line(line, selected_relative, kind, load_hint, required_package))
             continue
 
         name, raw_value = match.groups()
         expression = replacement_expression(name, replacements)
         if expression is None:
-            output.append(rewrite_reference_line(line, selected_relative, kind, load_hint))
+            output.append(rewrite_reference_line(line, selected_relative, kind, load_hint, required_package))
             continue
 
         if name in MLFLOW_SETTING_NAMES and not indent:
@@ -479,7 +548,7 @@ def transform_reference_text(
             output.append(f"# {line.rstrip()}\n")
             continue
         if name in MLFLOW_SETTING_NAMES:
-            output.append(rewrite_reference_line(line, selected_relative, kind, load_hint))
+            output.append(rewrite_reference_line(line, selected_relative, kind, load_hint, required_package))
             continue
 
         _, comment = split_inline_comment(raw_value)

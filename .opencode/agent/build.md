@@ -180,6 +180,7 @@ Step 8. runtest_2.py 생성
         MODEL_KIND별 load_selected_model()과 required_package/load_hint를 생성한다.
         변환은 참조한 runtest.py 구조를 기반으로 한다.
         함수 내부의 기존 모델 경로 문자열과 모델 로딩 호출은 선택 모델 기준 load_selected_model() 호출로 변환한다.
+        선택 모델 로더와 맞지 않는 기존 모델 프레임워크 import는 주석 처리한다.
         모델 경로/MODEL_KIND/로더 관련 주석은 선택 모델 기준으로 변환하고, 그 외 주석은 유지한다.
         기존 runtest.py는 절대 수정하지 않는다.
 

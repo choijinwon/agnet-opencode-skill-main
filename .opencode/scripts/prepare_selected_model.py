@@ -1513,7 +1513,7 @@ def generated_runtest_text(project: Path, selected_model: Path, kind: str, refer
 
 def generated_localservingtest_text(project: Path, selected_model: Path, kind: str, reference: Path) -> str:
     selected_relative = rel(selected_model, project)
-    reference_expr = runtime_project_path_expr(project, reference)
+    reference_expr = runtime_path_expr(reference, "Path")
     aiu_studio_path = project / AIU_STUDIO_DIR_NAME
     profile = model_profile(project, selected_model, kind)
     details = MODEL_KIND_DETAILS.get(kind, {})

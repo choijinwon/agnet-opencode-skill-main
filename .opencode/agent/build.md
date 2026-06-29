@@ -208,7 +208,7 @@ Step 9. aiu_custom 파일 확인
 2. 모델 경로로 선택
 3. 선택 모델 환경 변환
 4. 모델 환경변수 체크
-5. 모델 학습 서버 배포
+5. 원격 MLflow 등록 실행
 6. 추론 스모크 테스트
 7. MLflow 검증
 ```
@@ -255,7 +255,7 @@ Step 4. 모델 환경변수 체크
         두 자동값은 선택한 모델 파일명에서 확장자를 제거한 이름 기준으로 생성한다.
         상태는 set/empty/missing/auto_default로 표시한다.
 
-Step 5. 모델 학습 서버 배포
+Step 5. 원격 MLflow 등록 실행
         생성된 runtest_2.py를 실행해 선택 모델을 원격 MLflow tracking 서버에 기록/등록한다.
         Windows PowerShell에서는 cd '<selected-project-path>' 후 python runtest_2.py로 실행한다.
         실행 시 작업 디렉터리는 워크스페이스 루트로 고정한다.

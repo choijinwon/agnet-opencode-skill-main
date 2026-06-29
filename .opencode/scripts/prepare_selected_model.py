@@ -1162,7 +1162,7 @@ model_output_dir = str(MODEL_OUTPUT_DIR)
 model_output_path = str(MODEL_OUTPUT_PATH)
 saved_model_dir = str(MODEL_OUTPUT_DIR)
 
-# Step 6 모델 학습 서버 배포 중 상대경로 산출물은 선택한 워크스페이스 루트 아래에 생성되도록 고정합니다.
+# Step 6 원격 MLflow 등록 실행 중 상대경로 산출물은 선택한 워크스페이스 루트 아래에 생성되도록 고정합니다.
 _aiu_os.chdir(AI_STUDIO_DIR)
 CONFIG_DIR.mkdir(parents=True, exist_ok=True)
 MODEL_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -1218,7 +1218,7 @@ def _aiu_print_existing_model_tod():
     print("- 2. 모델 경로로 선택 - 완료")
     print("- 3. 선택 모델 환경 변환 - 완료")
     print("- 4. 모델 환경변수 체크 - 다음")
-    print("- 5. 모델 학습 서버 배포 - 완료")
+    print("- 5. 원격 MLflow 등록 실행 - 완료")
     print("- 6. 추론 스모크 테스트 - 다음")
     print("- 7. MLflow 검증 - 다음")
 
@@ -1504,8 +1504,8 @@ def generated_runtest_text(project: Path, selected_model: Path, kind: str, refer
         transformed = insert_preserved_data_prep_block(transformed, kind)
     transformed = insert_runtest_sequence_block(transformed, sequence)
     transformed = transformed.replace(
-        "모델 학습 서버 배포를 위해 MLflow/AI Studio 설정을 runtest.py에 직접 입력하세요.",
-        "모델 학습 서버 배포를 위해 MLflow/AI Studio 설정을 runtest_2.py에 직접 입력하세요.",
+        "원격 MLflow 등록 실행을 위해 MLflow/AI Studio 설정을 runtest.py에 직접 입력하세요.",
+        "원격 MLflow 등록 실행을 위해 MLflow/AI Studio 설정을 runtest_2.py에 직접 입력하세요.",
     )
     return transformed.rstrip() + "\n"
 
@@ -1600,7 +1600,7 @@ def _print_tod(local_status="완료"):
     print("- 2. 모델 경로로 선택 - 완료")
     print("- 3. 선택 모델 환경 변환 - 완료")
     print("- 4. 모델 환경변수 체크 - 다음")
-    print("- 5. 모델 학습 서버 배포 - 완료")
+    print("- 5. 원격 MLflow 등록 실행 - 완료")
     print(f"- 6. 추론 스모크 테스트 - {{local_status}}")
     print("- 7. MLflow 검증 - 다음")
 
@@ -2216,7 +2216,7 @@ def print_report(report: PreparedModelReport) -> None:
     print("2. 모델 경로로 선택 - 완료" if model_selected else "2. 모델 경로로 선택 - 대기")
     print("3. 선택 모델 환경 변환 - 완료" if auto_ready else "3. 선택 모델 환경 변환 - 대기")
     print("4. 모델 환경변수 체크 - 다음")
-    print("5. 모델 학습 서버 배포 - 다음")
+    print("5. 원격 MLflow 등록 실행 - 다음")
     print("6. 추론 스모크 테스트 - 다음")
     print("7. MLflow 검증 - 다음")
     if report.next_steps:

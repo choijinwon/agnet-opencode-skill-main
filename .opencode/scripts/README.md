@@ -29,7 +29,7 @@ Step 4  모델 환경변수 체크
         check_environment.py
         오류 사항이 있으면 경로/환경변수/패키지/버전 기준 서버 배포 오류사항 목록을 함께 보여준다.
 
-Step 5  모델 학습 서버 배포
+Step 5  원격 MLflow 등록 실행
         runtest_2.py
         input_example.json은 워크스페이스 루트의 input_example.json에 있어야 하며, 상대경로 산출물도 워크스페이스 루트 아래에 생성되도록 실행 시 작업 디렉터리를 프로젝트 루트로 고정한다.
 

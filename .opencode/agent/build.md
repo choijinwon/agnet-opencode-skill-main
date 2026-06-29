@@ -212,6 +212,7 @@ Step 9. aiu_custom 파일 변환/갱신
 ## Existing Model TOD Number Input
 
 If the project has `aiu_studio/runtest_2.py` and the user enters only a TOD number, treat it as the existing-model TOD step. Do not show the Launch Guide again.
+After executing any existing-model TOD number, always show the current `TOD Guide` status. Step 6 and Step 7 generated scripts also print TOD themselves.
 
 ```text
 4 -> python .opencode/scripts/check_environment.py --project . --entrypoint aiu_studio/runtest_2.py

@@ -723,6 +723,7 @@ def aiu_injected_block(project: Path, selected_model: Path, kind: str, reference
 # MODEL_KIND에 맞는 load_selected_model()을 생성해 선택 모델 기준으로 변환합니다.
 # 이 블록은 자동 생성되지만 아래 원본 runtest.py 구조와 주석은 유지합니다.
 import os as _aiu_os
+import atexit as _aiu_atexit
 from pathlib import Path as _AIUPath
 
 AI_STUDIO_DIR = _AIUPath(__file__).resolve().parent
@@ -785,6 +786,19 @@ for _aiu_env_name, _aiu_env_value in {{
 }}.items():
     if _aiu_env_value:
         _aiu_os.environ[_aiu_env_name] = _aiu_env_value
+
+def _aiu_print_existing_model_tod():
+    print("\\nTOD Guide:")
+    print("- 1. 루트/data 모델 목록 확인 - 완료")
+    print("- 2. 사용할 모델 선택 - 완료")
+    print("- 3. 자동 준비 실행 - 완료")
+    print("- 4. 환경 검증 - 다음")
+    print("- 5. 모델 환경변수 체크 - 다음")
+    print("- 6. runtest_2.py 실행 - 완료")
+    print("- 7. 로컬 추론 테스트 - 다음")
+    print("- 8. MLflow 검증 - 다음")
+
+_aiu_atexit.register(_aiu_print_existing_model_tod)
 # --- /AIU Studio selected model conversion ---
 
 '''
@@ -926,9 +940,26 @@ def run_inference():
     }}
 
 
+def _print_tod(local_status="완료"):
+    print("\\nTOD Guide:")
+    print("- 1. 루트/data 모델 목록 확인 - 완료")
+    print("- 2. 사용할 모델 선택 - 완료")
+    print("- 3. 자동 준비 실행 - 완료")
+    print("- 4. 환경 검증 - 다음")
+    print("- 5. 모델 환경변수 체크 - 다음")
+    print("- 6. runtest_2.py 실행 - 완료")
+    print(f"- 7. 로컬 추론 테스트 - {{local_status}}")
+    print("- 8. MLflow 검증 - 다음")
+
+
 def main():
-    result = run_inference()
-    print(json.dumps(result, ensure_ascii=False, indent=2, default=str))
+    local_status = "확인 필요"
+    try:
+        result = run_inference()
+        print(json.dumps(result, ensure_ascii=False, indent=2, default=str))
+        local_status = "완료"
+    finally:
+        _print_tod(local_status)
 
 
 if __name__ == "__main__":

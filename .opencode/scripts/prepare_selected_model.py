@@ -1360,8 +1360,6 @@ import os
 import sys
 from pathlib import Path
 
-import mlflow
-
 from aiu_custom.predict import ModelWrapper
 
 
@@ -1457,6 +1455,12 @@ def main() -> None:
         for name in missing:
             print(f"- {{name}}")
         print("비밀번호 값은 출력하지 않습니다.")
+        return
+
+    try:
+        import mlflow
+    except Exception as exc:
+        print(f"MLflow import failed. Install packages from requirements.txt first. reason={{exc}}")
         return
 
     export_mlflow_environment()

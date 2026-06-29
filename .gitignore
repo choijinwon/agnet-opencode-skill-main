@@ -38,6 +38,8 @@ data/processed/
 model/
 models/
 saved_model/
+!.opencode/samples/aiu_studio/saved_model/
+!.opencode/samples/aiu_studio/saved_model/.gitkeep
 *.log
 *.csv
 *.tsv

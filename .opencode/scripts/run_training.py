@@ -420,6 +420,7 @@ def main():
             EnvVarStatus("5. 원격 MLflow 등록 실행", "done" if args.execute and return_code == 0 else "pending"),
             EnvVarStatus("6. 추론 스모크 테스트", "pending"),
             EnvVarStatus("7. MLflow 검증", "pending"),
+            EnvVarStatus("8. 오류 수정 및 재검증", "needed" if failures else "pending"),
         ]
     else:
         process_checklist = [

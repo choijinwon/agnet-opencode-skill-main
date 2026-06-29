@@ -31,6 +31,7 @@ metadata:
 5. 원격 MLflow 등록 실행
 6. 추론 스모크 테스트
 7. MLflow 검증
+8. 오류 수정 및 재검증
 ```
 
 ## What To Do Now
@@ -172,6 +173,7 @@ blocked:
 5. runtest_2.py 원격 MLflow 등록 실행
 6. 선택 모델 환경으로 변환된 local serving 입력/출력 확인
 7. MLflow run, artifact, registered model 검증
+8. 오류가 있으면 수정 후 실패한 단계부터 재검증
 ```
 
 샘플 모델 흐름:

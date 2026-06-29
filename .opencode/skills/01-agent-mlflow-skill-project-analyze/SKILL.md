@@ -31,6 +31,7 @@ metadata:
 5. 원격 MLflow 등록 실행
 6. 추론 스모크 테스트
 7. MLflow 검증
+8. 오류 수정 및 재검증
 ```
 
 ## What To Do Now

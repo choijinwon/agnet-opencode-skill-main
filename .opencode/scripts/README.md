@@ -37,6 +37,8 @@ Step 6  추론 스모크 테스트
         local_serving/localservingtest.py
 
 Step 7  MLflow 검증
+Step 8  오류 수정 및 재검증
+        원격 MLflow 등록, 추론 스모크 테스트, MLflow 검증 중 오류가 있으면 서버 배포 오류사항과 Failures를 기준으로 수정한 뒤 실패한 단계부터 다시 실행한다.
         verify_mlflow.py
 ```
 
@@ -132,7 +134,7 @@ python .opencode/scripts/doctor.py --workspace . --project <model-project-folder
 기존 `runtest.py`는 수정하지 않는다.
 PyTorch/safetensors 모델은 `.opencode/samples/pytorch_sample/` 내부를 참조해서 선택 모델 실행/등록에 필요한 연결부만 안전하게 변환해줘.
 선택 모델 경로와 `MODEL_KIND`를 반영한다.
-`runtest_2.py` 생성 시퀀스는 `모델 선택 -> 모델 형식 확인 -> .opencode/samples/aiu_studio/ 내부 파일/폴더를 워크스페이스 루트로 복사 -> samples/pytorch_sample/ 기준 연결부 변환 -> 실행 코드 변환` 순서로 수행한다.
+`runtest_2.py` 생성 시퀀스는 `모델 선택 -> 모델 형식 확인 -> .opencode/samples/aiu_studio/ 내부 파일/폴더를 워크스페이스 루트로 복사 -> samples/pytorch_sample/ 내부 참조 -> 선택 모델 경로와 MODEL_KIND를 반영한 연결부 변환 -> 변환 결과 검증` 순서로 수행한다.
 
 ```text
 python .opencode/scripts/prepare_selected_model.py --project <model-project-folder>

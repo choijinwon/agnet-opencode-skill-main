@@ -31,6 +31,7 @@ metadata:
 5. artifact_path="ai_studio" 아래 code/ 확인
 6. registry 상태 확인
 7. 완료 또는 후속 조치 안내
+8. 오류가 있으면 수정 후 실패한 단계부터 재검증
 ```
 
 ## What To Do Now

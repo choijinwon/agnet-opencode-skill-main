@@ -210,6 +210,7 @@ Step 9. aiu_custom 파일 확인
 5. 원격 MLflow 등록 실행
 6. 추론 스모크 테스트
 7. MLflow 검증
+8. 오류 수정 및 재검증
 ```
 
 ## Existing Model TOD Number Input
@@ -223,6 +224,7 @@ After executing any existing-model TOD number, always show the current `TOD Guid
 5 -> python runtest_2.py
 6 -> python local_serving/localservingtest.py
 7 -> python .opencode/scripts/verify_mlflow.py --tracking-uri <tracking-uri> --experiment-name <experiment-name>
+8 -> 오류사항 수정 후 실패한 단계부터 재실행
 ```
 
 On Windows PowerShell, run Step 6 from the selected project's `aiu_studio` folder:
@@ -243,9 +245,9 @@ For `4`, always report it as `모델 환경변수 체크`. The output must show 
 
 Step 3. 선택 모델 환경 변환
         사용자가 선택한 모델의 MODEL_KIND를 먼저 확인한 뒤 .opencode/samples/aiu_studio/ 내부 파일/폴더를 워크스페이스 루트로 복사하고 모델 환경에 맞게 변환한다.
-        PyTorch/safetensors 모델은 .opencode/samples/pytorch_sample/ 내부를 참조해서 선택 모델 실행/등록에 필요한 연결부만 안전하게 변환해줘.
-        선택 모델 경로와 MODEL_KIND를 반영한다.
-        runtest_2.py 생성 시퀀스는 모델 선택 -> 모델 형식 확인 -> .opencode/samples/aiu_studio/ 내부 파일/폴더를 워크스페이스 루트로 복사 -> samples/pytorch_sample/ 기준 연결부 변환 -> 실행 코드 변환 순서로 수행한다.
+        PyTorch/safetensors 모델은 .opencode/samples/pytorch_sample/ 내부를 참조한다.
+        선택 모델 경로와 MODEL_KIND를 반영해 선택 모델 실행/등록에 필요한 연결부만 안전하게 변환해줘.
+        runtest_2.py 생성 시퀀스는 모델 선택 -> 모델 형식 확인 -> .opencode/samples/aiu_studio/ 내부 파일/폴더를 워크스페이스 루트로 복사 -> samples/pytorch_sample/ 내부 참조 -> 선택 모델 경로와 MODEL_KIND를 반영한 연결부 변환 -> 변환 결과 검증 순서로 수행한다.
         내부 일치 검증은 자동으로 수행하되 사용자에게 세부 파일 목록을 길게 보여주지 않는다.
 
 Step 4. 모델 환경변수 체크
@@ -272,6 +274,11 @@ Step 6. 추론 스모크 테스트
 Step 7. MLflow 검증
         Run, artifact, registered model 기록을 확인한다.
         Windows PowerShell에서는 cd '<selected-project-path>' 후 python '<opencode-package-path>\.opencode\scripts\verify_mlflow.py' --project '<selected-project-path>' --tracking-uri <tracking-uri> --experiment-name <experiment-name>로 실행한다.
+
+Step 8. 오류 수정 및 재검증
+        Step 5, Step 6, Step 7에서 오류가 있으면 서버 배포 오류사항과 Failures를 기준으로 수정한다.
+        수정 후 전체를 다시 시작하지 말고 실패한 단계부터 다시 실행한다.
+        경로, 환경변수, 패키지, 버전, 모델 로드, artifact 등록 오류를 구분해서 보여준다.
 ```
 
 Use this script for steps 1-8:

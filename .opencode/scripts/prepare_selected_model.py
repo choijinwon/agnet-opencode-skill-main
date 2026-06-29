@@ -1560,7 +1560,8 @@ def load_input_example():
 
 
 def load_aiu_custom_wrapper():
-    for relative in ["aiu_custom/model.py", "aiu_custom/model_wrapper.py", "aiu_custom/predict.py"]:
+    # AI Studio 배포 경로와 동일하게 predict.py를 먼저 사용합니다.
+    for relative in ["aiu_custom/predict.py", "aiu_custom/model.py", "aiu_custom/model_wrapper.py"]:
         wrapper_path = AI_STUDIO_DIR / relative
         if not wrapper_path.is_file():
             continue
@@ -1753,6 +1754,69 @@ def predict(payload):
 '''
 
 
+def generated_predict_text(project: Path, selected_model: Path, kind: str) -> str:
+    details = MODEL_KIND_DETAILS.get(kind, {})
+    required_package = details.get("required_package", "unknown")
+    load_hint = details.get("load_hint", "custom loader required")
+    return f'''from __future__ import annotations
+
+import importlib.util
+from pathlib import Path
+
+
+AIU_CUSTOM_DIR = Path(__file__).resolve().parent
+MODEL_MODULE_PATH = AIU_CUSTOM_DIR / "model.py"
+MODEL_KIND = "{kind}"
+AIU_REQUIRED_PACKAGE = "{required_package}"
+AIU_LOAD_HINT = "{load_hint}"
+
+# AI Studio 배포 엔트리포인트입니다.
+# 선택 모델 경로와 로딩 방식은 aiu_custom/model.py와 mapping.json이 담당합니다.
+# 이 파일에는 선택 모델 경로를 직접 쓰지 않습니다.
+
+
+def _load_model_module():
+    if not MODEL_MODULE_PATH.is_file():
+        raise FileNotFoundError("aiu_custom/model.py is required for AI Studio deployment")
+
+    spec = importlib.util.spec_from_file_location("aiu_custom_selected_model", MODEL_MODULE_PATH)
+    if spec is None or spec.loader is None:
+        raise ImportError("cannot load aiu_custom/model.py")
+
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _create_delegate():
+    module = _load_model_module()
+    wrapper_class = getattr(module, "ModelWrapper", None)
+    if wrapper_class is None:
+        raise AttributeError("ModelWrapper missing in aiu_custom/model.py")
+    return wrapper_class()
+
+
+class ModelWrapper:
+    def __init__(self):
+        self._delegate = None
+
+    def load_context(self, context=None):
+        if self._delegate is None:
+            self._delegate = _create_delegate()
+            if hasattr(self._delegate, "load_context"):
+                self._delegate.load_context(context)
+        return self._delegate
+
+    def predict(self, context, model_input):
+        delegate = self.load_context(context)
+        return delegate.predict(context, model_input)
+
+
+def predict(payload):
+    return ModelWrapper().predict(None, payload)
+'''
+
+
 def generated_mapping_json(project: Path, selected_model: Path, kind: str) -> str:
     selected_relative = rel(selected_model, project)
     selected_absolute = absolute_path_text(selected_model)
@@ -1772,6 +1836,7 @@ def generated_mapping_json(project: Path, selected_model: Path, kind: str) -> st
             "aiu_studio_dir": absolute_path_text(project / AIU_STUDIO_DIR_NAME),
             "model_entrypoint": "aiu_custom/model.py",
             "predict_entrypoint": "aiu_custom/predict.py",
+            "deployment_entrypoint": "aiu_custom/predict.py",
             "wrapper_class": "ModelWrapper",
             "local_serving_test": "local_serving/localservingtest.py",
         },
@@ -1840,27 +1905,12 @@ def write_aiu_predict(project: Path, selected_model: Path, kind: str, execute: b
     skipped: list[str] = []
     failures: list[str] = []
     if not execute:
-        skipped.append("aiu_studio/aiu_custom/predict.py import check:dry_run")
+        skipped.append("aiu_studio/aiu_custom/predict.py deployment entrypoint:dry_run")
         return changed, skipped, failures
-    if not target.is_file():
-        failures.append("predict_entrypoint_missing:aiu_studio/aiu_custom/predict.py")
-        return changed, skipped, failures
-
-    details = MODEL_KIND_DETAILS.get(kind, {})
-    required_package = details.get("required_package")
-    text = target.read_text(encoding="utf-8", errors="ignore")
-    imported_packages = {
-        package
-        for line in text.splitlines()
-        for package in [import_package_for_line(line)]
-        if package is not None
-    }
-    imported_module_names = {module_name for module_name, _original in imported_packages}
-    if required_package and required_package != "unknown" and required_package not in imported_module_names:
-        changed.append(f"aiu_studio/aiu_custom/predict.py import check (missing:{required_package})")
-        return changed, skipped, failures
-
-    changed.append("aiu_studio/aiu_custom/predict.py import check (ok)")
+    existed_before = target.exists()
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(generated_predict_text(project, selected_model, kind), encoding="utf-8")
+    changed.append("aiu_studio/aiu_custom/predict.py deployment entrypoint (refreshed)" if existed_before else "aiu_studio/aiu_custom/predict.py deployment entrypoint")
     return changed, skipped, failures
 
 
@@ -1886,6 +1936,7 @@ def verify_selected_model_conversion(project: Path, selected_model: Path, kind: 
     required_text_files = [
         project / AIU_STUDIO_DIR_NAME / "runtest_2.py",
         project / AIU_STUDIO_DIR_NAME / "aiu_custom" / "model.py",
+        project / AIU_STUDIO_DIR_NAME / "aiu_custom" / "predict.py",
         project / AIU_STUDIO_DIR_NAME / "local_serving" / "localservingtest.py",
     ]
     changed = ["선택 모델 기준 변환 검증"]
@@ -1903,6 +1954,15 @@ def verify_selected_model_conversion(project: Path, selected_model: Path, kind: 
                 failures.append("model_py_mapping_loader_missing:aiu_studio/aiu_custom/model.py")
             if selected_relative in text or selected_absolute in text:
                 failures.append("selected_model_path_should_not_be_embedded:aiu_studio/aiu_custom/model.py")
+            continue
+
+        if display_path == "aiu_studio/aiu_custom/predict.py":
+            if "model.py" not in text or "ModelWrapper" not in text or "_load_model_module" not in text:
+                failures.append("predict_py_deployment_delegate_missing:aiu_studio/aiu_custom/predict.py")
+            if selected_relative in text or selected_absolute in text:
+                failures.append("selected_model_path_should_not_be_embedded:aiu_studio/aiu_custom/predict.py")
+            if f'MODEL_KIND = "{kind}"' not in text and f"MODEL_KIND = {kind!r}" not in text:
+                failures.append(f"selected_model_kind_not_reflected:{display_path}:{kind}")
             continue
 
         if selected_relative not in text and selected_absolute not in text:

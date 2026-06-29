@@ -58,9 +58,9 @@ Step 3. 선택 모델 환경 변환
         aiu_studio/ 폴더를 그대로 복사하고, MODEL_KIND 판별 후 복사된 aiu_studio 파일들을 선택 모델 환경에 맞게 변환/갱신한다.
         변환 기준은 선택 모델 형식에 맞는 .opencode/samples/* 샘플이다. PyTorch/safetensors는 pytorch_sample/runtest.py를 참조한다.
         runtest_2.py 생성 시퀀스는 모델 선택, aiu_studio/ 폴더 복사, 모델 형식 확인, 형식별 샘플 참조, runtest_2.py 생성/연결, 실행 코드 변환 순서다.
-        변환 대상은 모델 로더, 데이터 준비, input_example, MLflow 경로, local serving, 선택 모델 관련 주석이다.
+        변환 대상은 model.py 로더/헬퍼, predict.py 배포 엔트리포인트, 데이터 준비, input_example, MLflow 경로, local serving, 선택 모델 관련 주석이다.
         내부 일치 검증은 자동으로 수행하며 사용자에게 파일별 확인 목록을 요구하지 않는다.
-        predict.py는 코드 변환 대상이 아니며 선택 모델 required_package import 상태만 확인한다.
+        predict.py는 AI Studio 배포 엔트리포인트로 갱신하고 model.py의 ModelWrapper에 위임한다.
 Step 4. 모델 환경변수 체크
         입력값 3개와 자동값 2개 상태를 확인한다.
 Step 5. 원격 MLflow 배포/등록 실행

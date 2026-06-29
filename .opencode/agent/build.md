@@ -134,7 +134,7 @@ If `model_found: true`, do not ask the user to choose a sample. Continue with th
 Existing model assumptions:
 
 - The user's model file may be directly under the currently selected project root or anywhere under that project's recursive `data/**` tree. Do not scan arbitrary project subfolders, parent folders, home folders, drive roots, or `.opencode` samples. The folder name under `data/` is user-defined, not fixed. Supported suffixes are `.pkl`, `.joblib`, `.pt`, `.pth`, `.onnx`, `.keras`, `.h5`, `.safetensors`, `.bst`, and `.ubj`. Examples: `model.pkl`, `data/<any-folder>/model.joblib`, `data/checkpoints/model.pt`, or `data/models/model.safetensors`.
-- Read and classify the selected model, then transform copied `aiu_studio/` runtime files for that model. Generate/update `aiu_studio/aiu_custom/model.py` for the selected model. Do not rewrite `aiu_studio/aiu_custom/predict.py`; only check its import compatibility.
+- Read and classify the selected model, then transform copied `aiu_studio/` runtime files for that model. Generate/update `aiu_studio/aiu_custom/model.py` as the selected-model loader/helper and generate/update `aiu_studio/aiu_custom/predict.py` as the AI Studio deployment entrypoint that delegates to `model.py`.
 - Do not copy the selected model file into `aiu_studio/`. Generated/converted code must read the selected project model path directly.
 - If Linux paths contain Windows separators such as `\`, `＼`, `￦`, or `₩`, normalize them to `/` during generated file conversion.
 - Only `.opencode/samples/aiu_studio/` is copied to the project root as `aiu_studio/` for existing-model flow.
@@ -197,11 +197,10 @@ Step 8. runtest_2.py 변환/갱신
         기존 runtest.py는 절대 수정하지 않는다.
 
 Step 9. aiu_custom 파일 확인
-        aiu_studio/aiu_custom/model.py는 선택 모델 경로와 MODEL_KIND 기준으로 변환/갱신한다.
-        복사된 aiu_studio/aiu_custom/predict.py 코드는 변환/덮어쓰기하지 않는다.
-        선택 모델의 required_package 기준으로 predict.py import 호환성만 체크한다.
+        aiu_studio/aiu_custom/model.py는 선택 모델 경로와 MODEL_KIND를 mapping.json에서 읽는 로더/헬퍼로 변환/갱신한다.
+        aiu_studio/aiu_custom/predict.py는 AI Studio 배포 엔트리포인트로 변환/갱신하며 model.py의 ModelWrapper에 위임한다.
         aiu_studio/aiu_custom/mapping.json도 선택 모델 기준으로 변환/갱신한다.
-        추론 테스트는 aiu_studio/aiu_custom/model.py의 ModelWrapper를 우선 사용한다.
+        추론 테스트는 배포 경로와 동일하게 aiu_studio/aiu_custom/predict.py의 ModelWrapper를 우선 사용한다.
 
 사용자에게 보여줄 TOD는 아래 7단계로 고정한다. 모델 선택 이후에는 Launch 규칙이나 긴 세부 규칙을 다시 보여주지 않는다.
 
@@ -247,9 +246,8 @@ For `4`, always report it as `모델 환경변수 체크`. The output must show 
 Step 3. 선택 모델 환경 변환
         사용자가 선택한 모델 경로와 MODEL_KIND를 기준으로 aiu_studio/ 폴더를 복사하고 모델 환경에 맞게 변환한다.
         runtest_2.py 생성 시퀀스는 모델 선택 -> aiu_studio/ 폴더 복사 -> 모델 형식 확인 -> 형식별 샘플 참조 -> runtest_2.py 생성/연결 -> 실행 코드 변환 순서로 수행한다.
-        변환 대상은 모델 로더, 데이터 준비, input_example, MLflow artifact/code_paths, local serving 동작, 선택 모델 관련 주석이다.
+        변환 대상은 model.py 로더/헬퍼, predict.py 배포 엔트리포인트, 데이터 준비, input_example, MLflow artifact/code_paths, local serving 동작, 선택 모델 관련 주석이다.
         내부 일치 검증은 자동으로 수행하되 사용자에게 파일별 확인 목록을 길게 보여주지 않는다.
-        aiu_studio/aiu_custom/predict.py는 코드 변환 대상이 아니며 선택 모델 required_package import 상태만 확인한다.
 
 Step 4. 모델 환경변수 체크
         aiu_studio/runtest_2.py 또는 확정 entrypoint의 MLflow 입력값 3개와 자동값 2개를 확인한다.

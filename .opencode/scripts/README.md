@@ -125,9 +125,9 @@ python .opencode/scripts/doctor.py --workspace . --project <model-project-folder
 
 ### prepare_selected_model.py
 
-현재 프로젝트 루트 바로 아래와 `data/**` 아래 모델 파일 목록을 만들고, 사용자가 선택한 모델 기준으로 `aiu_studio/` 폴더를 루트에 그대로 복사하고 `aiu_studio/runtest_2.py`와 `aiu_studio/aiu_custom/model.py`를 준비한다. 기존 모델 경로 문자열, 모델 로딩 호출, 데이터 준비, 관련 주석은 선택 모델 기준으로 변환한다.
+현재 프로젝트 루트 바로 아래와 `data/**` 아래 모델 파일 목록을 만들고, 사용자가 선택한 모델 기준으로 `aiu_studio/` 폴더를 루트에 그대로 복사하고 `aiu_studio/runtest_2.py`, `aiu_studio/aiu_custom/model.py`, `aiu_studio/aiu_custom/predict.py`를 준비한다. 기존 모델 경로 문자열, 모델 로딩 호출, 데이터 준비, 관련 주석은 선택 모델 기준으로 변환한다.
 `runtest_2.py`는 외부 데이터셋을 다운로드하지 않고 MODEL_KIND에 맞는 synthetic `aiu_studio/input_example.json`을 생성한다.
-`aiu_studio/aiu_custom/predict.py`는 코드 변환 대상이 아니며 선택 모델 required_package import 상태만 확인한다.
+`aiu_studio/aiu_custom/model.py`는 선택 모델 로더/헬퍼이고, `aiu_studio/aiu_custom/predict.py`는 AI Studio 배포 엔트리포인트로 갱신되어 `model.py`에 위임한다.
 기존 `runtest.py` 또는 `aiu_studio/runtest.py`는 수정하지 않는다.
 선택 모델 형식에 맞는 `.opencode/samples/*` 샘플을 우선 참조한다. PyTorch/safetensors는 `.opencode/samples/pytorch_sample/runtest.py`, sklearn/joblib/xgboost는 `.opencode/samples/sklearn_sample/run_model.py`, tensorflow/keras/h5는 `.opencode/samples/tensorflow_sample/run_model.py`를 참조해 변환한다.
 `runtest_2.py` 생성 시퀀스는 `모델 선택 -> aiu_studio/ 폴더 복사 -> 모델 형식 확인 -> 형식별 샘플 참조 -> runtest_2.py 생성/연결 -> 실행 코드 변환` 순서로 수행한다.

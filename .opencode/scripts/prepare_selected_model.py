@@ -695,6 +695,25 @@ def rewrite_code_paths_argument(line: str) -> str:
     return f"{code}  {converted_comment}{suffix}"
 
 
+def code_paths_multiline_empty_start(line: str) -> bool:
+    code, _ = split_inline_comment(line.rstrip("\n"))
+    return bool(re.search(r"\bcode_paths\s*=\s*\[\s*$", code))
+
+
+def code_paths_multiline_empty_end(line: str) -> bool:
+    return line.strip().rstrip(",") == "]"
+
+
+def converted_code_paths_line(line: str) -> str:
+    suffix = "\n" if line.endswith("\n") else ""
+    indent = line[: len(line) - len(line.lstrip())]
+    return (
+        f"{indent}code_paths=AIU_CODE_PATHS  "
+        "# AIU Studio 변환: aiu_studio/ 내부 실제 코드 폴더 경로를 사용합니다."
+        f"{suffix}"
+    )
+
+
 def import_package_for_line(line: str) -> tuple[str, str] | None:
     stripped = line.strip()
     match = re.match(r"import\s+([A-Za-z_][A-Za-z0-9_]*)\b", stripped)
@@ -740,7 +759,9 @@ def rewrite_reference_line(line: str, selected_relative: str, kind: str, load_hi
 
 
 def rewrite_preserved_line(line: str) -> str:
-    return rewrite_input_example_literals(rewrite_path_separator_literals(line))
+    converted = rewrite_path_separator_literals(line)
+    converted = rewrite_input_example_literals(converted)
+    return rewrite_code_paths_argument(converted)
 
 
 def transform_reference_text(
@@ -759,6 +780,7 @@ def transform_reference_text(
     future_import_pattern = re.compile(r"^\s*from\s+__future__\s+import\s+")
     import_pattern = re.compile(r"^\s*(import\s+[A-Za-z_][A-Za-z0-9_]*(?:\s+as\s+[A-Za-z_][A-Za-z0-9_]*)?|from\s+[A-Za-z_][A-Za-z0-9_.]*\s+import\s+.+)")
     assignment_pattern = re.compile(r"^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$")
+    skip_empty_code_paths_list = False
 
     insert_at = 0
     if lines and lines[0].startswith("#!"):
@@ -790,12 +812,22 @@ def transform_reference_text(
         break
 
     for index, line in enumerate(lines):
+        if skip_empty_code_paths_list:
+            if code_paths_multiline_empty_end(line):
+                skip_empty_code_paths_list = False
+            continue
+
         if not preserve_code and index == insert_at and not inserted:
             output.append(injected_block)
             inserted = True
 
         stripped = line.lstrip()
         indent = line[: len(line) - len(stripped)]
+        if code_paths_multiline_empty_start(line):
+            output.append(converted_code_paths_line(line))
+            skip_empty_code_paths_list = True
+            continue
+
         if not preserve_code and stripped.startswith("#") and not re.match(r"^#.*coding[:=]", stripped):
             next_index = index + 1
             while next_index < len(lines) and not lines[next_index].strip():

@@ -46,6 +46,16 @@ AIU_STUDIO_DIR_NAME = "aiu_studio"
 AIU_STUDIO_SAMPLE_DIR_NAME = "aiu_studio"
 AIU_STUDIO_SAMPLE_DIR = ROOT / "samples" / AIU_STUDIO_SAMPLE_DIR_NAME
 PYTORCH_REFERENCE_ENTRYPOINT = ROOT / "samples" / "pytorch_sample" / "runtest.py"
+REFERENCE_ENTRYPOINT_BY_KIND = {
+    "pytorch": PYTORCH_REFERENCE_ENTRYPOINT,
+    "safetensors": PYTORCH_REFERENCE_ENTRYPOINT,
+    "sklearn_pickle": ROOT / "samples" / "sklearn_sample" / "run_model.py",
+    "sklearn_joblib": ROOT / "samples" / "sklearn_sample" / "run_model.py",
+    "xgboost_bst": ROOT / "samples" / "sklearn_sample" / "run_model.py",
+    "xgboost_ubj": ROOT / "samples" / "sklearn_sample" / "run_model.py",
+    "tensorflow_keras": ROOT / "samples" / "tensorflow_sample" / "run_model.py",
+    "tensorflow_h5": ROOT / "samples" / "tensorflow_sample" / "run_model.py",
+}
 AIU_STUDIO_COPY_IGNORE_DIRS = {"__pycache__", "code", "metrics", "tracking"}
 MODEL_SCAN_SKIP_DIRS = {
     ".git",
@@ -470,13 +480,18 @@ def ensure_under_project(project: Path, model_path: Path) -> bool:
 
 
 def find_reference_entrypoint(project: Path, kind: str | None = None) -> Path | None:
-    if kind == "pytorch" and PYTORCH_REFERENCE_ENTRYPOINT.is_file():
-        return PYTORCH_REFERENCE_ENTRYPOINT
+    sample_reference = REFERENCE_ENTRYPOINT_BY_KIND.get(kind or "")
+    if sample_reference is not None and sample_reference.is_file():
+        return sample_reference
     for name in REFERENCE_ENTRYPOINTS:
         candidate = project / name
         if candidate.is_file():
             return candidate
     return None
+
+
+def preserve_reference_code(reference: Path) -> bool:
+    return reference.resolve() == PYTORCH_REFERENCE_ENTRYPOINT.resolve()
 
 
 def file_sha256(path: Path) -> str:
@@ -1316,13 +1331,13 @@ def insert_preserved_data_prep_block(text: str, kind: str) -> str:
 def generated_runtest_text(project: Path, selected_model: Path, kind: str, reference: Path) -> str:
     reference_text = reference.read_text(encoding="utf-8", errors="ignore")
     selected_relative = rel(selected_model, project)
-    path_constructor = "Path" if reference.resolve() == PYTORCH_REFERENCE_ENTRYPOINT.resolve() else "_AIUPath"
+    preserve_code = preserve_reference_code(reference)
+    path_constructor = "Path" if preserve_code else "_AIUPath"
     aiu_studio_path = project / AIU_STUDIO_DIR_NAME
     default_experiment_name, default_register_model_name = default_mlflow_names(project, selected_model)
     details = MODEL_KIND_DETAILS.get(kind, {})
     required_package = details.get("required_package", "unknown")
     load_hint = details.get("load_hint", "custom loader required")
-    preserve_code = reference.resolve() == PYTORCH_REFERENCE_ENTRYPOINT.resolve()
     replacements = {
         "AI_STUDIO_DIR": runtime_path_expr(aiu_studio_path, path_constructor),
         "PROJECT_DIR": runtime_path_expr(project, path_constructor),

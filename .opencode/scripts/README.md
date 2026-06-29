@@ -129,7 +129,7 @@ python .opencode/scripts/doctor.py --workspace . --project <model-project-folder
 `runtest_2.py`는 외부 데이터셋을 다운로드하지 않고 MODEL_KIND에 맞는 synthetic `aiu_studio/input_example.json`을 생성한다.
 `aiu_studio/aiu_custom/predict.py`는 코드 변환 대상이 아니며 선택 모델 required_package import 상태만 확인한다.
 기존 `runtest.py` 또는 `aiu_studio/runtest.py`는 수정하지 않는다.
-PyTorch 모델(`.pt`, `.pth`)을 선택하면 `.opencode/samples/pytorch_sample/runtest.py`를 우선 참조해 데이터셋 없이 선택 모델 로드, MLflow logging, metrics/code artifact 흐름을 유지한 상태로 변환한다.
+선택 모델 형식에 맞는 `.opencode/samples/*` 샘플을 우선 참조한다. PyTorch/safetensors는 `.opencode/samples/pytorch_sample/runtest.py`, sklearn/joblib/xgboost는 `.opencode/samples/sklearn_sample/run_model.py`, tensorflow/keras/h5는 `.opencode/samples/tensorflow_sample/run_model.py`를 참조해 변환한다.
 
 ```text
 python .opencode/scripts/prepare_selected_model.py --project <model-project-folder>

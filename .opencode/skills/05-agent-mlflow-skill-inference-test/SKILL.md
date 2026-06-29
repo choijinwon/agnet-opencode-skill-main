@@ -73,8 +73,8 @@ next: MLflow verify
 
 ```text
 실제 추론 실행:
-Set-Location -LiteralPath '<selected-project-path>'
-python aiu_studio/local_serving/localservingtest.py
+cd '<selected-project-path>\aiu_studio\local_serving'
+python localservingtest.py
 
 보조 스크립트:
 python .opencode/scripts/test_inference.py --project <project> --execute

@@ -133,6 +133,73 @@ INPUT_EXAMPLE_VARIABLE_NAMES = {
     "SAMPLE_INPUT_PATH",
     "sample_input_path",
 }
+DATA_PREP_VARIABLE_NAMES = {
+    "dataset",
+    "dataloader",
+    "features",
+    "input_example",
+    "labels",
+    "loader",
+    "sample_data",
+    "sample_input",
+    "batch_size",
+    "test_df",
+    "test_dataset",
+    "test_loader",
+    "test_x",
+    "test_y",
+    "train_df",
+    "train_dataset",
+    "train_loader",
+    "train_x",
+    "train_y",
+    "x_test",
+    "x_train",
+    "y_test",
+    "y_train",
+}
+DATA_PREP_CALL_PATTERN = re.compile(
+    r"\b(TensorDataset|TensorDastaset|DataLoader|load_diabetes|load_iris|FashionMNIST|MNIST)\s*\("
+)
+MODEL_PREP_VARIABLE_NAMES = {
+    "classifier",
+    "clf",
+    "criterion",
+    "estimator",
+    "model",
+    "net",
+    "optimizer",
+    "regressor",
+}
+MODEL_PREP_CALL_PATTERN = re.compile(
+    r"\b("
+    r"ElasticNet|LinearRegression|LogisticRegression|RandomForestClassifier|RandomForestRegressor|"
+    r"DecisionTreeClassifier|DecisionTreeRegressor|XGBClassifier|XGBRegressor|"
+    r"ImageClassifier|Imageclassifier|ModelWrapper|torchvision\.models\.[A-Za-z_][A-Za-z0-9_]*|"
+    r"nn\.Sequential|torch\.nn\.Sequential|keras\.Sequential|tf\.keras\.Sequential"
+    r")\s*\("
+)
+MODEL_TRAIN_CALL_PATTERN = re.compile(
+    r"\b("
+    r"(?:model|clf|classifier|regressor|estimator|net)\.fit|"
+    r"(?:model|net)\.train|"
+    r"optimizer\.step|loss\.backward|criterion\("
+    r")"
+)
+SUMMARY_VARIABLE_NAMES = {
+    "summary",
+    "summary_file",
+    "summary_json",
+    "summary_path",
+    "model_summary",
+    "training_summary",
+}
+SUMMARY_PATH_VARIABLE_NAMES = {
+    "summary_file",
+    "summary_json",
+    "summary_path",
+}
+SUMMARY_CALL_PATTERN = re.compile(r"(?<![A-Za-z0-9_])summary\s*\(|\.\s*summary\s*\(")
 MODEL_COMMENT_HINT_PATTERN = re.compile(
     r"(모델|로드|로딩|추론|model|load|loading|predict|inference|"
     r"sklearn|scikit|joblib|pickle|pytorch|torch|tensorflow|keras|onnx|xgboost|safetensors)",
@@ -363,7 +430,10 @@ def stored_selected_model_path(project: Path) -> Path | None:
     source_path = payload.get("model", {}).get("source_path")
     if not isinstance(source_path, str) or not source_path.strip():
         return None
-    candidate = project / normalize_path_text(source_path.strip())
+    normalized = normalize_path_text(source_path.strip())
+    candidate = Path(normalized).expanduser()
+    if not candidate.is_absolute():
+        candidate = project / candidate
     return candidate.resolve() if candidate.is_file() else None
 
 
@@ -424,6 +494,21 @@ def powershell_quote_path(path: Path) -> str:
 
 def powershell_set_project_location(path: Path) -> str:
     return f"Set-Location -LiteralPath {powershell_quote_path(path)}"
+
+
+def powershell_python_script(path: Path, *args: str) -> str:
+    command = f"python {powershell_quote_path(path)}"
+    if args:
+        command += " " + " ".join(args)
+    return command
+
+
+def absolute_path_text(path: Path) -> str:
+    return str(path.resolve())
+
+
+def runtime_path_expr(path: Path, constructor: str = "_AIUPath") -> str:
+    return f"{constructor}({absolute_path_text(path)!r})"
 
 
 def selected_model_display_name(project: Path, selected_model: Path) -> str:
@@ -528,6 +613,12 @@ def converted_assignment_comment(name: str, selected_relative: str, kind: str, l
         return f"# AIU Studio 변환: 선택 모델 로더 {load_hint}"
     if name in {"REQUIRED_PACKAGE", "required_package"}:
         return f"# AIU Studio 변환: 선택 모델 필요 패키지 {required_package}"
+    if name in DATA_PREP_VARIABLE_NAMES:
+        return f"# AIU Studio 변환: 선택 모델 {kind} 기준 데이터 준비 값"
+    if name in MODEL_PREP_VARIABLE_NAMES:
+        return f"# AIU Studio 변환: 선택 모델 {kind} 기준 모델 준비 값"
+    if name in SUMMARY_VARIABLE_NAMES:
+        return f"# AIU Studio 변환: 선택 모델 {kind} 기준 요약 산출물"
     if name in MODEL_RELATED_SETTING_NAMES:
         return f"# AIU Studio 변환: 선택 모델 {selected_relative} 기준 경로"
     return None
@@ -689,6 +780,84 @@ def rewrite_model_loader_line(line: str, kind: str, load_hint: str) -> str:
     return f"{converted_code}  {converted_comment}{suffix}"
 
 
+def rewrite_data_prep_call_line(line: str, kind: str) -> str:
+    code, comment = split_inline_comment(line.rstrip("\n"))
+    if not DATA_PREP_CALL_PATTERN.search(code):
+        return line
+    suffix = "\n" if line.endswith("\n") else ""
+    indent = code[: len(code) - len(code.lstrip())]
+    stripped_code = code.strip()
+    converted_comment = f"# AIU Studio 변환: 선택 모델 {kind} 기준 synthetic input_example 사용"
+    if "=" in stripped_code:
+        lhs = stripped_code.split("=", 1)[0].strip()
+        name = lhs.split(",", 1)[0].strip()
+        if name in {"train_loader", "test_loader", "dataloader", "loader"}:
+            converted_code = f"{indent}{lhs} = _aiu_model_input_example()[\"inputs\"]"
+        elif name in {"train_dataset", "test_dataset", "dataset"}:
+            converted_code = f"{indent}{lhs} = _aiu_model_input_example()"
+        else:
+            converted_code = f"{indent}{lhs} = _aiu_model_input_example()"
+    else:
+        converted_code = f"{indent}_aiu_model_input_example()"
+    return f"{converted_code}  {converted_comment}{suffix}"
+
+
+def rewrite_model_prep_line(line: str, kind: str) -> str:
+    code, comment = split_inline_comment(line.rstrip("\n"))
+    suffix = "\n" if line.endswith("\n") else ""
+    indent = code[: len(code) - len(code.lstrip())]
+    stripped_code = code.strip()
+
+    if MODEL_TRAIN_CALL_PATTERN.search(code):
+        return (
+            f"{indent}# AIU Studio 변환: 선택 모델 {kind}은 이미 학습된 모델을 로드하므로 원본 학습 호출을 실행하지 않습니다.{suffix}"
+            f"{indent}# {stripped_code}{suffix}"
+        )
+
+    if not MODEL_PREP_CALL_PATTERN.search(code):
+        return line
+
+    converted_comment = f"# AIU Studio 변환: 선택 모델 {kind} 기준 load_selected_model() 사용"
+    if "=" in stripped_code:
+        lhs = stripped_code.split("=", 1)[0].strip()
+        return f"{indent}{lhs} = load_selected_model()  {converted_comment}{suffix}"
+    return (
+        f"{indent}# AIU Studio 변환: 선택 모델 {kind}은 load_selected_model()으로 준비됩니다.{suffix}"
+        f"{indent}# {stripped_code}{suffix}"
+    )
+
+
+def rewrite_summary_line(line: str, kind: str) -> str:
+    code, comment = split_inline_comment(line.rstrip("\n"))
+    if not SUMMARY_CALL_PATTERN.search(code):
+        return line
+
+    stripped_code = code.strip()
+    if stripped_code.startswith("def "):
+        return line
+
+    suffix = "\n" if line.endswith("\n") else ""
+    indent = code[: len(code) - len(code.lstrip())]
+    converted_comment = f"# AIU Studio 변환: 선택 모델 {kind} 기준 요약으로 대체"
+
+    if "=" in stripped_code:
+        lhs = stripped_code.split("=", 1)[0].strip()
+        first_name = lhs.split(",", 1)[0].strip()
+        expression = "_aiu_write_summary()" if first_name in SUMMARY_PATH_VARIABLE_NAMES else "_aiu_model_summary()"
+        return f"{indent}{lhs} = {expression}  {converted_comment}{suffix}"
+
+    if stripped_code.startswith("return "):
+        return f"{indent}return _aiu_model_summary()  {converted_comment}{suffix}"
+
+    if stripped_code.startswith("print("):
+        return f"{indent}print(_aiu_model_summary())  {converted_comment}{suffix}"
+
+    return (
+        f"{indent}# AIU Studio 변환: 원본 summary 호출은 선택 모델 요약으로 대체합니다.{suffix}"
+        f"{indent}_aiu_model_summary()  {converted_comment}{suffix}"
+    )
+
+
 def rewrite_code_paths_argument(line: str) -> str:
     if "code_paths" not in line:
         return line
@@ -763,6 +932,9 @@ def rewrite_reference_line(line: str, selected_relative: str, kind: str, load_hi
     converted = rewrite_path_separator_literals(converted)
     converted = rewrite_input_example_literals(converted)
     converted = rewrite_code_paths_argument(converted)
+    converted = rewrite_data_prep_call_line(converted, kind)
+    converted = rewrite_model_prep_line(converted, kind)
+    converted = rewrite_summary_line(converted, kind)
     return rewrite_model_loader_line(converted, kind, load_hint)
 
 
@@ -890,6 +1062,15 @@ def transform_reference_text(
 def aiu_injected_block(project: Path, selected_model: Path, kind: str, reference: Path) -> str:
     selected_relative = rel(selected_model, project)
     reference_expr = runtime_project_path_expr(project, reference)
+    project_expr = runtime_path_expr(project)
+    aiu_studio_path = project / AIU_STUDIO_DIR_NAME
+    aiu_studio_expr = runtime_path_expr(aiu_studio_path)
+    selected_model_expr = runtime_path_expr(selected_model)
+    input_example_expr = runtime_path_expr(aiu_studio_path / "input_example.json")
+    config_dir_expr = runtime_path_expr(aiu_studio_path / "config")
+    config_path_expr = runtime_path_expr(aiu_studio_path / "config" / "config.json")
+    model_output_dir_expr = runtime_path_expr(aiu_studio_path / "saved_model")
+    model_output_path_expr = runtime_path_expr(aiu_studio_path / "saved_model" / "model.pkl")
     default_experiment_name, default_register_model_name = default_mlflow_names(project, selected_model)
     profile = model_profile(project, selected_model, kind)
     details = MODEL_KIND_DETAILS.get(kind, {})
@@ -911,17 +1092,17 @@ import atexit as _aiu_atexit
 import json as _aiu_json
 from pathlib import Path as _AIUPath
 
-AI_STUDIO_DIR = _AIUPath(__file__).resolve().parent
-PROJECT_DIR = AI_STUDIO_DIR.parent
-ORIGINAL_MODEL_PATH = PROJECT_DIR / "{selected_relative}"
-SOURCE_MODEL_PATH = PROJECT_DIR / "{selected_relative}"
+AI_STUDIO_DIR = {aiu_studio_expr}
+PROJECT_DIR = {project_expr}
+ORIGINAL_MODEL_PATH = {selected_model_expr}
+SOURCE_MODEL_PATH = {selected_model_expr}
 DATA_MODEL_PATH = SOURCE_MODEL_PATH
 MODEL_PATH = SOURCE_MODEL_PATH
-INPUT_EXAMPLE_PATH = AI_STUDIO_DIR / "input_example.json"
-CONFIG_DIR = AI_STUDIO_DIR / "config"
-CONFIG_PATH = CONFIG_DIR / "config.json"
-MODEL_OUTPUT_DIR = AI_STUDIO_DIR / "saved_model"
-MODEL_OUTPUT_PATH = MODEL_OUTPUT_DIR / "model.pkl"
+INPUT_EXAMPLE_PATH = {input_example_expr}
+CONFIG_DIR = {config_dir_expr}
+CONFIG_PATH = {config_path_expr}
+MODEL_OUTPUT_DIR = {model_output_dir_expr}
+MODEL_OUTPUT_PATH = {model_output_path_expr}
 MODEL_KIND = "{kind}"
 MODEL_PROFILE = {json.dumps(profile, ensure_ascii=False, indent=4)}
 AIU_REQUIRED_PACKAGE = "{required_package}"
@@ -1093,6 +1274,23 @@ def _aiu_flat_zeros(size):
 def _aiu_model_input_example():
     return {payload}
 
+def _aiu_model_summary():
+    return {{
+        "model_kind": MODEL_KIND,
+        "model_path": str(MODEL_PATH),
+        "input_example_path": str(INPUT_EXAMPLE_PATH),
+    }}
+
+def _aiu_write_summary():
+    try:
+        summary_dir = AI_STUDIO_CODE_DIR
+    except NameError:
+        summary_dir = AI_STUDIO_DIR / "code"
+    summary_dir.mkdir(parents=True, exist_ok=True)
+    summary_path = summary_dir / "training_summary.json"
+    summary_path.write_text(_aiu_json.dumps(_aiu_model_summary(), ensure_ascii=False, indent=2), encoding="utf-8")
+    return summary_path
+
 def _aiu_write_input_example():
     INPUT_EXAMPLE_PATH.parent.mkdir(parents=True, exist_ok=True)
     payload = _aiu_model_input_example()
@@ -1119,41 +1317,80 @@ def insert_preserved_data_prep_block(text: str, kind: str) -> str:
 def generated_runtest_text(project: Path, selected_model: Path, kind: str, reference: Path) -> str:
     reference_text = reference.read_text(encoding="utf-8", errors="ignore")
     selected_relative = rel(selected_model, project)
+    path_constructor = "Path" if reference.resolve() == PYTORCH_REFERENCE_ENTRYPOINT.resolve() else "_AIUPath"
+    aiu_studio_path = project / AIU_STUDIO_DIR_NAME
     default_experiment_name, default_register_model_name = default_mlflow_names(project, selected_model)
     details = MODEL_KIND_DETAILS.get(kind, {})
     required_package = details.get("required_package", "unknown")
     load_hint = details.get("load_hint", "custom loader required")
     preserve_code = reference.resolve() == PYTORCH_REFERENCE_ENTRYPOINT.resolve()
     replacements = {
-        "AI_STUDIO_DIR": 'Path(__file__).resolve().parent' if preserve_code else "AI_STUDIO_DIR",
-        "PROJECT_DIR": "Path(__file__).resolve().parent.parent" if preserve_code else "PROJECT_DIR",
-        "AI_STUDIO_CODE_DIR": 'AI_STUDIO_DIR / "code"',
-        "AI_STUDIO_METRICS_DIR": 'AI_STUDIO_DIR / "metrics"',
+        "AI_STUDIO_DIR": runtime_path_expr(aiu_studio_path, path_constructor),
+        "PROJECT_DIR": runtime_path_expr(project, path_constructor),
+        "AI_STUDIO_CODE_DIR": runtime_path_expr(aiu_studio_path / "code", path_constructor),
+        "AI_STUDIO_METRICS_DIR": runtime_path_expr(aiu_studio_path / "metrics", path_constructor),
         "AI_STUDIO_TRACKING_DIR": "AI_STUDIO_DIR",
-        "SOURCE_MODEL_PATH": f'PROJECT_DIR / "{selected_relative}"',
+        "SOURCE_MODEL_PATH": runtime_path_expr(selected_model, path_constructor),
         "DATA_MODEL_PATH": "SOURCE_MODEL_PATH",
         "MODEL_PATH": "SOURCE_MODEL_PATH",
-        "CONFIG_DIR": 'AI_STUDIO_DIR / "config"',
-        "CONFIG_PATH": 'AI_STUDIO_DIR / "config" / "config.json"',
-        "MODEL_OUTPUT_DIR": 'AI_STUDIO_DIR / "saved_model"',
-        "MODEL_OUTPUT_PATH": 'AI_STUDIO_DIR / "saved_model" / "model.pkl"',
+        "CONFIG_DIR": runtime_path_expr(aiu_studio_path / "config", path_constructor),
+        "CONFIG_PATH": runtime_path_expr(aiu_studio_path / "config" / "config.json", path_constructor),
+        "MODEL_OUTPUT_DIR": runtime_path_expr(aiu_studio_path / "saved_model", path_constructor),
+        "MODEL_OUTPUT_PATH": runtime_path_expr(aiu_studio_path / "saved_model" / "model.pkl", path_constructor),
         "MODEL_KIND": repr(kind),
         "MODEL_LOAD_HINT": repr(load_hint),
-        "INPUT_EXAMPLE_PATH": 'AI_STUDIO_DIR / "input_example.json"',
+        "classifier": "load_selected_model()",
+        "clf": "load_selected_model()",
+        "INPUT_EXAMPLE_PATH": runtime_path_expr(aiu_studio_path / "input_example.json", path_constructor),
+        "dataset": "_aiu_model_input_example()",
+        "dataloader": '_aiu_model_input_example()["inputs"]',
+        "features": '_aiu_model_input_example()["inputs"][0]["data"]',
+        "input_example": "_aiu_write_input_example()",
         "input_example_path": "str(INPUT_EXAMPLE_PATH)",
+        "loader": '_aiu_model_input_example()["inputs"]',
+        "labels": "[]",
+        "model": "load_selected_model()",
         "INPUT_EXAMPLE_FILE": "INPUT_EXAMPLE_PATH",
         "input_example_file": "str(INPUT_EXAMPLE_PATH)",
         "SAMPLE_INPUT_PATH": "INPUT_EXAMPLE_PATH",
         "sample_input_path": "str(INPUT_EXAMPLE_PATH)",
+        "sample_data": '_aiu_model_input_example()["inputs"][0]["data"]',
+        "sample_input": '_aiu_model_input_example()["inputs"][0]["data"]',
+        "batch_size": "1",
+        "criterion": "None",
+        "estimator": "load_selected_model()",
+        "net": "load_selected_model()",
+        "optimizer": "None",
+        "regressor": "load_selected_model()",
+        "summary": "_aiu_model_summary()",
+        "summary_file": "_aiu_write_summary()",
+        "summary_json": "_aiu_write_summary()",
+        "summary_path": "_aiu_write_summary()",
+        "model_summary": "_aiu_model_summary()",
+        "training_summary": "_aiu_model_summary()",
+        "test_dataset": "_aiu_model_input_example()",
+        "test_df": "_aiu_model_input_example()",
+        "test_loader": '_aiu_model_input_example()["inputs"]',
+        "test_x": '_aiu_model_input_example()["inputs"][0]["data"]',
+        "test_y": "[]",
+        "train_dataset": "_aiu_model_input_example()",
+        "train_df": "_aiu_model_input_example()",
+        "train_loader": '_aiu_model_input_example()["inputs"]',
+        "train_x": '_aiu_model_input_example()["inputs"][0]["data"]',
+        "train_y": "[]",
+        "x_test": '_aiu_model_input_example()["inputs"][0]["data"]',
+        "x_train": '_aiu_model_input_example()["inputs"][0]["data"]',
+        "y_test": "[]",
+        "y_train": "[]",
         "source_model_path": "str(SOURCE_MODEL_PATH)",
         "data_model_path": "str(DATA_MODEL_PATH)",
         "model_path": "str(MODEL_OUTPUT_PATH)",
-        "model_dir": 'str(AI_STUDIO_DIR / "saved_model")',
-        "model_output_dir": 'str(AI_STUDIO_DIR / "saved_model")',
-        "model_output_path": 'str(AI_STUDIO_DIR / "saved_model" / "model.pkl")',
-        "saved_model_dir": 'str(AI_STUDIO_DIR / "saved_model")',
-        "config_dir": 'str(AI_STUDIO_DIR / "config")',
-        "config_path": 'str(AI_STUDIO_DIR / "config" / "config.json")',
+        "model_dir": "str(MODEL_OUTPUT_DIR)",
+        "model_output_dir": "str(MODEL_OUTPUT_DIR)",
+        "model_output_path": "str(MODEL_OUTPUT_PATH)",
+        "saved_model_dir": "str(MODEL_OUTPUT_DIR)",
+        "config_dir": "str(CONFIG_DIR)",
+        "config_path": "str(CONFIG_PATH)",
         "MODEL_FILE": "SOURCE_MODEL_PATH",
         "model_file": "str(MODEL_PATH)",
         "CHECKPOINT_PATH": "SOURCE_MODEL_PATH",
@@ -1198,6 +1435,7 @@ def generated_runtest_text(project: Path, selected_model: Path, kind: str, refer
 def generated_localservingtest_text(project: Path, selected_model: Path, kind: str, reference: Path) -> str:
     selected_relative = rel(selected_model, project)
     reference_expr = runtime_project_path_expr(project, reference)
+    aiu_studio_path = project / AIU_STUDIO_DIR_NAME
     profile = model_profile(project, selected_model, kind)
     details = MODEL_KIND_DETAILS.get(kind, {})
     required_package = details.get("required_package", "unknown")
@@ -1214,11 +1452,11 @@ import json
 from pathlib import Path
 
 
-LOCAL_SERVING_DIR = Path(__file__).resolve().parent
-AI_STUDIO_DIR = LOCAL_SERVING_DIR.parent
-PROJECT_DIR = AI_STUDIO_DIR.parent
-ORIGINAL_MODEL_PATH = PROJECT_DIR / "{selected_relative}"
-SOURCE_MODEL_PATH = PROJECT_DIR / "{selected_relative}"
+LOCAL_SERVING_DIR = {runtime_path_expr(aiu_studio_path / "local_serving", "Path")}
+AI_STUDIO_DIR = {runtime_path_expr(aiu_studio_path, "Path")}
+PROJECT_DIR = {runtime_path_expr(project, "Path")}
+ORIGINAL_MODEL_PATH = {runtime_path_expr(selected_model, "Path")}
+SOURCE_MODEL_PATH = {runtime_path_expr(selected_model, "Path")}
 DATA_MODEL_PATH = SOURCE_MODEL_PATH
 MODEL_PATH = SOURCE_MODEL_PATH
 MODEL_KIND = "{kind}"
@@ -1306,6 +1544,7 @@ if __name__ == "__main__":
 
 def generated_model_text(project: Path, selected_model: Path, kind: str) -> str:
     selected_relative = rel(selected_model, project)
+    aiu_studio_path = project / AIU_STUDIO_DIR_NAME
     profile = model_profile(project, selected_model, kind)
     details = MODEL_KIND_DETAILS.get(kind, {})
     required_package = details.get("required_package", "unknown")
@@ -1319,11 +1558,11 @@ def generated_model_text(project: Path, selected_model: Path, kind: str) -> str:
 from pathlib import Path
 
 
-AIU_CUSTOM_DIR = Path(__file__).resolve().parent
-AI_STUDIO_DIR = AIU_CUSTOM_DIR.parent
-PROJECT_DIR = AI_STUDIO_DIR.parent
-ORIGINAL_MODEL_PATH = PROJECT_DIR / "{selected_relative}"
-SOURCE_MODEL_PATH = PROJECT_DIR / "{selected_relative}"
+AIU_CUSTOM_DIR = {runtime_path_expr(aiu_studio_path / "aiu_custom", "Path")}
+AI_STUDIO_DIR = {runtime_path_expr(aiu_studio_path, "Path")}
+PROJECT_DIR = {runtime_path_expr(project, "Path")}
+ORIGINAL_MODEL_PATH = {runtime_path_expr(selected_model, "Path")}
+SOURCE_MODEL_PATH = {runtime_path_expr(selected_model, "Path")}
 DATA_MODEL_PATH = SOURCE_MODEL_PATH
 MODEL_PATH = SOURCE_MODEL_PATH
 MODEL_KIND = "{kind}"
@@ -1409,19 +1648,21 @@ def predict(payload):
 
 def generated_mapping_json(project: Path, selected_model: Path, kind: str) -> str:
     selected_relative = rel(selected_model, project)
+    selected_absolute = absolute_path_text(selected_model)
     details = MODEL_KIND_DETAILS.get(kind, {})
     mapping = {
         "model": {
             "name": selected_model.name,
             "kind": kind,
             "relative_path": selected_relative,
-            "source_path": selected_relative,
+            "absolute_path": selected_absolute,
+            "source_path": selected_absolute,
             "load_hint": details.get("load_hint", "custom loader required"),
             "required_package": details.get("required_package", "unknown"),
         },
         "runtime": {
-            "project_dir": "..",
-            "aiu_studio_dir": ".",
+            "project_dir": absolute_path_text(project),
+            "aiu_studio_dir": absolute_path_text(project / AIU_STUDIO_DIR_NAME),
             "model_entrypoint": "aiu_custom/model.py",
             "predict_entrypoint": "aiu_custom/predict.py",
             "wrapper_class": "ModelWrapper",
@@ -1534,6 +1775,7 @@ def verify_selected_model_conversion(project: Path, selected_model: Path, kind: 
         return [], ["selected_model_conversion_verification:dry_run"], []
 
     selected_relative = rel(selected_model, project)
+    selected_absolute = absolute_path_text(selected_model)
     required_text_files = [
         project / AIU_STUDIO_DIR_NAME / "runtest_2.py",
         project / AIU_STUDIO_DIR_NAME / "aiu_custom" / "model.py",
@@ -1549,14 +1791,15 @@ def verify_selected_model_conversion(project: Path, selected_model: Path, kind: 
             continue
 
         text = path.read_text(encoding="utf-8", errors="ignore")
-        if selected_relative not in text:
-            failures.append(f"selected_model_not_reflected:{display_path}:{selected_relative}")
+        if selected_relative not in text and selected_absolute not in text:
+            failures.append(f"selected_model_not_reflected:{display_path}:{selected_absolute}")
         if f'MODEL_KIND = "{kind}"' not in text and f"MODEL_KIND = {kind!r}" not in text:
             failures.append(f"selected_model_kind_not_reflected:{display_path}:{kind}")
 
         for other_model in models:
             other_relative = rel(other_model, project)
-            if other_relative != selected_relative and other_relative in text:
+            other_absolute = absolute_path_text(other_model)
+            if other_relative != selected_relative and (other_relative in text or other_absolute in text):
                 failures.append(f"stale_model_path_in_generated:{display_path}:{other_relative}")
 
     mapping_path = project / AIU_STUDIO_DIR_NAME / "aiu_custom" / "mapping.json"
@@ -1569,8 +1812,8 @@ def verify_selected_model_conversion(project: Path, selected_model: Path, kind: 
             failures.append("selected_model_mapping_invalid_json:aiu_studio/aiu_custom/mapping.json")
         else:
             model_mapping = mapping.get("model", {})
-            if model_mapping.get("source_path") != selected_relative:
-                failures.append(f"selected_model_mapping_path_mismatch:{model_mapping.get('source_path')}!={selected_relative}")
+            if model_mapping.get("source_path") not in {selected_relative, selected_absolute}:
+                failures.append(f"selected_model_mapping_path_mismatch:{model_mapping.get('source_path')}!={selected_absolute}")
             if model_mapping.get("kind") != kind:
                 failures.append(f"selected_model_mapping_kind_mismatch:{model_mapping.get('kind')}!={kind}")
 
@@ -1678,14 +1921,22 @@ def build_report(args: argparse.Namespace) -> PreparedModelReport:
         report.next_steps.extend(
             [
                 "자동 준비 완료: 모델 프로젝트 구조 분석 + aiu_studio/ 템플릿 복사 + 선택 모델 기준 전체 코드 변환/갱신",
-                "PowerShell에서는 &&를 쓰지 말고, 선택한 프로젝트 경로로 이동한 뒤 실행하세요.",
-                powershell_set_project_location(project),
-                "python aiu_studio/runtest_2.py",
-                powershell_set_project_location(project),
-                "python aiu_studio/local_serving/localservingtest.py",
+                "PowerShell에서는 선택 프로젝트의 aiu_studio 폴더로 이동한 뒤 실행하세요.",
+                f"cd {powershell_quote_path(project / AIU_STUDIO_DIR_NAME)}",
+                "python runtest_2.py",
+                f"cd {powershell_quote_path(project / AIU_STUDIO_DIR_NAME / 'local_serving')}",
+                "python localservingtest.py",
                 "추론 테스트 결과는 화면에 출력합니다.",
-                powershell_set_project_location(project),
-                "python .opencode/scripts/verify_mlflow.py --tracking-uri <tracking-uri> --experiment-name <experiment-name>",
+                f"cd {powershell_quote_path(project)}",
+                powershell_python_script(
+                    ROOT / "scripts" / "verify_mlflow.py",
+                    "--project",
+                    powershell_quote_path(project),
+                    "--tracking-uri",
+                    "<tracking-uri>",
+                    "--experiment-name",
+                    "<experiment-name>",
+                ),
             ]
         )
     elif not report.failures:

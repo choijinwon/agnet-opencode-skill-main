@@ -51,17 +51,17 @@ Step 8  MLflow 검증
 8 -> python .opencode/scripts/verify_mlflow.py --tracking-uri <tracking-uri> --experiment-name <experiment-name>
 ```
 
-Windows PowerShell에서는 `&&`를 쓰지 않고 `Project:`에 표시된 선택 프로젝트 경로로 이동한 뒤 실행한다.
+Windows PowerShell에서는 선택 프로젝트의 실행 폴더로 이동한 뒤 실행한다.
 
 ```powershell
-Set-Location -LiteralPath '<selected-project-path>'
-python aiu_studio/runtest_2.py
+cd '<selected-project-path>\aiu_studio'
+python runtest_2.py
 
-Set-Location -LiteralPath '<selected-project-path>'
-python aiu_studio/local_serving/localservingtest.py
+cd '<selected-project-path>\aiu_studio\local_serving'
+python localservingtest.py
 
-Set-Location -LiteralPath '<selected-project-path>'
-python .opencode/scripts/verify_mlflow.py --tracking-uri <tracking-uri> --experiment-name <experiment-name>
+cd '<selected-project-path>'
+python '<opencode-package-path>\.opencode\scripts\verify_mlflow.py' --project '<selected-project-path>' --tracking-uri <tracking-uri> --experiment-name <experiment-name>
 ```
 
 `5`는 모델 환경변수 체크이며, MLflow 입력값 3개와 자동값 2개를 `set`, `empty`, `missing`, `auto_default`, `ssl_not_allowed` 상태로만 표시한다. secret 값은 출력하지 않는다.
@@ -369,11 +369,11 @@ python .opencode/scripts/test_local_sample.py --sample all
 
 기본 실행은 화면 출력만 수행하며 프로젝트 루트 `local_serving/` 폴더를 만들지 않는다.
 
-PowerShell에서는 `&&`를 사용하지 않고 `Project:`에 표시된 선택 프로젝트 경로로 이동한 뒤 다음 줄에서 실행한다.
+PowerShell에서는 선택 프로젝트의 `aiu_studio/local_serving` 폴더로 이동한 뒤 실행한다.
 
 ```powershell
-Set-Location -LiteralPath '<selected-project-path>'
-python aiu_studio/local_serving/localservingtest.py
+cd '<selected-project-path>\aiu_studio\local_serving'
+python localservingtest.py
 ```
 
 ### verify_mlflow.py

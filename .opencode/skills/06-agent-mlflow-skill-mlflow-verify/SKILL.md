@@ -72,16 +72,16 @@ registry: pass | warn
 
 ```text
 MLflow 확인:
-Set-Location -LiteralPath '<selected-project-path>'
-python .opencode/scripts/verify_mlflow.py --project <project>
+cd '<selected-project-path>'
+python '<opencode-package-path>\.opencode\scripts\verify_mlflow.py' --project '<selected-project-path>'
 
 tracking URI 명시:
-Set-Location -LiteralPath '<selected-project-path>'
-python .opencode/scripts/verify_mlflow.py --project <project> --tracking-uri http://<tracking-server>
+cd '<selected-project-path>'
+python '<opencode-package-path>\.opencode\scripts\verify_mlflow.py' --project '<selected-project-path>' --tracking-uri http://<tracking-server>
 
 experiment 명시:
-Set-Location -LiteralPath '<selected-project-path>'
-python .opencode/scripts/verify_mlflow.py --project <project> --experiment-name <name>
+cd '<selected-project-path>'
+python '<opencode-package-path>\.opencode\scripts\verify_mlflow.py' --project '<selected-project-path>' --experiment-name <name>
 ```
 
 `--tracking-uri`에는 `https://`를 쓰지 않는다. SSL은 금지이며 `http://` 또는 `file://`를 사용한다.

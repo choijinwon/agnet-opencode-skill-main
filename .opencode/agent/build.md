@@ -226,17 +226,17 @@ After executing any existing-model TOD number, always show the current `TOD Guid
 8 -> python .opencode/scripts/verify_mlflow.py --tracking-uri <tracking-uri> --experiment-name <experiment-name>
 ```
 
-On Windows PowerShell, run the TOD execution steps from the selected project path reported by `Project:`. Do not use `&&`; use `Set-Location -LiteralPath` first, then run the command on the next line:
+On Windows PowerShell, run Step 6 from the selected project's `aiu_studio` folder:
 
 ```powershell
-Set-Location -LiteralPath '<selected-project-path>'
-python aiu_studio/runtest_2.py
+cd '<selected-project-path>\aiu_studio'
+python runtest_2.py
 
-Set-Location -LiteralPath '<selected-project-path>'
-python aiu_studio/local_serving/localservingtest.py
+cd '<selected-project-path>\aiu_studio\local_serving'
+python localservingtest.py
 
-Set-Location -LiteralPath '<selected-project-path>'
-python .opencode/scripts/verify_mlflow.py --tracking-uri <tracking-uri> --experiment-name <experiment-name>
+cd '<selected-project-path>'
+python '<opencode-package-path>\.opencode\scripts\verify_mlflow.py' --project '<selected-project-path>' --tracking-uri <tracking-uri> --experiment-name <experiment-name>
 ```
 
 For `4`, always report it as `선택 모델 일치 확인`; compare selected model, `runtest_2.py`, `model.py`, `mapping.json`, and `localservingtest.py`. For `predict.py`, check import compatibility only.
@@ -255,20 +255,20 @@ Step 5. 모델 환경변수 체크
 
 Step 6. 원격 MLflow 배포/등록 실행
         생성된 aiu_studio/runtest_2.py를 실행해 선택 모델을 원격 MLflow tracking 서버에 기록/등록한다.
-        Windows PowerShell에서는 Set-Location -LiteralPath '<selected-project-path>' 실행 후 python aiu_studio/runtest_2.py로 실행한다.
+        Windows PowerShell에서는 cd '<selected-project-path>\aiu_studio' 후 python runtest_2.py로 실행한다.
         실행 시 작업 디렉터리는 aiu_studio/로 고정한다.
         mlflow_tracking_url 기본값은 ""이며, 사용자가 직접 입력해야 한다.
         input_example.json, saved_model/, outputs/ 같은 상대경로 파일/산출물은 프로젝트 루트가 아니라 aiu_studio/ 아래에 생성되어야 한다.
 
 Step 7. 추론 스모크 테스트
         aiu_studio/local_serving/localservingtest.py 기준으로 입력/출력 스키마를 확인한다.
-        Windows PowerShell에서는 Set-Location -LiteralPath '<selected-project-path>' 실행 후 python aiu_studio/local_serving/localservingtest.py로 실행한다.
+        Windows PowerShell에서는 cd '<selected-project-path>\aiu_studio\local_serving' 후 python localservingtest.py로 실행한다.
         이 파일은 선택 모델 경로, MODEL_KIND, load_selected_model()을 반영해 생성한다.
         기본은 화면 출력만 수행하고 프로젝트 루트 local_serving/ 폴더를 생성하지 않는다.
 
 Step 8. MLflow 검증
         Run, artifact, registered model 기록을 확인한다.
-        Windows PowerShell에서는 Set-Location -LiteralPath '<selected-project-path>' 실행 후 python .opencode/scripts/verify_mlflow.py --tracking-uri <tracking-uri> --experiment-name <experiment-name>로 실행한다.
+        Windows PowerShell에서는 cd '<selected-project-path>' 후 python '<opencode-package-path>\.opencode\scripts\verify_mlflow.py' --project '<selected-project-path>' --tracking-uri <tracking-uri> --experiment-name <experiment-name>로 실행한다.
 ```
 
 Use this script for steps 1-8:

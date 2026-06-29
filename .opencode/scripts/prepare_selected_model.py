@@ -916,6 +916,34 @@ def predict(payload):
 '''
 
 
+def generated_mapping_json(project: Path, selected_model: Path, kind: str) -> str:
+    selected_relative = rel(selected_model, project)
+    details = MODEL_KIND_DETAILS.get(kind, {})
+    mapping = {
+        "model": {
+            "name": selected_model.name,
+            "kind": kind,
+            "relative_path": selected_relative,
+            "source_path": selected_relative,
+            "load_hint": details.get("load_hint", "custom loader required"),
+            "required_package": details.get("required_package", "unknown"),
+        },
+        "runtime": {
+            "project_dir": "..",
+            "aiu_studio_dir": ".",
+            "predict_entrypoint": "aiu_custom/predict.py",
+            "wrapper_class": "ModelWrapper",
+            "local_serving_test": "local_serving/localservingtest.py",
+        },
+        "policy": {
+            "copy_model_to_aiu_studio": False,
+            "model_source": "project_root_or_data_tree",
+            "secret_output": "masked",
+        },
+    }
+    return json.dumps(mapping, ensure_ascii=False, indent=2) + "\n"
+
+
 def write_runtest_2(project: Path, selected_model: Path, kind: str, reference: Path, execute: bool, force: bool) -> tuple[list[str], list[str], list[str]]:
     target = project / AIU_STUDIO_DIR_NAME / "runtest_2.py"
     changed: list[str] = []
@@ -962,6 +990,19 @@ def write_aiu_predict(project: Path, selected_model: Path, kind: str, execute: b
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(generated_predict_text(project, selected_model, kind), encoding="utf-8")
     changed.append("aiu_studio/aiu_custom/predict.py (refreshed)" if existed_before else "aiu_studio/aiu_custom/predict.py")
+    return changed, skipped, failures
+
+
+def write_aiu_mapping(project: Path, selected_model: Path, kind: str, execute: bool) -> tuple[list[str], list[str], list[str]]:
+    target = project / AIU_STUDIO_DIR_NAME / "aiu_custom" / "mapping.json"
+    changed: list[str] = []
+    skipped: list[str] = []
+    failures: list[str] = []
+    existed_before = target.exists()
+    if execute:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(generated_mapping_json(project, selected_model, kind), encoding="utf-8")
+    changed.append("aiu_studio/aiu_custom/mapping.json (refreshed)" if existed_before else "aiu_studio/aiu_custom/mapping.json")
     return changed, skipped, failures
 
 
@@ -1042,10 +1083,15 @@ def build_report(args: argparse.Namespace) -> PreparedModelReport:
     report.skipped.extend(predict_skipped)
     report.failures.extend(predict_failures)
 
+    mapping_changed, mapping_skipped, mapping_failures = write_aiu_mapping(project, selected_model, selected_kind, args.execute)
+    report.prepared_paths.extend(mapping_changed)
+    report.skipped.extend(mapping_skipped)
+    report.failures.extend(mapping_failures)
+
     if args.execute and not report.failures:
         report.next_steps.extend(
             [
-                "자동 준비 완료: 모델 프로젝트 구조 분석 + aiu_studio/ 폴더 생성/복사 + 환경변수 체크 + aiu_studio/runtest_2.py 생성 + aiu_studio/aiu_custom/predict.py 변환 + aiu_studio/local_serving/localservingtest.py 생성",
+                "자동 준비 완료: 모델 프로젝트 구조 분석 + aiu_studio/ 폴더 생성/복사 + 환경변수 체크 + aiu_studio/runtest_2.py 생성 + aiu_studio/aiu_custom/predict.py 변환 + aiu_studio/aiu_custom/mapping.json 생성 + aiu_studio/local_serving/localservingtest.py 생성",
                 "python aiu_studio/runtest_2.py",
                 "python aiu_studio/local_serving/localservingtest.py",
                 "추론 테스트 결과는 화면에 출력합니다.",

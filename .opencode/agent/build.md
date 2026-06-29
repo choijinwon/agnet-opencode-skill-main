@@ -188,6 +188,7 @@ Step 8. runtest_2.py 생성
 
 Step 9. aiu_custom/predict.py 변환
         선택 모델 경로와 MODEL_KIND 기준으로 aiu_studio/aiu_custom/predict.py를 변환한다.
+        aiu_studio/aiu_custom/mapping.json도 선택 모델 기준으로 생성한다.
         ModelWrapper는 선택 모델을 원본 data/** 경로에서 직접 로드한다.
         추론 테스트는 변환된 ModelWrapper를 우선 사용한다.
 
@@ -197,7 +198,7 @@ Step 9. aiu_custom/predict.py 변환
 1. 루트/data 모델 목록 확인
 2. 사용할 모델 선택
 3. 자동 준비 실행
-   포함: 모델 프로젝트 구조 분석 + aiu_studio/ 복사 + 환경변수 체크 + aiu_studio/runtest_2.py 생성 + aiu_studio/local_serving/localservingtest.py 생성
+   포함: 모델 프로젝트 구조 분석 + aiu_studio/ 복사 + 환경변수 체크 + aiu_studio/runtest_2.py 생성 + aiu_studio/aiu_custom/predict.py 변환 + aiu_studio/aiu_custom/mapping.json 생성 + aiu_studio/local_serving/localservingtest.py 생성
 4. 환경 검증
 5. 모델 환경변수 체크
 6. runtest_2.py 실행

@@ -73,6 +73,7 @@ next: MLflow verify
 
 ```text
 실제 추론 실행:
+Set-Location '<model-project-folder>'
 python aiu_studio/local_serving/localservingtest.py
 
 보조 스크립트:

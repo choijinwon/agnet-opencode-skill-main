@@ -155,6 +155,27 @@ CORE_PACKAGES = [
     "tensorflow",
     "transformers",
 ]
+FRAMEWORK_PACKAGES = {
+    "joblib",
+    "onnxruntime",
+    "safetensors",
+    "scikit-learn",
+    "tensorflow",
+    "torch",
+    "transformers",
+    "xgboost",
+}
+MODEL_KIND_REQUIRED_PACKAGE = {
+    "sklearn_pickle": "joblib",
+    "sklearn_joblib": "joblib",
+    "pytorch": "torch",
+    "onnx": "onnxruntime",
+    "tensorflow_keras": "tensorflow",
+    "tensorflow_h5": "tensorflow",
+    "safetensors": "safetensors",
+    "xgboost_bst": "xgboost",
+    "xgboost_ubj": "xgboost",
+}
 
 EXPECTED_PYTHON_VERSION = "3.11.9"
 EXPECTED_PACKAGE_VERSIONS = {
@@ -214,6 +235,10 @@ class EnvironmentReport:
     next_steps: list[str] = field(default_factory=list)
     tod_guide: list[str] = field(default_factory=list)
     source_input_required: list[EnvVarStatus] = field(default_factory=list)
+    selected_model_path: str | None = None
+    selected_model_kind: str | None = None
+    selected_required_package: str | None = None
+    selected_package_status: str | None = None
 
 
 def package_version(name: str) -> str | None:
@@ -311,6 +336,84 @@ def parse_requirement_line(raw_line: str) -> tuple[str, str] | None:
     if spec.startswith("@"):
         spec = spec
     return name, spec
+
+
+def parse_python_literal_assignments(path: Path) -> dict[str, object]:
+    if not path.is_file():
+        return {}
+    try:
+        tree = ast.parse(path.read_text(encoding="utf-8", errors="ignore"))
+    except SyntaxError:
+        return {}
+    values: dict[str, object] = {}
+    for node in tree.body:
+        if not isinstance(node, ast.Assign):
+            continue
+        try:
+            value = ast.literal_eval(node.value)
+        except (ValueError, SyntaxError):
+            continue
+        for target in node.targets:
+            if isinstance(target, ast.Name):
+                values[target.id] = value
+    return values
+
+
+def selected_model_status(project: Path) -> tuple[str | None, str | None, str | None, str | None]:
+    mapping_path = project / "aiu_studio" / "aiu_custom" / "mapping.json"
+    if mapping_path.is_file():
+        try:
+            payload = json.loads(mapping_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            payload = {}
+        model = payload.get("model") if isinstance(payload, dict) else None
+        if isinstance(model, dict):
+            selected_path = model.get("source_path") or model.get("relative_path")
+            model_kind = model.get("kind")
+            required_package = model.get("required_package")
+            if isinstance(required_package, str) and required_package == "unknown":
+                required_package = None
+            if isinstance(model_kind, str) and not required_package:
+                required_package = MODEL_KIND_REQUIRED_PACKAGE.get(model_kind)
+            if isinstance(selected_path, str) or isinstance(model_kind, str) or isinstance(required_package, str):
+                normalized_package = normalize_package_name(required_package) if isinstance(required_package, str) else None
+                package_status = None
+                if normalized_package:
+                    package_status = "set" if package_version(normalized_package) else "missing"
+                return (
+                    selected_path if isinstance(selected_path, str) else None,
+                    model_kind if isinstance(model_kind, str) else None,
+                    normalized_package,
+                    package_status,
+                )
+
+    runtest_path = project / "aiu_studio" / "runtest_2.py"
+    values = parse_python_literal_assignments(runtest_path)
+    selected_path = None
+    model_kind = values.get("MODEL_KIND")
+    if isinstance(model_kind, str):
+        required_package = MODEL_KIND_REQUIRED_PACKAGE.get(model_kind)
+    else:
+        required_package = None
+    model_profile = values.get("MODEL_PROFILE")
+    if isinstance(model_profile, dict):
+        raw_path = model_profile.get("model_relative_path") or model_profile.get("runtime_model_path")
+        raw_kind = model_profile.get("model_kind")
+        raw_package = model_profile.get("required_package")
+        selected_path = raw_path if isinstance(raw_path, str) else None
+        model_kind = raw_kind if isinstance(raw_kind, str) else model_kind
+        required_package = raw_package if isinstance(raw_package, str) and raw_package != "unknown" else required_package
+    normalized_package = normalize_package_name(required_package) if isinstance(required_package, str) else None
+    package_status = "set" if normalized_package and package_version(normalized_package) else ("missing" if normalized_package else None)
+    return selected_path, model_kind if isinstance(model_kind, str) else None, normalized_package, package_status
+
+
+def is_unselected_framework_requirement(item: RequirementStatus, selected_required_package: str | None) -> bool:
+    if not selected_required_package:
+        return False
+    selected = normalize_package_name(selected_required_package)
+    item_name = normalize_package_name(item.name)
+    return item_name in FRAMEWORK_PACKAGES and item_name != selected
 
 
 def requirement_statuses(project: Path) -> list[RequirementStatus]:
@@ -644,8 +747,12 @@ def build_report(project: Path, entrypoint_name: str | None = None) -> Environme
         )
     python_version = platform.python_version()
     deps = dependency_files(project)
+    selected_path, selected_kind, selected_required_package, selected_package_status = selected_model_status(project)
     packages = []
-    for package in CORE_PACKAGES:
+    package_names = list(CORE_PACKAGES)
+    if selected_required_package and selected_required_package not in {normalize_package_name(name) for name in package_names}:
+        package_names.append(selected_required_package)
+    for package in package_names:
         version = package_version(package)
         required_spec = EXPECTED_PACKAGE_VERSIONS.get(normalize_package_name(package), "any")
         status = "missing" if version is None else ("set" if required_spec == "any" else version_constraint_status(version, required_spec))
@@ -675,7 +782,7 @@ def build_report(project: Path, entrypoint_name: str | None = None) -> Environme
             "1. 모델 목록 확인: 프로젝트 루트 전체와 data/**에서 사용할 모델 후보를 확인한다.",
             "2. 모델 경로로 선택: prepare_selected_model.py --model <경로> 또는 --model selected로 선택한다.",
             "3. aiu_studio/ 템플릿 복사 + 선택 모델 기준 전체 코드 변환: prepare_selected_model.py가 처리한다.",
-            "4. 선택 모델 일치 확인: 선택 모델 원본 경로, runtest_2.py, predict.py, mapping.json이 같은 모델을 가리키는지 확인한다.",
+            "4. 선택 모델 일치 확인: 선택 모델 원본 경로, runtest_2.py, aiu_custom/model.py, mapping.json이 같은 모델을 가리키는지 확인한다. predict.py는 import 상태만 확인한다.",
             f"5. 모델 환경변수 체크: {entrypoint_display}의 MLflow 입력값 3개와 자동값 2개를 set/empty/missing/auto_default/ssl_not_allowed로 확인한다.",
             f"6. 원격 MLflow 배포/등록 실행: python {entrypoint_display} 로 선택 모델을 원격 MLflow 서버에 기록/등록한다.",
             "7. 추론 스모크 테스트: aiu_studio/local_serving/localservingtest.py 기준으로 입력/출력 스키마를 확인한다.",
@@ -705,8 +812,13 @@ def build_report(project: Path, entrypoint_name: str | None = None) -> Environme
     if not deps:
         failures.append("missing_dependency_file")
         next_steps.append("Add or confirm requirements.txt, pyproject.toml, or environment.yml.")
-    missing_requirements = [item.name for item in requirements if item.status == "missing"]
-    mismatched_requirements = [item.name for item in requirements if item.status == "version_mismatch"]
+    blocking_requirements = [
+        item
+        for item in requirements
+        if not (existing_model_flow and is_unselected_framework_requirement(item, selected_required_package))
+    ]
+    missing_requirements = [item.name for item in blocking_requirements if item.status == "missing"]
+    mismatched_requirements = [item.name for item in blocking_requirements if item.status == "version_mismatch"]
     if missing_requirements:
         failures.append("missing_requirements:" + ",".join(missing_requirements))
         next_steps.append("Install missing packages from requirements.txt.")
@@ -756,6 +868,10 @@ def build_report(project: Path, entrypoint_name: str | None = None) -> Environme
         next_steps=next_steps,
         tod_guide=tod_guide,
         source_input_required=source_input_required,
+        selected_model_path=selected_path,
+        selected_model_kind=selected_kind,
+        selected_required_package=selected_required_package,
+        selected_package_status=selected_package_status,
     )
 
 
@@ -766,6 +882,12 @@ def print_text(report: EnvironmentReport):
     print(f"Expected Python: {report.expected_python_version} ({report.python_version_status})")
     print(f"Virtual env: {report.virtual_env}")
     print(f"Dependency files: {', '.join(report.dependency_files) if report.dependency_files else 'missing'}")
+    if report.selected_model_path or report.selected_model_kind or report.selected_required_package:
+        print("\nSelected model:")
+        print(f"- path: {report.selected_model_path or 'missing'}")
+        print(f"- MODEL_KIND: {report.selected_model_kind or 'missing'}")
+        print(f"- required package: {report.selected_required_package or 'missing'}")
+        print(f"- package status: {report.selected_package_status or 'missing'}")
     print("\nPackages:")
     for package in report.packages:
         suffix = f" {package.version}" if package.version else ""
@@ -775,9 +897,12 @@ def print_text(report: EnvironmentReport):
         print("\nDependency check from requirements.txt:")
         for item in report.requirements:
             installed = item.installed_version if item.installed_version else "missing"
+            selected_note = ""
+            if is_unselected_framework_requirement(item, report.selected_required_package):
+                selected_note = ", ignored for selected model"
             print(
                 f"- {item.name}: {item.status} "
-                f"(required: {item.required_version}, installed: {installed})"
+                f"(required: {item.required_version}, installed: {installed}{selected_note})"
             )
     print("\nEnvironment variables:")
     for item in report.env_vars:

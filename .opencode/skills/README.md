@@ -56,7 +56,8 @@ Step 2. 모델 경로로 선택
 Step 3. aiu_studio/ 템플릿 복사 + 선택 모델 기준 전체 코드 변환
         aiu_studio/ 폴더를 그대로 복사하고, MODEL_KIND 판별 후 복사된 aiu_studio 파일들을 선택 모델 기준으로 변환/갱신한다.
 Step 4. 선택 모델 일치 확인
-        selected_model_path, runtest_2.py, predict.py, mapping.json이 같은 선택 모델 원본 경로를 가리키는지 확인한다.
+        selected_model_path, runtest_2.py, aiu_custom/model.py, mapping.json, localservingtest.py가 같은 선택 모델 원본 경로를 가리키는지 확인한다.
+        predict.py는 코드 변환 대상이 아니며 선택 모델 required_package import 상태만 확인한다.
 Step 5. 모델 환경변수 체크
         입력값 3개와 자동값 2개 상태를 확인한다.
 Step 6. 원격 MLflow 배포/등록 실행

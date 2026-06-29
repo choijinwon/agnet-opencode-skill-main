@@ -72,12 +72,15 @@ registry: pass | warn
 
 ```text
 MLflow 확인:
+Set-Location '<model-project-folder>'
 python .opencode/scripts/verify_mlflow.py --project <project>
 
 tracking URI 명시:
+Set-Location '<model-project-folder>'
 python .opencode/scripts/verify_mlflow.py --project <project> --tracking-uri http://<tracking-server>
 
 experiment 명시:
+Set-Location '<model-project-folder>'
 python .opencode/scripts/verify_mlflow.py --project <project> --experiment-name <name>
 ```
 

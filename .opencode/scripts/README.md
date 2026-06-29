@@ -46,6 +46,22 @@ Step 8  MLflow 검증
 
 ```text
 5 -> python .opencode/scripts/check_environment.py --project . --entrypoint aiu_studio/runtest_2.py
+6 -> python aiu_studio/runtest_2.py
+7 -> python aiu_studio/local_serving/localservingtest.py
+8 -> python .opencode/scripts/verify_mlflow.py --tracking-uri <tracking-uri> --experiment-name <experiment-name>
+```
+
+Windows PowerShell에서는 `&&`를 쓰지 않고 선택한 모델 프로젝트 폴더로 이동한 뒤 실행한다.
+
+```powershell
+Set-Location '<model-project-folder>'
+python aiu_studio/runtest_2.py
+
+Set-Location '<model-project-folder>'
+python aiu_studio/local_serving/localservingtest.py
+
+Set-Location '<model-project-folder>'
+python .opencode/scripts/verify_mlflow.py --tracking-uri <tracking-uri> --experiment-name <experiment-name>
 ```
 
 `5`는 모델 환경변수 체크이며, MLflow 입력값 3개와 자동값 2개를 `set`, `empty`, `missing`, `auto_default`, `ssl_not_allowed` 상태로만 표시한다. secret 값은 출력하지 않는다.
@@ -111,7 +127,8 @@ python .opencode/scripts/doctor.py --workspace . --project <model-project-folder
 
 ### prepare_selected_model.py
 
-프로젝트 루트 전체와 `data/**` 아래 모델 파일 목록을 만들고, 사용자가 선택한 모델 기준으로 `aiu_studio/` 폴더를 루트에 그대로 복사하고 `aiu_studio/runtest_2.py`를 준비한다. 기존 모델 경로 문자열, 모델 로딩 호출, 관련 주석은 선택 모델 기준으로 변환한다.
+프로젝트 루트 전체와 `data/**` 아래 모델 파일 목록을 만들고, 사용자가 선택한 모델 기준으로 `aiu_studio/` 폴더를 루트에 그대로 복사하고 `aiu_studio/runtest_2.py`와 `aiu_studio/aiu_custom/model.py`를 준비한다. 기존 모델 경로 문자열, 모델 로딩 호출, 관련 주석은 선택 모델 기준으로 변환한다.
+`aiu_studio/aiu_custom/predict.py`는 코드 변환 대상이 아니며 선택 모델 required_package import 상태만 확인한다.
 기존 `runtest.py` 또는 `aiu_studio/runtest.py`는 수정하지 않는다.
 PyTorch 모델(`.pt`, `.pth`)을 선택하면 `.opencode/samples/pytorch_sample/runtest.py`를 우선 참조해 데이터셋 없이 선택 모델 로드, MLflow logging, metrics/code artifact 흐름을 유지한 상태로 변환한다.
 
@@ -351,7 +368,10 @@ python .opencode/scripts/test_local_sample.py --sample all
 
 기본 실행은 화면 출력만 수행하며 프로젝트 루트 `local_serving/` 폴더를 만들지 않는다.
 
-```text
+PowerShell에서는 `&&`를 사용하지 않고 프로젝트 폴더로 이동한 뒤 다음 줄에서 실행한다.
+
+```powershell
+Set-Location '<model-project-folder>'
 python aiu_studio/local_serving/localservingtest.py
 ```
 

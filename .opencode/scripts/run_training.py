@@ -12,6 +12,7 @@ SAMPLES_DIR = ROOT / "samples"
 SAMPLE_OPTIONS = ["sklearn", "pytorch", "tensorflow"]
 SAMPLE_PROJECT_NAMES = {f"{name}_sample" for name in SAMPLE_OPTIONS}
 ENTRYPOINTS = [
+    "aiu_studio/runtest_2.py",
     "runtest_2.py",
     "aiu_studio/runtest.py",
     "aiu_studio/run_test.py",
@@ -42,6 +43,7 @@ AUTO_DEFAULT_SETTING_KEYS = {
     "mlflow_register_model_name",
 }
 MODEL_SETTING_FILES = [
+    "aiu_studio/runtest_2.py",
     "runtest_2.py",
     "aiu_studio/runtest.py",
     "aiu_studio/run_test.py",
@@ -136,6 +138,7 @@ class TrainingReport:
 
 def has_model_project(project: Path) -> bool:
     markers = [
+        "aiu_studio/runtest_2.py",
         "runtest_2.py",
         "runtest.py",
         "run_test.py",
@@ -418,7 +421,7 @@ def main():
         process_checklist = [
             EnvVarStatus("1. 루트/data 모델 목록 확인", "done" if artifacts else "needs_input"),
             EnvVarStatus("2. 사용할 모델 선택", "done" if artifacts else "needs_input"),
-            EnvVarStatus("3. 자동 준비 실행", "done" if (work_path / "aiu_studio").exists() and (work_path / "runtest_2.py").exists() else "pending"),
+            EnvVarStatus("3. 자동 준비 실행", "done" if (work_path / "aiu_studio" / "runtest_2.py").exists() else "pending"),
             EnvVarStatus("4. 환경 검증", "manual_check"),
             EnvVarStatus("5. 모델 환경변수 체크", "done" if not missing_env else "needs_input"),
             EnvVarStatus("6. 추론 테스트", "done" if args.execute and return_code == 0 else "pending"),

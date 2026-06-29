@@ -36,7 +36,7 @@ validate_mlflow_project.py
 
 prepare_selected_model.py
   data/** 모델 파일 목록을 만들고 사용자가 선택한 모델 기준으로 MODEL_KIND를 판별합니다.
-  aiu_studio/ 아래의 기존 runtest.py/run_test.py를 우선 참조하고, 없으면 루트 runtest.py/run_test.py로 runtest_2.py를 생성합니다. 기존 파일은 수정하지 않습니다.
+  aiu_studio/ 아래의 기존 runtest.py/run_test.py를 우선 참조하고, 없으면 루트 runtest.py/run_test.py로 aiu_studio/runtest_2.py를 생성합니다. 기존 파일은 수정하지 않습니다.
   .opencode/samples/aiu_studio/ 폴더를 프로젝트 루트의 aiu_studio/로 그대로 복사하고 모델 파일은 복사하지 않습니다.
   aiu_studio/ 내부 파일 구성은 고정하지 않고 비교/수정하지 않습니다.
 

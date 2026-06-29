@@ -42,6 +42,7 @@ SAMPLE_SPEC_FILES = [
 ]
 
 ENTRYPOINT_CANDIDATES = [
+    "aiu_studio/runtest_2.py",
     "runtest_2.py",
     "aiu_studio/runtest.py",
     "aiu_studio/run_test.py",
@@ -58,6 +59,7 @@ ENTRYPOINT_CANDIDATES = [
 ]
 
 SETTING_FILES = [
+    "aiu_studio/runtest_2.py",
     "runtest_2.py",
     "aiu_studio/runtest.py",
     "aiu_studio/run_test.py",

@@ -173,13 +173,13 @@ import json
 from pathlib import Path
 
 
-PROJECT_DIR = Path(__file__).resolve().parent
+AI_STUDIO_DIR = Path(__file__).resolve().parent
+PROJECT_DIR = AI_STUDIO_DIR.parent
 SOURCE_MODEL_PATH = PROJECT_DIR / "{selected_relative}"
 DATA_MODEL_PATH = SOURCE_MODEL_PATH
 MODEL_PATH = SOURCE_MODEL_PATH
 MODEL_KIND = "{kind}"
 REFERENCE_ENTRYPOINT = PROJECT_DIR / "{reference_relative}"
-AI_STUDIO_DIR = PROJECT_DIR / "aiu_studio"
 
 # MLflow/AI Studio settings
 # tracking URL, username, password는 사용자가 직접 입력합니다.
@@ -281,18 +281,19 @@ if __name__ == "__main__":
 
 
 def write_runtest_2(project: Path, selected_model: Path, kind: str, reference: Path, execute: bool, force: bool) -> tuple[list[str], list[str], list[str]]:
-    target = project / "runtest_2.py"
+    target = project / AIU_STUDIO_DIR_NAME / "runtest_2.py"
     changed: list[str] = []
     skipped: list[str] = []
     failures: list[str] = []
     if target.exists() and not force:
-        skipped.append("runtest_2.py")
+        skipped.append("aiu_studio/runtest_2.py")
         if execute:
             failures.append("runtest_2_exists: use --force to overwrite")
         return changed, skipped, failures
     if execute:
+        target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(generated_runtest_text(project, selected_model, kind, reference), encoding="utf-8")
-    changed.append("runtest_2.py")
+    changed.append("aiu_studio/runtest_2.py")
     return changed, skipped, failures
 
 
@@ -316,7 +317,7 @@ def build_report(args: argparse.Namespace) -> PreparedModelReport:
         selected_model_path=rel(selected_model, project) if selected_model else None,
         model_kind=selected_kind,
         reference_entrypoint=None,
-        generated_entrypoint="runtest_2.py",
+        generated_entrypoint="aiu_studio/runtest_2.py",
         execute=args.execute,
     )
 
@@ -358,14 +359,14 @@ def build_report(args: argparse.Namespace) -> PreparedModelReport:
     if args.execute and not report.failures:
         report.next_steps.extend(
             [
-                "python .opencode/scripts/check_environment.py --project <model-project-folder> --entrypoint runtest_2.py",
-                "python runtest_2.py",
+                "python .opencode/scripts/check_environment.py --project <model-project-folder> --entrypoint aiu_studio/runtest_2.py",
+                "python aiu_studio/runtest_2.py",
                 "python .opencode/scripts/test_inference.py --project <model-project-folder>",
                 "python .opencode/scripts/verify_mlflow.py --tracking-uri <tracking-uri> --experiment-name <experiment-name>",
             ]
         )
     elif not report.failures:
-        report.next_steps.append("검토 후 --execute를 붙여 aiu_studio/ 폴더를 그대로 복사하고 runtest_2.py를 생성하세요.")
+        report.next_steps.append("검토 후 --execute를 붙여 aiu_studio/ 폴더를 그대로 복사하고 aiu_studio/runtest_2.py를 생성하세요.")
     return report
 
 
@@ -402,11 +403,11 @@ def print_report(report: PreparedModelReport) -> None:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Select a project-root or data/** model artifact and generate runtest_2.py without modifying runtest.py.")
+    parser = argparse.ArgumentParser(description="Select a project-root or data/** model artifact and generate aiu_studio/runtest_2.py without modifying runtest.py.")
     parser.add_argument("--project", default=".", help="model project folder")
     parser.add_argument("--model", help="model index from model_artifact_paths or a project-relative path")
-    parser.add_argument("--execute", action="store_true", help="copy samples/aiu_studio/ into project-root aiu_studio/ and create runtest_2.py")
-    parser.add_argument("--force", action="store_true", help="overwrite existing runtest_2.py")
+    parser.add_argument("--execute", action="store_true", help="copy samples/aiu_studio/ into project-root aiu_studio/ and create aiu_studio/runtest_2.py")
+    parser.add_argument("--force", action="store_true", help="overwrite existing aiu_studio/runtest_2.py")
     parser.add_argument("--json", action="store_true", help="print machine-readable JSON")
     args = parser.parse_args()
 

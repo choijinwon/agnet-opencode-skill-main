@@ -137,7 +137,7 @@ Existing model assumptions:
 - Do not copy the selected model file into `aiu_studio/`.
 - `aiu_studio/` is the copied execution template folder for existing-model flow.
 - The confirmed entrypoint must read the selected model from its original project path.
-- Prefer generated `runtest_2.py` for selected-model tests. Do not modify the existing `runtest.py`.
+- Prefer generated `aiu_studio/runtest_2.py` for selected-model tests. Do not modify the existing `runtest.py`.
 - Secret values must never be printed; report only `set`, `empty`, or `missing`.
 
 Model-found detailed process:
@@ -174,7 +174,7 @@ Step 7. runtest.py 참조
         없으면 프로젝트 루트 runtest.py, run_test.py 순서로 참조한다.
 
 Step 8. runtest_2.py 생성
-        선택 모델 경로와 MODEL_KIND 기준으로 변환 생성한다.
+        선택 모델 경로와 MODEL_KIND 기준으로 aiu_studio/runtest_2.py를 생성한다.
         기존 runtest.py는 수정하지 않는다.
 
 사용자에게 보여줄 TOD는 자동 처리 단계 3-8을 `자동 준비 실행`으로 묶어 간략히 표시한다.
@@ -193,13 +193,13 @@ Step 9. 환경 검증
         Python, dependency, MLflow 설치 상태를 확인한다.
 
 Step 10. 모델 환경변수 체크
-        runtest_2.py 또는 확정 entrypoint의 MLflow 입력값 3개와 자동값 2개를 확인한다.
+        aiu_studio/runtest_2.py 또는 확정 entrypoint의 MLflow 입력값 3개와 자동값 2개를 확인한다.
         사용자가 입력할 값: mlflow_tracking_url, mlflow_tracking_username, mlflow_tracking_password.
         자동 생성값: mlflow_experiment_name, mlflow_register_model_name.
         상태는 set/empty/missing/auto_default로 표시한다.
 
 Step 11. 추론 테스트
-        생성된 runtest_2.py 또는 aiu_custom/predict.py 기준으로 로드/추론 확인한다.
+        생성된 aiu_studio/runtest_2.py 또는 aiu_custom/predict.py 기준으로 로드/추론 확인한다.
 
 Step 12. MLflow 검증
         Run, artifact, registered model 기록을 확인한다.
@@ -215,7 +215,7 @@ python .opencode/scripts/prepare_selected_model.py --project <model-project-fold
 python .opencode/scripts/prepare_selected_model.py --project <model-project-folder> --model data/torch/model.pt --execute
 ```
 
-The first Build step for an existing model is always listing project-root and `data/**` model artifacts, selecting one model, and generating `runtest_2.py` from `aiu_studio/runtest.py`, `runtest.py`, or `run_test.py`. Do not assume `run_model.py`. If none of those reference files exists, do not create a fake reference file automatically; ask the user to place the real reference file in the project.
+The first Build step for an existing model is always listing project-root and `data/**` model artifacts, selecting one model, and generating `aiu_studio/runtest_2.py` from `aiu_studio/runtest.py`, `runtest.py`, or `run_test.py`. Do not assume `run_model.py`. If none of those reference files exists, do not create a fake reference file automatically; ask the user to place the real reference file in the project.
 
 ## MLflow Tracking Guide
 

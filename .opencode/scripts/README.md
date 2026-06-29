@@ -7,7 +7,7 @@
 `data/` 아래 폴더명은 고정값이 아니며 사용자 프로젝트마다 다를 수 있다.
 예: `model.joblib`, `models/model.joblib`, `data/<임의폴더>/model.joblib`, `data/sklearn/model.pkl`, `data/checkpoints/model.pt`
 모델 있음 흐름에서는 `.opencode/samples/aiu_studio/` 폴더를 프로젝트 루트의 `aiu_studio/`로 그대로 복사한다. 내부 파일 구성은 고정하지 않고 비교/수정하지 않는다.
-기존 `runtest.py`는 루트 또는 `aiu_studio/` 아래에서 참조하고, 수정하지 않고 선택 모델 기준의 `runtest_2.py`를 생성한다.
+기존 `runtest.py`는 루트 또는 `aiu_studio/` 아래에서 참조하고, 수정하지 않고 선택 모델 기준의 `aiu_studio/runtest_2.py`를 생성한다.
 
 유지보수자는 먼저 `.opencode/scripts/MAINTENANCE.md`를 확인한다. 각 스크립트의 책임, 주요 함수, 수정 포인트, 주의사항을 파일별로 정리해두었다.
 
@@ -32,7 +32,7 @@ Step 5  모델 환경변수 체크
         check_environment.py
 
 Step 6  추론 테스트
-        runtest_2.py
+        aiu_studio/runtest_2.py
         test_inference.py
 
 Step 7  MLflow 검증
@@ -100,7 +100,7 @@ python .opencode/scripts/doctor.py --workspace . --project <model-project-folder
 
 ### prepare_selected_model.py
 
-프로젝트 루트 전체와 `data/**` 아래 모델 파일 목록을 만들고, 사용자가 선택한 모델 기준으로 `aiu_studio/` 폴더를 루트에 그대로 복사하고 `runtest_2.py`를 준비한다.
+프로젝트 루트 전체와 `data/**` 아래 모델 파일 목록을 만들고, 사용자가 선택한 모델 기준으로 `aiu_studio/` 폴더를 루트에 그대로 복사하고 `aiu_studio/runtest_2.py`를 준비한다.
 기존 `runtest.py` 또는 `aiu_studio/runtest.py`는 수정하지 않는다.
 
 ```text
@@ -118,7 +118,7 @@ model_artifact_paths
 selected_model_path
 MODEL_KIND
 reference_entrypoint: aiu_studio/runtest.py, runtest.py, run_test.py 중 하나
-generated_entrypoint: runtest_2.py
+generated_entrypoint: aiu_studio/runtest_2.py
 ```
 
 지원 모델 형식:

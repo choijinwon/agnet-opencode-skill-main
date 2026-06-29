@@ -16,7 +16,7 @@
    Python 3.11.9, dependency, MLflow, 설정 상태 확인
 
 04. Train Model
-   선택 모델 기준 runtest_2.py 생성 또는 실제 entrypoint 실행
+   선택 모델 기준 aiu_studio/runtest_2.py 생성 또는 실제 entrypoint 실행
 
 05. Inference Test
    input_example 기반 predict contract와 schema 확인
@@ -37,7 +37,7 @@
 - `.opencode/samples/aiu_studio/` 폴더를 프로젝트 루트의 `aiu_studio/`로 그대로 복사한다.
 - `aiu_studio/` 내부 파일 구성은 고정하지 않고 비교/수정하지 않는다.
 - 선택된 모델은 원본 경로에서 직접 읽는다.
-- 기존 `runtest.py`는 루트 또는 `aiu_studio/` 아래에 둘 수 있고, 수정하지 않고 `runtest_2.py`를 생성한다.
+- 기존 `runtest.py`는 루트 또는 `aiu_studio/` 아래에 둘 수 있고, 수정하지 않고 `aiu_studio/runtest_2.py`를 생성한다.
 - 사용자가 직접 입력할 값은 `mlflow_tracking_url`, `mlflow_tracking_username`, `mlflow_tracking_password` 3개다.
 - `mlflow_experiment_name`, `mlflow_register_model_name`은 프로젝트명 기준으로 자동 생성한다.
 - secret 값은 출력하지 않고 `set`, `empty`, `missing` 상태만 확인한다.
@@ -48,13 +48,13 @@ Step 1. 루트/data 모델 목록 확인
 Step 2. 사용할 모델 선택
         model_artifact_paths에서 번호 또는 경로로 선택한다.
 Step 3. 자동 준비 실행
-        aiu_studio/ 폴더 그대로 복사, MODEL_KIND 판별, runtest_2.py 생성을 처리한다.
+        aiu_studio/ 폴더 그대로 복사, MODEL_KIND 판별, aiu_studio/runtest_2.py 생성을 처리한다.
 Step 4. 환경 검증
         Python 3.11.9, dependency, MLflow 설치 상태를 확인한다.
 Step 5. 모델 환경변수 체크
         입력값 3개와 자동값 2개 상태를 확인한다.
 Step 6. 추론 테스트
-        runtest_2.py 또는 aiu_custom/predict.py 기준으로 로드/추론을 확인한다.
+        aiu_studio/runtest_2.py 또는 aiu_custom/predict.py 기준으로 로드/추론을 확인한다.
 Step 7. MLflow 검증
         Run, artifact, registered model 기록을 확인한다.
 ```

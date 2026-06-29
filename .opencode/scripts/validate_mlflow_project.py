@@ -15,6 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 # used only as hints when detecting a registration or inference entrypoint.
 ENTRYPOINT_NAMES = [
     "register_model.py",
+    "aiu_studio/runtest_2.py",
     "runtest_2.py",
     "aiu_studio/runtest.py",
     "aiu_studio/run_test.py",
@@ -34,6 +35,7 @@ ENTRYPOINT_NAMES = [
 
 TRAINING_ENTRYPOINT_NAMES = [
     "register_model.py",
+    "aiu_studio/runtest_2.py",
     "runtest_2.py",
     "aiu_studio/runtest.py",
     "aiu_studio/run_test.py",

@@ -35,6 +35,7 @@ SSL_BLOCKED_SETTING_KEYS = {
 }
 
 MODEL_SETTING_FILES = [
+    "aiu_studio/runtest_2.py",
     "runtest_2.py",
     "aiu_studio/runtest.py",
     "aiu_studio/run_test.py",
@@ -46,6 +47,7 @@ MODEL_SETTING_FILES = [
     "run.py",
 ]
 ENTRYPOINTS = [
+    "aiu_studio/runtest_2.py",
     "runtest_2.py",
     "aiu_studio/runtest.py",
     "aiu_studio/run_test.py",
@@ -62,6 +64,7 @@ ENTRYPOINTS = [
 ]
 SAMPLE_PROJECT_NAMES = {"sklearn_sample", "pytorch_sample", "tensorflow_sample"}
 MODEL_MARKERS = [
+    "aiu_studio/runtest_2.py",
     "runtest_2.py",
     "aiu_studio/runtest.py",
     "aiu_studio/run_test.py",
@@ -343,6 +346,14 @@ def env_status(name: str) -> str:
     return "set"
 
 
+def display_path(path: str | Path, project: Path) -> str:
+    path_obj = Path(path)
+    try:
+        return str(path_obj.relative_to(project))
+    except ValueError:
+        return str(path_obj)
+
+
 def dependency_files(project: Path) -> list[str]:
     names = ["requirements.txt", "pyproject.toml", "environment.yml", "environment.yaml"]
     return [name for name in names if (project / name).exists()]
@@ -587,7 +598,7 @@ def build_report(project: Path, entrypoint_name: str | None = None) -> Environme
     entrypoint_candidates = find_entrypoint_candidates(project)
     setting_file = None
     if model_settings is not None:
-        setting_file = Path(model_settings.path).name
+        setting_file = display_path(model_settings.path, project)
     entrypoint = setting_file
     if entrypoint is None and len(entrypoint_candidates) == 1:
         entrypoint = str(entrypoint_candidates[0].relative_to(project))
@@ -597,7 +608,7 @@ def build_report(project: Path, entrypoint_name: str | None = None) -> Environme
         tod_guide = [
             "1. 루트/data 모델 목록 확인: 프로젝트 루트 전체와 data/**에서 사용할 모델 후보를 확인한다.",
             "2. 사용할 모델 선택: prepare_selected_model.py --model <번호|경로>로 선택한다.",
-            "3. 자동 준비 실행: aiu_studio/ 폴더 그대로 복사와 runtest_2.py 생성은 prepare_selected_model.py가 처리한다.",
+            "3. 자동 준비 실행: aiu_studio/ 폴더 그대로 복사와 aiu_studio/runtest_2.py 생성은 prepare_selected_model.py가 처리한다.",
             "4. 환경 검증: 현재 출력의 Python, dependency, MLflow 설치 상태를 확인한다.",
             f"5. 모델 환경변수 체크: {entrypoint_display}의 MLflow 입력값 3개와 자동값 2개를 set/empty/missing/auto_default/ssl_not_allowed로 확인한다.",
             f"6. 추론 테스트: python {entrypoint_display} 또는 aiu_custom/predict.py 기준으로 로드/추론 확인한다.",

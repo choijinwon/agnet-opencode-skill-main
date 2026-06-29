@@ -296,6 +296,24 @@ def server_deploy_error_items(failures: list[str], blocked_summary: list[str]) -
                 missing_package_names.append(package_name)
         elif failure.startswith("version_mismatch:mlflow"):
             items.append("MLflow 서버/로컬 버전 불일치 → 서버 버전에 맞춰 로컬 mlflow 버전을 조정하세요.")
+        elif failure.startswith("entrypoint_not_found:"):
+            items.append("실행 파일 경로를 찾을 수 없음 → " + failure.split(":", 1)[1])
+        elif failure == "entrypoint_not_found":
+            items.append("실행 파일 경로를 찾을 수 없음 → 실제 사용하는 Python 파일을 지정하세요.")
+        elif failure == "entrypoint_outside_project":
+            items.append("실행 파일 경로 오류 → 선택한 프로젝트 폴더 밖의 파일은 사용할 수 없습니다.")
+        elif failure == "selected_model_outside_project":
+            items.append("모델 경로 오류 → 선택 모델은 현재 프로젝트 폴더 안에 있어야 합니다.")
+        elif failure.startswith("selected_model_path_missing:"):
+            items.append("모델 경로 누락 → aiu_custom/mapping.json의 선택 모델 경로를 확인하세요.")
+        elif failure.startswith("selected_model_mapping_path_mismatch:"):
+            items.append("모델 경로 불일치 → mapping.json의 모델 경로가 선택 모델과 다릅니다.")
+        elif failure.startswith("selected_model_conversion_missing:"):
+            items.append("생성 파일 경로를 찾을 수 없음 → " + failure.split(":", 1)[1])
+        elif failure.startswith("reference_entrypoint_missing:"):
+            items.append("참조 실행 파일 경로를 찾을 수 없음 → runtest.py 또는 run_test.py를 확인하세요.")
+        elif failure.startswith("model_py_mapping_loader_missing:"):
+            items.append("모델 로더 경로 설정 누락 → aiu_studio/aiu_custom/model.py와 mapping.json을 다시 생성하세요.")
         elif failure == "missing_dependency_file":
             items.append("의존성 파일 없음 → requirements.txt, pyproject.toml, environment.yml 중 하나를 확인하세요.")
         elif failure.startswith("missing_model_settings_file:"):
@@ -1060,6 +1078,9 @@ def build_report(project: Path, entrypoint_name: str | None = None) -> Environme
         required_names = ", ".join(item.name for item in source_input_required)
         next_steps.append(f"사용자가 직접 소스에 입력해야 하는 값: {required_names}.")
     setting_source = model_settings or ai_env
+    if entrypoint_name and model_settings is None:
+        failures.append(f"entrypoint_not_found:{entrypoint_name}")
+        next_steps.append(f"지정한 실행 파일 경로를 찾지 못했습니다: {entrypoint_name}")
     if model_settings is None and not (project / "ai_studio.env").exists():
         failures.append("missing_model_settings_file:entrypoint_or_ai_studio_env")
         if existing_model_flow and entrypoint is None:

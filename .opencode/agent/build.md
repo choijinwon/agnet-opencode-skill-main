@@ -149,7 +149,9 @@ Step 1. 루트/data 모델 목록 확인
         .pkl, .joblib, .pt, .pth, .onnx, .keras, .h5, .safetensors, .bst, .ubj 모델 파일을 model_artifact_paths로 표시한다.
 
 Step 2. 사용할 모델 선택
-        model_artifact_paths 목록에서 번호 또는 경로를 선택한다.
+        data/** 또는 루트에서 발견된 model_artifact_paths 목록을 번호로 보여준다.
+        사용자는 번호 또는 프로젝트 상대 경로로 사용할 모델을 선택한다.
+        선택이 없으면 자동 준비를 진행하지 않고 선택 요청으로 멈춘다.
         예: 1번, 2번, model.joblib, data/torch/model.pt
 
 Step 3. 선택 모델 위치 확인
@@ -206,6 +208,7 @@ Step 11. runtest_2.py 실행
 
 Step 12. 추론 테스트
         aiu_custom/predict.py 또는 test_inference.py 기준으로 입력/출력 스키마를 확인한다.
+        추론 테스트 실행 결과는 local_serving/inference_result.json에 생성한다.
 
 Step 13. MLflow 검증
         Run, artifact, registered model 기록을 확인한다.

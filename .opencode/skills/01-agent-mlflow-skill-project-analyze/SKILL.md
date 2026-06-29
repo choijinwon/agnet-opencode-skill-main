@@ -41,7 +41,7 @@ metadata:
 2. 프로젝트 루트 전체와 data/** 모델 원본 파일을 model_artifact_paths로 나열한다.
 3. `.opencode/sample` 또는 `.opencode/samples`는 복사용 원본이므로 분석 대상에서 제외한다.
 4. model_found 값을 먼저 결정한다.
-5. 모델이 있으면 사용할 모델 번호 또는 경로 선택을 요청한다.
+5. 모델이 있으면 model_artifact_paths를 번호로 보여주고 사용할 모델 번호 또는 경로 선택을 요청한다.
 6. 모델이 없으면 1 sklearn / 2 pytorch / 3 tensorflow 선택지를 보여준다.
 ```
 

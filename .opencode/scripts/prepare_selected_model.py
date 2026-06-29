@@ -244,6 +244,20 @@ def copy_aiu_studio_folder(project: Path, execute: bool) -> tuple[list[str], lis
     return copied, skipped, failures
 
 
+def ensure_local_serving_folder(project: Path, execute: bool) -> tuple[list[str], list[str]]:
+    changed: list[str] = []
+    skipped: list[str] = []
+    target = project / "local_serving"
+    if target.exists():
+        skipped.append("local_serving/")
+        return changed, skipped
+    if execute:
+        target.mkdir(parents=True, exist_ok=True)
+        (target / ".gitkeep").touch(exist_ok=True)
+    changed.append("local_serving/")
+    return changed, skipped
+
+
 def split_inline_comment(value: str) -> tuple[str, str]:
     in_single = False
     in_double = False
@@ -539,6 +553,10 @@ def build_report(args: argparse.Namespace) -> PreparedModelReport:
     if report.failures:
         return report
 
+    local_changed, local_skipped = ensure_local_serving_folder(project, args.execute)
+    report.copied_template_dirs.extend(local_changed)
+    report.skipped.extend(local_skipped)
+
     reference = find_reference_entrypoint(project)
     report.reference_entrypoint = rel(reference, project) if reference else None
     if reference is None:
@@ -557,6 +575,7 @@ def build_report(args: argparse.Namespace) -> PreparedModelReport:
                 "python .opencode/scripts/check_environment.py --project <model-project-folder> --entrypoint aiu_studio/runtest_2.py",
                 "python aiu_studio/runtest_2.py",
                 "python .opencode/scripts/test_inference.py --project <model-project-folder>",
+                "추론 테스트 결과: local_serving/inference_result.json",
                 "python .opencode/scripts/verify_mlflow.py --tracking-uri <tracking-uri> --experiment-name <experiment-name>",
             ]
         )

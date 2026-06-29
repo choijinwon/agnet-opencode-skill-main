@@ -25,6 +25,7 @@ class InferenceReport:
     project_path: str
     model_path: str | None
     input_example_path: str | None
+    result_path: str | None
     mode: str
     output_type: str | None
     json_serializable: bool
@@ -87,6 +88,10 @@ def jsonable(value) -> bool:
 def preview(value) -> str:
     text = json.dumps(value, ensure_ascii=False, default=str)
     return text[:1000]
+
+
+def inference_result_path(project: Path) -> Path:
+    return project / "local_serving" / "inference_result.json"
 
 
 def run_pyfunc(model_path: Path, payload):
@@ -160,10 +165,12 @@ def main():
         except Exception as exc:
             failures.append(f"predict_error:{exc}")
 
+    result_path = str(inference_result_path(project)) if args.execute else None
     report = InferenceReport(
         project_path=str(project),
         model_path=str(model_path) if model_path else None,
         input_example_path=str(input_path) if input_path else None,
+        result_path=result_path,
         mode=mode,
         output_type=output_type,
         json_serializable=serializable,
@@ -171,6 +178,10 @@ def main():
         failures=failures,
         output_preview=preview(result) if result is not None else None,
     )
+    if args.execute:
+        output_path = inference_result_path(project)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text(json.dumps(asdict(report), ensure_ascii=False, indent=2, default=str), encoding="utf-8")
 
     if args.json:
         print(json.dumps(asdict(report), ensure_ascii=False, indent=2))
@@ -178,6 +189,7 @@ def main():
         print(f"Project: {report.project_path}")
         print(f"Model path: {report.model_path or 'missing'}")
         print(f"Input example: {report.input_example_path or 'missing'}")
+        print(f"Result path: {report.result_path or 'not written'}")
         print(f"Mode: {report.mode}")
         print(f"Executed: {report.executed}")
         print(f"Output type: {report.output_type or 'none'}")

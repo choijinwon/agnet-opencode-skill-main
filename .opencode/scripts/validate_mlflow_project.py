@@ -764,6 +764,9 @@ def build_report(project: Path, reason: str, write_check: bool) -> ValidationRep
         checks.append(write_permission_check(project))
 
     next_steps = []
+    if artifacts:
+        next_steps.append("Data/root model found. Select one model by number or path before automatic preparation.")
+        next_steps.append("Run: python .opencode/scripts/prepare_selected_model.py --project <model-project-folder> --model <번호|경로> --execute")
     if any(check.status == "block" for check in checks):
         next_steps.append("Resolve blocked checks before MLflow registration.")
     if not has_mlflow_dep:

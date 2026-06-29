@@ -29,7 +29,7 @@ metadata:
 3. 추론 entrypoint 확인
 4. 모델 로드 방식 결정
 5. predict 실행
-6. 출력 schema 확인
+6. 출력 schema 확인 및 local_serving/inference_result.json 생성
 7. 추론 테스트 완료
 8. MLflow 검증으로 이동
 ```
@@ -54,6 +54,7 @@ metadata:
 - 모델 로드 방식
 - predict 결과 요약
 - response schema
+- result_path: local_serving/inference_result.json
 - 다음 단계
 ```
 
@@ -64,6 +65,7 @@ metadata:
 input_example: input_example.json
 load mode: aiu_custom wrapper
 schema: JSON serializable
+result_path: local_serving/inference_result.json
 next: MLflow verify
 ```
 

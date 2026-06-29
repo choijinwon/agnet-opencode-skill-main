@@ -101,6 +101,11 @@ def main() -> int:
         for item in sorted(set(discovered))[:6]:
             print(f"  - {item}")
 
+    if model_artifact_paths:
+        print("- 선택 가능한 모델:")
+        for index, path in enumerate(model_artifact_paths[:10], start=1):
+            print(f"  {index}. {path}")
+
     if review_items:
         print("- 확인 필요:")
         for item in review_items[:4]:
@@ -109,6 +114,8 @@ def main() -> int:
     print("- 다음 단계:")
     if model_found:
         print("  - 샘플은 사용하지 않고 본인 모델 경로 기준으로 모델 있음 12단계를 진행하세요.")
+        print("  - 사용할 모델을 번호 또는 경로로 선택하세요. 예: --model 1 또는 --model data/<folder>/model.joblib")
+        print("  - Build 모드에서 실행: python .opencode/scripts/prepare_selected_model.py --project . --model <번호|경로> --execute")
         print("  - 모델 파일은 data/** 원본 경로에서 직접 읽고 aiu_studio/로 복사하지 않습니다.")
         print("  - 실제 분석/환경 검증/모델 실행은 OpenCode 빌드모드에서 선택해주세요.")
         print("  - 추천 요청: 내 모델 경로 기준으로 MLflow 모델 있음 프로세스 분석해줘.")

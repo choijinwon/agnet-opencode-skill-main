@@ -39,7 +39,8 @@
 - 선택된 모델은 원본 경로에서 직접 읽는다.
 - 기존 `runtest.py`는 루트 또는 `aiu_studio/` 아래에 둘 수 있고, 읽기 전용으로만 참조한다.
 - 기존 `runtest.py`는 절대 수정하지 않고 `aiu_studio/runtest_2.py`만 생성한다.
-- `aiu_studio/runtest_2.py`는 참조한 `runtest.py` 구조를 기반으로 변환하며 기존 주석을 유지한다.
+- `aiu_studio/runtest_2.py`는 참조한 `runtest.py` 구조를 기반으로 변환한다.
+- 모델 경로/MODEL_KIND/로더 관련 주석은 선택 모델 기준으로 변환하고, 그 외 주석은 유지한다.
 - 선택된 모델 종류에 맞춰 `load_selected_model()`, `required_package`, `load_hint`를 생성한다.
 - 사용자가 직접 입력할 값은 `mlflow_tracking_url`, `mlflow_tracking_username`, `mlflow_tracking_password` 3개다.
 - `mlflow_experiment_name`, `mlflow_register_model_name`은 프로젝트명 기준으로 자동 생성한다.

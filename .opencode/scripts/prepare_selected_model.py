@@ -61,6 +61,23 @@ MLFLOW_SETTING_NAMES = {
     "mlflow_experiment_name",
     "mlflow_register_model_name",
 }
+MODEL_RELATED_SETTING_NAMES = {
+    "SOURCE_MODEL_PATH",
+    "DATA_MODEL_PATH",
+    "MODEL_PATH",
+    "MODEL_KIND",
+    "source_model_path",
+    "data_model_path",
+    "model_path",
+    "MODEL_FILE",
+    "model_file",
+    "CHECKPOINT_PATH",
+    "checkpoint_path",
+    "MODEL_LOAD_HINT",
+    "model_load_hint",
+    "REQUIRED_PACKAGE",
+    "required_package",
+}
 MODEL_KIND_DETAILS = {
     "sklearn_pickle": {
         "required_package": "joblib",
@@ -120,7 +137,7 @@ class PreparedModelReport:
     reference_entrypoint: str | None
     generated_entrypoint: str
     execute: bool
-    copied_template_dirs: list[str] = field(default_factory=list)
+    prepared_paths: list[str] = field(default_factory=list)
     skipped: list[str] = field(default_factory=list)
     failures: list[str] = field(default_factory=list)
     next_steps: list[str] = field(default_factory=list)
@@ -285,6 +302,18 @@ def assignment_line(name: str, expression: str, comment: str) -> str:
     return f"{name} = {expression}{suffix}\n"
 
 
+def converted_assignment_comment(name: str, selected_relative: str, kind: str, load_hint: str, required_package: str) -> str | None:
+    if name in {"MODEL_KIND"}:
+        return f"# AIU Studio 변환: 선택 모델 종류 {kind}"
+    if name in {"MODEL_LOAD_HINT", "model_load_hint"}:
+        return f"# AIU Studio 변환: 선택 모델 로더 {load_hint}"
+    if name in {"REQUIRED_PACKAGE", "required_package"}:
+        return f"# AIU Studio 변환: 선택 모델 필요 패키지 {required_package}"
+    if name in MODEL_RELATED_SETTING_NAMES:
+        return f"# AIU Studio 변환: 선택 모델 {selected_relative} 기준 경로"
+    return None
+
+
 def replacement_expression(name: str, replacements: dict[str, str]) -> str | None:
     if name in replacements:
         return replacements[name]
@@ -294,7 +323,15 @@ def replacement_expression(name: str, replacements: dict[str, str]) -> str | Non
     return None
 
 
-def transform_reference_text(reference_text: str, injected_block: str, replacements: dict[str, str]) -> str:
+def transform_reference_text(
+    reference_text: str,
+    injected_block: str,
+    replacements: dict[str, str],
+    selected_relative: str,
+    kind: str,
+    load_hint: str,
+    required_package: str,
+) -> str:
     lines = reference_text.splitlines(keepends=True)
     output: list[str] = []
     inserted = False
@@ -323,6 +360,19 @@ def transform_reference_text(reference_text: str, injected_block: str, replaceme
 
         stripped = line.lstrip()
         indent = line[: len(line) - len(stripped)]
+        if stripped.startswith("#") and not re.match(r"^#.*coding[:=]", stripped):
+            next_index = index + 1
+            while next_index < len(lines) and not lines[next_index].strip():
+                next_index += 1
+            if next_index < len(lines):
+                next_match = assignment_pattern.match(lines[next_index].rstrip("\n"))
+                if next_match:
+                    next_name = next_match.group(1)
+                    if replacement_expression(next_name, replacements) is not None:
+                        converted_comment = converted_assignment_comment(next_name, selected_relative, kind, load_hint, required_package)
+                        if converted_comment:
+                            output.append(f"{indent}{converted_comment}\n")
+                            continue
         if indent:
             output.append(line)
             continue
@@ -344,6 +394,9 @@ def transform_reference_text(reference_text: str, injected_block: str, replaceme
             continue
 
         _, comment = split_inline_comment(raw_value)
+        converted_comment = converted_assignment_comment(name, selected_relative, kind, load_hint, required_package)
+        if converted_comment:
+            comment = converted_comment
         output.append(assignment_line(name, expression, comment))
 
     if not inserted:
@@ -452,6 +505,9 @@ def generated_runtest_text(project: Path, selected_model: Path, kind: str, refer
     reference_text = reference.read_text(encoding="utf-8", errors="ignore")
     selected_relative = rel(selected_model, project)
     default_experiment_name, default_register_model_name = default_mlflow_names(project)
+    details = MODEL_KIND_DETAILS.get(kind, {})
+    required_package = details.get("required_package", "unknown")
+    load_hint = details.get("load_hint", "custom loader required")
     replacements = {
         "SOURCE_MODEL_PATH": f'PROJECT_DIR / "{selected_relative}"',
         "DATA_MODEL_PATH": "SOURCE_MODEL_PATH",
@@ -478,6 +534,10 @@ def generated_runtest_text(project: Path, selected_model: Path, kind: str, refer
         reference_text,
         aiu_injected_block(project, selected_model, kind, reference),
         replacements,
+        selected_relative,
+        kind,
+        load_hint,
+        required_package,
     )
     return transformed.rstrip() + "\n"
 
@@ -547,14 +607,14 @@ def build_report(args: argparse.Namespace) -> PreparedModelReport:
         return report
 
     copied, skipped, copy_failures = copy_aiu_studio_folder(project, args.execute)
-    report.copied_template_dirs.extend(copied)
+    report.prepared_paths.extend(copied)
     report.skipped.extend(skipped)
     report.failures.extend(copy_failures)
     if report.failures:
         return report
 
     local_changed, local_skipped = ensure_local_serving_folder(project, args.execute)
-    report.copied_template_dirs.extend(local_changed)
+    report.prepared_paths.extend(local_changed)
     report.skipped.extend(local_skipped)
 
     reference = find_reference_entrypoint(project)
@@ -565,7 +625,7 @@ def build_report(args: argparse.Namespace) -> PreparedModelReport:
         return report
 
     changed, write_skipped, write_failures = write_runtest_2(project, selected_model, selected_kind, reference, args.execute, args.force)
-    report.copied_template_dirs.extend(changed)
+    report.prepared_paths.extend(changed)
     report.skipped.extend(write_skipped)
     report.failures.extend(write_failures)
 
@@ -598,9 +658,9 @@ def print_report(report: PreparedModelReport) -> None:
     print(f"Reference entrypoint: {report.reference_entrypoint or 'missing'}")
     print(f"Generated entrypoint: {report.generated_entrypoint}")
     print(f"Execute: {report.execute}")
-    if report.copied_template_dirs:
+    if report.prepared_paths:
         print("Prepared:")
-        for item in report.copied_template_dirs:
+        for item in report.prepared_paths:
             print(f"- {item}")
     if report.skipped:
         print("Skipped:")

@@ -135,7 +135,7 @@ Existing model assumptions:
 
 - The user's model file may be directly under the project root or anywhere under the recursive `data/**` tree. The folder name under `data/` is user-defined, not fixed. Supported suffixes are `.pkl`, `.joblib`, `.pt`, `.pth`, `.onnx`, `.keras`, `.h5`, `.safetensors`, `.bst`, and `.ubj`. Examples: `model.pkl`, `models/model.joblib`, `data/<any-folder>/model.joblib`, `data/checkpoints/model.pt`, or `data/models/model.safetensors`.
 - Do not copy the selected model file into `aiu_studio/`.
-- `aiu_studio/` is the copied execution template folder for existing-model flow.
+- Only `.opencode/samples/aiu_studio/` is copied to the project root as `aiu_studio/` for existing-model flow.
 - The confirmed entrypoint must read the selected model from its original project path.
 - Prefer generated `aiu_studio/runtest_2.py` for selected-model tests. Do not modify the existing `runtest.py`.
 - Secret values must never be printed; report only `set`, `empty`, or `missing`.
@@ -161,7 +161,7 @@ Step 4. 모델 형식 판별
         확장자 기준으로 MODEL_KIND를 결정한다.
         예: .pkl -> sklearn_pickle, .pt -> pytorch, .onnx -> onnx
 
-Step 5. aiu_studio 템플릿 폴더 복사
+Step 5. aiu_studio 폴더 복사
         .opencode/samples/aiu_studio/ 폴더를 프로젝트 루트의 aiu_studio/로 그대로 복사한다.
         aiu_studio/ 내부 파일 구성은 고정하지 않고 비교/수정하지 않는다.
         기존 aiu_studio/가 있어도 skip 판단하지 않고 같은 이름 파일은 복사본으로 갱신한다.
@@ -178,7 +178,8 @@ Step 7. runtest.py 참조
 Step 8. runtest_2.py 생성
         선택 모델 경로와 MODEL_KIND 기준으로 aiu_studio/runtest_2.py를 생성한다.
         MODEL_KIND별 load_selected_model()과 required_package/load_hint를 생성한다.
-        변환은 참조한 runtest.py 구조를 기반으로 하며, 기존 주석은 유지한다.
+        변환은 참조한 runtest.py 구조를 기반으로 한다.
+        모델 경로/MODEL_KIND/로더 관련 주석은 선택 모델 기준으로 변환하고, 그 외 주석은 유지한다.
         기존 runtest.py는 절대 수정하지 않는다.
 
 사용자에게 보여줄 TOD는 자동 처리 단계 3-8을 `자동 준비 실행`으로 묶어 간략히 표시한다.

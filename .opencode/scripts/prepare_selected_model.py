@@ -584,8 +584,8 @@ def conversion_reference_step(kind: str, reference: Path) -> str:
 def runtest_2_sequence(project: Path, selected_model: Path, kind: str, reference: Path) -> list[str]:
     return [
         f"1. 선택 모델 확인: {rel(selected_model, project)}",
-        "2. .opencode/samples/aiu_studio/ 내부 파일/폴더를 워크스페이스 루트로 복사",
-        f"3. 현재 프로젝트 루트/data/** 검색 결과에서 모델 형식 확인: MODEL_KIND={kind}",
+        f"2. 현재 프로젝트 루트/data/** 검색 결과에서 모델 형식 확인: MODEL_KIND={kind}",
+        "3. .opencode/samples/aiu_studio/ 내부 파일/폴더를 워크스페이스 루트로 복사",
         f"4. 선택 모델 경로와 MODEL_KIND 반영: {rel(selected_model, project)} / {kind}",
         conversion_reference_step(kind, reference),
         "6. 선택 모델 실행/등록에 필요한 연결부만 안전하게 변환",
@@ -2239,7 +2239,7 @@ def build_report(args: argparse.Namespace) -> PreparedModelReport:
         report.next_steps.extend(
             [
                 "자동 준비 완료: 모델 프로젝트 구조 분석 + 선택 모델 환경 변환",
-                "runtest_2.py 생성 시퀀스 완료: 현재 프로젝트 루트/data/** 모델 선택 -> .opencode/samples/aiu_studio/ 내부 파일/폴더를 워크스페이스 루트로 복사 -> samples/pytorch_sample/ 내부 참조 -> 선택 모델 경로와 MODEL_KIND 반영 -> 선택 모델 실행/등록 연결부 변환",
+                "runtest_2.py 생성 시퀀스 완료: 현재 프로젝트 루트/data/** 모델 선택 -> 모델 형식 확인 -> .opencode/samples/aiu_studio/ 내부 파일/폴더를 워크스페이스 루트로 복사 -> samples/pytorch_sample/ 내부 참조 -> 선택 모델 경로와 MODEL_KIND 반영 -> 선택 모델 실행/등록 연결부 변환",
                 "PowerShell에서는 선택 프로젝트 루트로 이동한 뒤 실행하세요.",
                 f"cd {powershell_quote_path(project)}",
                 "python runtest_2.py",

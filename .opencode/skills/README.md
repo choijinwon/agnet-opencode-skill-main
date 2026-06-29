@@ -58,10 +58,10 @@ Step 2. 모델 경로로 선택
         번호는 현재 출력된 목록 순서에 의존한다. 이미 준비된 선택 모델은 --model selected로 재사용한다.
         선택이 없으면 자동 준비를 진행하지 않고 선택 요청으로 멈춘다.
 Step 3. 선택 모델 환경 변환
-        .opencode/samples/aiu_studio/ 내부 파일/폴더를 워크스페이스 루트로 복사하고, MODEL_KIND 판별 후 복사된 템플릿 파일들을 선택 모델 환경에 맞게 변환/갱신한다.
+        MODEL_KIND를 먼저 판별한 뒤 .opencode/samples/aiu_studio/ 내부 파일/폴더를 워크스페이스 루트로 복사하고, 복사된 템플릿 파일들을 선택 모델 환경에 맞게 변환/갱신한다.
         PyTorch/safetensors 모델은 samples/pytorch_sample/ 내부를 참조해서 선택 모델 실행/등록에 필요한 연결부만 안전하게 변환해줘.
         선택 모델 경로와 MODEL_KIND를 반영한다.
-        runtest_2.py 생성 시퀀스는 모델 선택, .opencode/samples/aiu_studio/ 내부 파일/폴더를 워크스페이스 루트로 복사, 모델 형식 확인, samples/pytorch_sample/ 기준 연결부 변환, 실행 코드 변환 순서다.
+        runtest_2.py 생성 시퀀스는 모델 선택, 모델 형식 확인, .opencode/samples/aiu_studio/ 내부 파일/폴더를 워크스페이스 루트로 복사, samples/pytorch_sample/ 기준 연결부 변환, 실행 코드 변환 순서다.
         내부 일치 검증은 자동으로 수행하며 사용자에게 세부 파일 목록을 요구하지 않는다.
 Step 4. 모델 환경변수 체크
         입력값 3개와 자동값 2개 상태를 확인한다.

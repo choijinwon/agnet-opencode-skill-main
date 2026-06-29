@@ -33,7 +33,7 @@ Step 5  모델 환경변수 체크
 
 Step 6  runtest_2.py 실행
         aiu_studio/runtest_2.py
-        input_example.json과 상대경로 산출물은 aiu_studio/ 아래에 생성되도록 실행 시 작업 디렉터리를 aiu_studio/로 고정한다.
+        input_example.json은 프로젝트 루트가 아니라 aiu_studio/input_example.json에 있어야 하며, 상대경로 산출물도 aiu_studio/ 아래에 생성되도록 실행 시 작업 디렉터리를 aiu_studio/로 고정한다.
 
 Step 7  로컬 추론 테스트
         aiu_studio/local_serving/localservingtest.py

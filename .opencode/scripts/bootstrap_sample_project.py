@@ -180,24 +180,25 @@ def copy_existing_project_scaffold(sample: Path, project: Path, execute: bool) -
         if not is_scaffold_path(relative):
             continue
 
-        target = project / relative
+        target_relative = Path("aiu_studio") / relative if relative == Path("input_example.json") else relative
+        target = project / target_relative
         if source.is_dir():
             if target.exists():
-                append_unique(skipped, display_path(relative) + "/")
+                append_unique(skipped, display_path(target_relative) + "/")
                 continue
             if execute:
                 target.mkdir(parents=True, exist_ok=True)
-            append_unique(copied, display_path(relative) + "/")
+            append_unique(copied, display_path(target_relative) + "/")
             continue
 
         if target.exists():
-            append_unique(skipped, display_path(relative))
+            append_unique(skipped, display_path(target_relative))
             continue
 
         if execute:
             target.parent.mkdir(parents=True, exist_ok=True)
             copy_file(source, target)
-        append_unique(copied, display_path(relative))
+        append_unique(copied, display_path(target_relative))
 
     for name in REQUIRED_PROJECT_DIRS:
         target = project / name

@@ -88,6 +88,8 @@ def main() -> int:
     model_artifact_paths = payload.get("model_artifact_paths") or []
     evidence_text = " ".join(str(item) for item in evidence)
     model_found = bool(model_artifact_paths) or any(hint in evidence_text for hint in MODEL_HINTS)
+    if not model_found:
+        review_items = [item for item in review_items if not item.startswith("sample spec scaffold:")]
 
     print(f"- 분석 대상: {payload.get('selected_project', str(project_dir))}")
     print(f"- 모델 상태: {'있음' if model_found else '없음 또는 추가 확인 필요'}")

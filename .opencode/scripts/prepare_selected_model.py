@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 import shutil
@@ -53,6 +54,60 @@ MODEL_SCAN_SKIP_DIRS = {
     "node_modules",
     "venv",
 }
+MLFLOW_SETTING_NAMES = {
+    "mlflow_tracking_url",
+    "mlflow_tracking_username",
+    "mlflow_tracking_password",
+    "mlflow_experiment_name",
+    "mlflow_register_model_name",
+}
+MODEL_KIND_DETAILS = {
+    "sklearn_pickle": {
+        "required_package": "joblib",
+        "load_hint": "joblib.load(MODEL_PATH)",
+        "loader": """def load_selected_model():\n    import joblib\n\n    return joblib.load(MODEL_PATH)\n""",
+    },
+    "sklearn_joblib": {
+        "required_package": "joblib",
+        "load_hint": "joblib.load(MODEL_PATH)",
+        "loader": """def load_selected_model():\n    import joblib\n\n    return joblib.load(MODEL_PATH)\n""",
+    },
+    "pytorch": {
+        "required_package": "torch",
+        "load_hint": "torch.load(MODEL_PATH, map_location='cpu')",
+        "loader": """def load_selected_model():\n    import torch\n\n    return torch.load(MODEL_PATH, map_location=\"cpu\")\n""",
+    },
+    "onnx": {
+        "required_package": "onnxruntime",
+        "load_hint": "onnxruntime.InferenceSession(str(MODEL_PATH))",
+        "loader": """def load_selected_model():\n    import onnxruntime as ort\n\n    return ort.InferenceSession(str(MODEL_PATH))\n""",
+    },
+    "tensorflow_keras": {
+        "required_package": "tensorflow",
+        "load_hint": "tf.keras.models.load_model(MODEL_PATH)",
+        "loader": """def load_selected_model():\n    import tensorflow as tf\n\n    return tf.keras.models.load_model(MODEL_PATH)\n""",
+    },
+    "tensorflow_h5": {
+        "required_package": "tensorflow",
+        "load_hint": "tf.keras.models.load_model(MODEL_PATH)",
+        "loader": """def load_selected_model():\n    import tensorflow as tf\n\n    return tf.keras.models.load_model(MODEL_PATH)\n""",
+    },
+    "safetensors": {
+        "required_package": "safetensors",
+        "load_hint": "safetensors.torch.load_file(str(MODEL_PATH))",
+        "loader": """def load_selected_model():\n    from safetensors.torch import load_file\n\n    return load_file(str(MODEL_PATH))\n""",
+    },
+    "xgboost_bst": {
+        "required_package": "xgboost",
+        "load_hint": "xgboost.Booster().load_model(str(MODEL_PATH))",
+        "loader": """def load_selected_model():\n    import xgboost as xgb\n\n    booster = xgb.Booster()\n    booster.load_model(str(MODEL_PATH))\n    return booster\n""",
+    },
+    "xgboost_ubj": {
+        "required_package": "xgboost",
+        "load_hint": "xgboost.Booster().load_model(str(MODEL_PATH))",
+        "loader": """def load_selected_model():\n    import xgboost as xgb\n\n    booster = xgb.Booster()\n    booster.load_model(str(MODEL_PATH))\n    return booster\n""",
+    },
+}
 
 
 @dataclass
@@ -86,7 +141,17 @@ def is_filesystem_root(path: Path) -> bool:
     return path.parent == path
 
 
+def is_opencode_sample_source(path: Path) -> bool:
+    parts = path.resolve().parts
+    for index, part in enumerate(parts[:-1]):
+        if part == ".opencode" and parts[index + 1] in {"sample", "samples"}:
+            return True
+    return False
+
+
 def scan_model_artifacts(project: Path) -> list[Path]:
+    if is_opencode_sample_source(project):
+        return []
     found = []
     for path in project.rglob("*"):
         try:
@@ -135,6 +200,10 @@ def find_reference_entrypoint(project: Path) -> Path | None:
     return None
 
 
+def file_sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
 def safe_mlflow_name(value: str, fallback: str) -> str:
     normalized = re.sub(r"[^0-9A-Za-z_]+", "_", value).strip("_").lower()
     return normalized or fallback
@@ -143,6 +212,19 @@ def safe_mlflow_name(value: str, fallback: str) -> str:
 def default_mlflow_names(project: Path) -> tuple[str, str]:
     experiment_name = safe_mlflow_name(project.name, "aiu_studio")
     return experiment_name, f"{experiment_name}_model"
+
+
+def model_profile(project: Path, selected_model: Path, kind: str) -> dict[str, str]:
+    details = MODEL_KIND_DETAILS.get(kind, {})
+    return {
+        "model_name": selected_model.name,
+        "model_suffix": selected_model.suffix.lower(),
+        "model_kind": kind,
+        "model_relative_path": rel(selected_model, project),
+        "model_parent": rel(selected_model.parent, project),
+        "required_package": details.get("required_package", "unknown"),
+        "load_hint": details.get("load_hint", "custom loader required"),
+    }
 
 
 def copy_aiu_studio_folder(project: Path, execute: bool) -> tuple[list[str], list[str], list[str]]:
@@ -162,24 +244,139 @@ def copy_aiu_studio_folder(project: Path, execute: bool) -> tuple[list[str], lis
     return copied, skipped, failures
 
 
-def generated_runtest_text(project: Path, selected_model: Path, kind: str, reference: Path) -> str:
+def split_inline_comment(value: str) -> tuple[str, str]:
+    in_single = False
+    in_double = False
+    escaped = False
+    for index, char in enumerate(value):
+        if escaped:
+            escaped = False
+            continue
+        if char == "\\":
+            escaped = True
+            continue
+        if char == "'" and not in_double:
+            in_single = not in_single
+            continue
+        if char == '"' and not in_single:
+            in_double = not in_double
+            continue
+        if char == "#" and not in_single and not in_double:
+            return value[:index].rstrip(), value[index:].rstrip()
+    return value.rstrip(), ""
+
+
+def assignment_line(name: str, expression: str, comment: str) -> str:
+    suffix = f"  {comment}" if comment else ""
+    return f"{name} = {expression}{suffix}\n"
+
+
+def replacement_expression(name: str, replacements: dict[str, str]) -> str | None:
+    if name in replacements:
+        return replacements[name]
+    lower_name = name.lower()
+    if lower_name in replacements:
+        return replacements[lower_name]
+    return None
+
+
+def transform_reference_text(reference_text: str, injected_block: str, replacements: dict[str, str]) -> str:
+    lines = reference_text.splitlines(keepends=True)
+    output: list[str] = []
+    inserted = False
+    future_import_pattern = re.compile(r"^\s*from\s+__future__\s+import\s+")
+    assignment_pattern = re.compile(r"^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$")
+
+    insert_at = 0
+    if lines and lines[0].startswith("#!"):
+        insert_at = 1
+    while insert_at < len(lines) and re.match(r"^#.*coding[:=]", lines[insert_at]):
+        insert_at += 1
+    while insert_at < len(lines):
+        line = lines[insert_at]
+        if not line.strip():
+            insert_at += 1
+            continue
+        if future_import_pattern.match(line):
+            insert_at += 1
+            continue
+        break
+
+    for index, line in enumerate(lines):
+        if index == insert_at and not inserted:
+            output.append(injected_block)
+            inserted = True
+
+        stripped = line.lstrip()
+        indent = line[: len(line) - len(stripped)]
+        if indent:
+            output.append(line)
+            continue
+
+        match = assignment_pattern.match(line.rstrip("\n"))
+        if not match:
+            output.append(line)
+            continue
+
+        name, raw_value = match.groups()
+        expression = replacement_expression(name, replacements)
+        if expression is None:
+            output.append(line)
+            continue
+
+        if name in MLFLOW_SETTING_NAMES:
+            output.append(f"# AIU Studio preserved original assignment; value is defined in the conversion block above.\n")
+            output.append(f"# {line.rstrip()}\n")
+            continue
+
+        _, comment = split_inline_comment(raw_value)
+        output.append(assignment_line(name, expression, comment))
+
+    if not inserted:
+        output.insert(0, injected_block)
+
+    if output and not output[-1].endswith("\n"):
+        output[-1] += "\n"
+    return "".join(output)
+
+
+def aiu_injected_block(project: Path, selected_model: Path, kind: str, reference: Path) -> str:
     selected_relative = rel(selected_model, project)
     reference_relative = rel(reference, project)
     default_experiment_name, default_register_model_name = default_mlflow_names(project)
-    return f'''#!/usr/bin/env python3
-from __future__ import annotations
+    profile = model_profile(project, selected_model, kind)
+    details = MODEL_KIND_DETAILS.get(kind, {})
+    required_package = details.get("required_package", "unknown")
+    load_hint = details.get("load_hint", "custom loader required")
+    loader = details.get(
+        "loader",
+        """def load_selected_model():\n    raise ValueError(f\"unsupported MODEL_KIND: {MODEL_KIND}\")\n""",
+    )
+    return f'''
 
-import json
-from pathlib import Path
+# --- AIU Studio selected model conversion ---
+# 선택된 모델을 먼저 판별하고, 원본 모델 파일은 프로젝트 경로에서 직접 읽습니다.
+# MODEL_KIND에 맞는 load_selected_model()을 생성해 선택 모델 기준으로 변환합니다.
+# 이 블록은 자동 생성되지만 아래 원본 runtest.py 구조와 주석은 유지합니다.
+import json as _aiu_json
+import os as _aiu_os
+from pathlib import Path as _AIUPath
 
-
-AI_STUDIO_DIR = Path(__file__).resolve().parent
+AI_STUDIO_DIR = _AIUPath(__file__).resolve().parent
 PROJECT_DIR = AI_STUDIO_DIR.parent
 SOURCE_MODEL_PATH = PROJECT_DIR / "{selected_relative}"
 DATA_MODEL_PATH = SOURCE_MODEL_PATH
 MODEL_PATH = SOURCE_MODEL_PATH
 MODEL_KIND = "{kind}"
+MODEL_PROFILE = {json.dumps(profile, ensure_ascii=False, indent=4)}
+AIU_REQUIRED_PACKAGE = "{required_package}"
+AIU_LOAD_HINT = "{load_hint}"
 REFERENCE_ENTRYPOINT = PROJECT_DIR / "{reference_relative}"
+
+# 자주 쓰는 소문자 변수명도 같은 선택 모델을 보도록 맞춥니다.
+source_model_path = str(SOURCE_MODEL_PATH)
+data_model_path = str(DATA_MODEL_PATH)
+model_path = str(MODEL_PATH)
 
 # MLflow/AI Studio settings
 # tracking URL, username, password는 사용자가 직접 입력합니다.
@@ -191,93 +388,84 @@ mlflow_tracking_password = ""
 mlflow_experiment_name = "{default_experiment_name}"
 mlflow_register_model_name = "{default_register_model_name}"
 
+{loader}
 
-def ensure_ai_studio_dirs() -> None:
-    for relative in ["code", "metrics", "tracking"]:
-        (AI_STUDIO_DIR / relative).mkdir(parents=True, exist_ok=True)
+if mlflow_tracking_url.lower().startswith("https://"):
+    raise ValueError("ssl_not_allowed: use http:// or file:// for mlflow_tracking_url")
 
+for _aiu_relative in ["code", "metrics", "tracking"]:
+    (AI_STUDIO_DIR / _aiu_relative).mkdir(parents=True, exist_ok=True)
 
-def export_mlflow_env() -> None:
-    import os
+for _aiu_env_name, _aiu_env_value in {{
+    "MLFLOW_TRACKING_URI": mlflow_tracking_url,
+    "MLFLOW_TRACKING_USERNAME": mlflow_tracking_username,
+    "MLFLOW_TRACKING_PASSWORD": mlflow_tracking_password,
+    "MLFLOW_EXPERIMENT_NAME": mlflow_experiment_name,
+    "MLFLOW_REGISTER_MODEL_NAME": mlflow_register_model_name,
+}}.items():
+    if _aiu_env_value:
+        _aiu_os.environ[_aiu_env_name] = _aiu_env_value
 
-    if mlflow_tracking_url.lower().startswith("https://"):
-        raise ValueError("ssl_not_allowed: use http:// or file:// for mlflow_tracking_url")
+(AI_STUDIO_DIR / "code" / "selected_model.json").write_text(
+    _aiu_json.dumps(
+        {{
+            "model_path": str(MODEL_PATH),
+            "source_model_path": str(SOURCE_MODEL_PATH),
+            "model_kind": MODEL_KIND,
+            "model_profile": MODEL_PROFILE,
+            "required_package": AIU_REQUIRED_PACKAGE,
+            "load_hint": AIU_LOAD_HINT,
+            "reference_entrypoint": str(REFERENCE_ENTRYPOINT),
+            "generated_entrypoint": str(AI_STUDIO_DIR / "runtest_2.py"),
+            "result_folders": {{
+                "code": str(AI_STUDIO_DIR / "code"),
+                "metrics": str(AI_STUDIO_DIR / "metrics"),
+                "tracking": str(AI_STUDIO_DIR / "tracking"),
+            }},
+            "note": "Model file remains in the project source path and is not copied into aiu_studio/. Original runtest.py comments and structure are preserved in aiu_studio/runtest_2.py.",
+        }},
+        ensure_ascii=False,
+        indent=2,
+    ),
+    encoding="utf-8",
+)
+# --- /AIU Studio selected model conversion ---
 
-    mapping = {{
-        "MLFLOW_TRACKING_URI": mlflow_tracking_url,
-        "MLFLOW_TRACKING_USERNAME": mlflow_tracking_username,
-        "MLFLOW_TRACKING_PASSWORD": mlflow_tracking_password,
-        "MLFLOW_EXPERIMENT_NAME": mlflow_experiment_name,
-        "MLFLOW_REGISTER_MODEL_NAME": mlflow_register_model_name,
-    }}
-    for name, value in mapping.items():
-        if value:
-            os.environ[name] = value
-
-
-def load_selected_model():
-    if MODEL_KIND in {{"sklearn_pickle", "sklearn_joblib"}}:
-        import joblib
-
-        return joblib.load(MODEL_PATH)
-    if MODEL_KIND == "pytorch":
-        import torch
-
-        return torch.load(MODEL_PATH, map_location="cpu")
-    if MODEL_KIND == "onnx":
-        import onnxruntime as ort
-
-        return ort.InferenceSession(str(MODEL_PATH))
-    if MODEL_KIND in {{"tensorflow_keras", "tensorflow_h5"}}:
-        import tensorflow as tf
-
-        return tf.keras.models.load_model(MODEL_PATH)
-    if MODEL_KIND == "safetensors":
-        from safetensors.torch import load_file
-
-        return load_file(str(MODEL_PATH))
-    if MODEL_KIND in {{"xgboost_bst", "xgboost_ubj"}}:
-        import xgboost as xgb
-
-        booster = xgb.Booster()
-        booster.load_model(str(MODEL_PATH))
-        return booster
-    raise ValueError(f"unsupported MODEL_KIND: {{MODEL_KIND}}")
-
-
-def write_selection_summary() -> None:
-    ensure_ai_studio_dirs()
-    payload = {{
-        "model_path": str(MODEL_PATH),
-        "source_model_path": str(SOURCE_MODEL_PATH),
-        "model_kind": MODEL_KIND,
-        "reference_entrypoint": str(REFERENCE_ENTRYPOINT),
-        "note": "Model file remains in the project source path and is not copied into aiu_studio/.",
-    }}
-    (AI_STUDIO_DIR / "code" / "selected_model.json").write_text(
-        json.dumps(payload, ensure_ascii=False, indent=2),
-        encoding="utf-8",
-    )
-
-
-def main() -> int:
-    ensure_ai_studio_dirs()
-    export_mlflow_env()
-    if not MODEL_PATH.is_file():
-        print(f"missing model file: {{MODEL_PATH}}")
-        return 1
-    write_selection_summary()
-    model = load_selected_model()
-    print(f"MODEL_PATH={{MODEL_PATH}}")
-    print(f"MODEL_KIND={{MODEL_KIND}}")
-    print(f"loaded_model_type={{type(model).__name__}}")
-    print("secret_status=not_printed")
-    return 0
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())
 '''
+
+
+def generated_runtest_text(project: Path, selected_model: Path, kind: str, reference: Path) -> str:
+    reference_text = reference.read_text(encoding="utf-8", errors="ignore")
+    selected_relative = rel(selected_model, project)
+    default_experiment_name, default_register_model_name = default_mlflow_names(project)
+    replacements = {
+        "SOURCE_MODEL_PATH": f'PROJECT_DIR / "{selected_relative}"',
+        "DATA_MODEL_PATH": "SOURCE_MODEL_PATH",
+        "MODEL_PATH": "SOURCE_MODEL_PATH",
+        "MODEL_KIND": repr(kind),
+        "source_model_path": "str(SOURCE_MODEL_PATH)",
+        "data_model_path": "str(DATA_MODEL_PATH)",
+        "model_path": "str(MODEL_PATH)",
+        "MODEL_FILE": "SOURCE_MODEL_PATH",
+        "model_file": "str(MODEL_PATH)",
+        "CHECKPOINT_PATH": "SOURCE_MODEL_PATH",
+        "checkpoint_path": "str(MODEL_PATH)",
+        "MODEL_LOAD_HINT": "AIU_LOAD_HINT",
+        "model_load_hint": "AIU_LOAD_HINT",
+        "REQUIRED_PACKAGE": "AIU_REQUIRED_PACKAGE",
+        "required_package": "AIU_REQUIRED_PACKAGE",
+        "mlflow_tracking_url": '""',
+        "mlflow_tracking_username": '""',
+        "mlflow_tracking_password": '""',
+        "mlflow_experiment_name": repr(default_experiment_name),
+        "mlflow_register_model_name": repr(default_register_model_name),
+    }
+    transformed = transform_reference_text(
+        reference_text,
+        aiu_injected_block(project, selected_model, kind, reference),
+        replacements,
+    )
+    return transformed.rstrip() + "\n"
 
 
 def write_runtest_2(project: Path, selected_model: Path, kind: str, reference: Path, execute: bool, force: bool) -> tuple[list[str], list[str], list[str]]:
@@ -285,6 +473,7 @@ def write_runtest_2(project: Path, selected_model: Path, kind: str, reference: P
     changed: list[str] = []
     skipped: list[str] = []
     failures: list[str] = []
+    reference_digest_before = file_sha256(reference)
     if target.exists() and not force:
         skipped.append("aiu_studio/runtest_2.py")
         if execute:
@@ -293,6 +482,10 @@ def write_runtest_2(project: Path, selected_model: Path, kind: str, reference: P
     if execute:
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(generated_runtest_text(project, selected_model, kind, reference), encoding="utf-8")
+        reference_digest_after = file_sha256(reference)
+        if reference_digest_after != reference_digest_before:
+            failures.append(f"reference_entrypoint_modified:{rel(reference, project)}")
+            return changed, skipped, failures
     changed.append("aiu_studio/runtest_2.py")
     return changed, skipped, failures
 
@@ -303,6 +496,8 @@ def build_report(args: argparse.Namespace) -> PreparedModelReport:
         raise FileNotFoundError(f"project folder not found: {project}")
     if is_filesystem_root(project):
         raise ValueError("drive/root scan is not allowed. Run from the model project folder or pass --project <current-project-folder>.")
+    if is_opencode_sample_source(project):
+        raise ValueError(".opencode/sample(s)는 분석 대상이 아닙니다. 선택한 실제 모델 프로젝트 폴더를 --project로 지정하세요.")
 
     data_root = project / "data"
     models = scan_model_artifacts(project)
@@ -422,5 +617,8 @@ def main() -> int:
 if __name__ == "__main__":
     try:
         raise SystemExit(main())
+    except (FileNotFoundError, ValueError) as exc:
+        print(f"[error] {exc}", file=sys.stderr)
+        raise SystemExit(1)
     except KeyboardInterrupt:
         raise SystemExit(130)

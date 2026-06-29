@@ -388,6 +388,8 @@ def find_setting_file(project: Path, explicit: str | None) -> Path | None:
 
 
 def find_model_artifacts(project: Path, max_depth: int = 4) -> list[Path]:
+    if is_opencode_sample_source(project):
+        return []
     artifacts: list[Path] = []
     base_depth = len(project.parts)
     for root, dirs, files in os.walk(project):
@@ -408,6 +410,14 @@ def find_model_artifacts(project: Path, max_depth: int = 4) -> list[Path]:
 
 def is_filesystem_root(path: Path) -> bool:
     return path.parent == path
+
+
+def is_opencode_sample_source(path: Path) -> bool:
+    parts = path.resolve().parts
+    for index, part in enumerate(parts[:-1]):
+        if part == ".opencode" and parts[index + 1] in {"sample", "samples"}:
+            return True
+    return False
 
 
 def check_python_version() -> DoctorCheck:
@@ -730,6 +740,25 @@ def build_next_steps(checks: list[DoctorCheck]) -> list[str]:
 
 
 def build_report(workspace: Path, project: Path, sample: str, setting_file: str | None) -> DoctorReport:
+    if is_opencode_sample_source(project):
+        checks = [
+            DoctorCheck(
+                ".opencode sample source",
+                "fail",
+                ".opencode/sample(s)는 번들 샘플 원본이라 분석 대상이 아닙니다.",
+                [str(project)],
+                ["실제 사용자가 선택한 모델 프로젝트 폴더를 --project로 지정하세요."],
+            )
+        ]
+        return DoctorReport(
+            workspace=str(workspace),
+            project=str(project),
+            os=f"{platform.system()} {platform.release()}",
+            python=platform.python_version(),
+            expected_python=EXPECTED_PYTHON_VERSION,
+            checks=checks,
+            next_steps=build_next_steps(checks),
+        )
     checks = [
         check_opencode(workspace),
         check_python_version(),

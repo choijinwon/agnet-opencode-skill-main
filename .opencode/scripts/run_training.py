@@ -137,6 +137,8 @@ class TrainingReport:
 
 
 def has_model_project(project: Path) -> bool:
+    if is_opencode_sample_source(project):
+        return False
     markers = [
         "aiu_studio/runtest_2.py",
         "runtest_2.py",
@@ -344,6 +346,14 @@ def is_filesystem_root(path: Path) -> bool:
     return path.parent == path
 
 
+def is_opencode_sample_source(path: Path) -> bool:
+    parts = path.resolve().parts
+    for index, part in enumerate(parts[:-1]):
+        if part == ".opencode" and parts[index + 1] in {"sample", "samples"}:
+            return True
+    return False
+
+
 def run_command(cmd: list[str], cwd: Path) -> int:
     result = subprocess.run(cmd, cwd=cwd)
     return result.returncode
@@ -365,6 +375,8 @@ def main():
         raise FileNotFoundError(f"project folder not found: {project}")
     if is_filesystem_root(project):
         raise ValueError("drive/root scan is not allowed. Run from the model project folder or pass --project <current-project-folder>.")
+    if is_opencode_sample_source(project):
+        raise ValueError(".opencode/sample(s)는 번들 샘플 원본이라 실행/분석 대상이 아닙니다. 실제 모델 프로젝트 폴더를 --project로 지정하세요.")
 
     failures: list[str] = []
     next_steps: list[str] = []

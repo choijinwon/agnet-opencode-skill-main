@@ -29,7 +29,7 @@ If the user arrived here by switching from the Launch tab to the Build tab, do n
 - On Windows, do not use `standaloneExecutable` launch paths. Run the bundled Python scripts with `python ...` from the workspace instead.
 - On Windows x86_64, do not default to native/standalone executable model runs because they are unstable. Prefer `python` entrypoints, `mlflow.pyfunc`, and `aiu_custom` wrappers.
 - If the task is destructive or overwrites existing project files, ask for confirmation first.
-- Project/model scans must stay inside the current `--project` folder only. Do not search parent folders, bundled samples, home directories, or drive roots.
+- Project/model scans must stay inside the current `--project` folder only. Do not search parent folders, `.opencode/sample(s)` bundled sample sources, home directories, or drive roots.
 
 ## First Build Step
 
@@ -170,12 +170,14 @@ Step 6. 선택 모델 직접 읽기
         MODEL_PATH = SOURCE_MODEL_PATH
 
 Step 7. runtest.py 참조
-        aiu_studio/runtest.py를 우선 참조한다.
+        aiu_studio/runtest.py를 우선 읽기 전용으로 참조한다.
         없으면 프로젝트 루트 runtest.py, run_test.py 순서로 참조한다.
 
 Step 8. runtest_2.py 생성
         선택 모델 경로와 MODEL_KIND 기준으로 aiu_studio/runtest_2.py를 생성한다.
-        기존 runtest.py는 수정하지 않는다.
+        MODEL_KIND별 load_selected_model()과 required_package/load_hint를 생성한다.
+        변환은 참조한 runtest.py 구조를 기반으로 하며, 기존 주석은 유지한다.
+        기존 runtest.py는 절대 수정하지 않는다.
 
 사용자에게 보여줄 TOD는 자동 처리 단계 3-8을 `자동 준비 실행`으로 묶어 간략히 표시한다.
 

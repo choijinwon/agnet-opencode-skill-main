@@ -363,7 +363,17 @@ def is_filesystem_root(path: Path) -> bool:
     return path.parent == path
 
 
+def is_opencode_sample_source(path: Path) -> bool:
+    parts = path.resolve().parts
+    for index, part in enumerate(parts[:-1]):
+        if part == ".opencode" and parts[index + 1] in {"sample", "samples"}:
+            return True
+    return False
+
+
 def has_model_project(project: Path) -> bool:
+    if is_opencode_sample_source(project):
+        return False
     if any((project / name).exists() for name in MODEL_MARKERS):
         return True
     if find_entrypoint_candidates(project):
@@ -374,6 +384,8 @@ def has_model_project(project: Path) -> bool:
 
 
 def find_model_artifacts(project: Path) -> list[Path]:
+    if is_opencode_sample_source(project):
+        return []
     found: list[Path] = []
     for path in project.rglob("*"):
         try:
@@ -575,6 +587,28 @@ def build_report(project: Path, entrypoint_name: str | None = None) -> Environme
             blocked_summary=["드라이브/파일시스템 루트 검색은 허용하지 않습니다."],
             failures=["drive_root_scan_not_allowed"],
             next_steps=["현재 모델 프로젝트 폴더에서 실행하거나 --project <current-project-folder>를 지정하세요."],
+            tod_guide=[],
+            source_input_required=[],
+        )
+    if is_opencode_sample_source(project):
+        return EnvironmentReport(
+            project_path=str(project),
+            os=f"{platform.system()} {platform.release()}",
+            python_executable=sys.executable,
+            python_version=platform.python_version(),
+            expected_python_version=EXPECTED_PYTHON_VERSION,
+            python_version_status="blocked",
+            virtual_env=os.environ.get("VIRTUAL_ENV") or os.environ.get("CONDA_PREFIX") or "not detected",
+            dependency_files=[],
+            packages=[],
+            requirements=[],
+            env_vars=[],
+            ai_studio_env=None,
+            model_settings=None,
+            export_ready=[],
+            blocked_summary=[".opencode/sample(s)는 번들 샘플 원본이라 분석 대상이 아닙니다."],
+            failures=["opencode_sample_source_not_analysis_target"],
+            next_steps=["실제 사용자가 선택한 모델 프로젝트 폴더를 --project로 지정하세요."],
             tod_guide=[],
             source_input_required=[],
         )

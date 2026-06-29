@@ -28,6 +28,7 @@ After printing the guide on the first response, immediately analyze the current 
 
 - Treat any first user message as an entry trigger, even if it is only one vague word.
 - Use `agent-mlflow-skill-project-analyze` or run `.opencode/scripts/launch_workspace_summary.py .` to inspect the current workspace.
+- Do not analyze `.opencode/sample` or `.opencode/samples`; those are bundled sample sources used only for copying.
 - Report whether a model exists before continuing.
 - If `model_found: true`, continue with the discovered model project path and do not ask the user to choose a sample.
 - If `model_found: false`, ask the user to choose `sklearn`, `pytorch`, or `tensorflow` for the Build step.

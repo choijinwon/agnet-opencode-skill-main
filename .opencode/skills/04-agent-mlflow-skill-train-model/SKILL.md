@@ -39,8 +39,8 @@ metadata:
 1. 기존 모델이면 프로젝트 루트 전체와 data/** 모델 목록을 먼저 보여준다.
 2. 사용할 모델을 번호 또는 경로로 선택한다.
 3. MODEL_KIND를 확장자 기준으로 판별한다.
-4. aiu_studio/runtest.py를 우선 참조하고 없으면 루트 runtest.py, run_test.py를 참조한다.
-5. 기존 runtest.py 또는 aiu_studio/runtest.py는 수정하지 않고 aiu_studio/runtest_2.py를 생성한다.
+4. aiu_studio/runtest.py를 우선 읽기 전용으로 참조하고 없으면 루트 runtest.py, run_test.py를 참조한다.
+5. 기존 runtest.py 또는 aiu_studio/runtest.py는 절대 수정하지 않고 aiu_studio/runtest_2.py만 생성한다.
 6. 모델 파일은 aiu_studio/로 복사하지 않는다.
 7. 실행 전 MLflow/AI Studio 설정 블록을 확인한다.
 ```
@@ -167,7 +167,7 @@ blocked:
 ```text
 1. 루트/data 모델 목록 확인
 2. model_artifact_paths에서 사용할 모델 선택
-3. 자동 준비 실행: aiu_studio/ 폴더 그대로 복사, MODEL_KIND 판별, aiu_studio/runtest_2.py 생성
+3. 자동 준비 실행: aiu_studio/ 폴더 그대로 복사, MODEL_KIND 판별, runtest.py 구조/주석 기반 aiu_studio/runtest_2.py 생성
 4. Python 3.11.9와 requirements 설치/버전 확인
 5. MLflow 입력값 3개와 자동값 2개 상태 확인
 6. aiu_studio/runtest_2.py 또는 aiu_custom/predict.py로 로드/추론 확인

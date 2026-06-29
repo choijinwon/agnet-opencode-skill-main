@@ -223,7 +223,17 @@ def is_filesystem_root(path: Path) -> bool:
     return path.parent == path
 
 
+def is_opencode_sample_source(path: Path) -> bool:
+    parts = path.resolve().parts
+    for index, part in enumerate(parts[:-1]):
+        if part == ".opencode" and parts[index + 1] in {"sample", "samples"}:
+            return True
+    return False
+
+
 def iter_files(path: Path, max_depth: int = 4):
+    if is_opencode_sample_source(path):
+        return
     # Limit traversal depth and skip heavy/generated directories so this script
     # remains safe to run in large Windows workspaces.
     base_depth = len(path.parts)
@@ -632,6 +642,9 @@ def build_report(project: Path, reason: str, write_check: bool) -> ValidationRep
     if is_filesystem_root(project):
         checks.append(Check("local model path selection", "block", "drive/root scan is not allowed", [str(project)]))
         return ValidationReport(str(project), reason, platform.platform(), sys.version.split()[0], checks, ["Run the command from the model project folder or pass --project <current-project-folder>."])
+    if is_opencode_sample_source(project):
+        checks.append(Check("local model path selection", "block", ".opencode/sample(s) is bundled sample source, not a user model project", [str(project)]))
+        return ValidationReport(str(project), reason, platform.platform(), sys.version.split()[0], checks, ["Use the actual selected model project folder as --project."])
 
     checks.append(Check("local model path selection", "pass", "project selected", [str(project), reason]))
 

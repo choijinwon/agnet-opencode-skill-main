@@ -37,7 +37,10 @@
 - `.opencode/samples/aiu_studio/` 폴더를 프로젝트 루트의 `aiu_studio/`로 그대로 복사한다.
 - `aiu_studio/` 내부 파일 구성은 고정하지 않고 비교/수정하지 않는다.
 - 선택된 모델은 원본 경로에서 직접 읽는다.
-- 기존 `runtest.py`는 루트 또는 `aiu_studio/` 아래에 둘 수 있고, 수정하지 않고 `aiu_studio/runtest_2.py`를 생성한다.
+- 기존 `runtest.py`는 루트 또는 `aiu_studio/` 아래에 둘 수 있고, 읽기 전용으로만 참조한다.
+- 기존 `runtest.py`는 절대 수정하지 않고 `aiu_studio/runtest_2.py`만 생성한다.
+- `aiu_studio/runtest_2.py`는 참조한 `runtest.py` 구조를 기반으로 변환하며 기존 주석을 유지한다.
+- 선택된 모델 종류에 맞춰 `load_selected_model()`, `required_package`, `load_hint`를 생성한다.
 - 사용자가 직접 입력할 값은 `mlflow_tracking_url`, `mlflow_tracking_username`, `mlflow_tracking_password` 3개다.
 - `mlflow_experiment_name`, `mlflow_register_model_name`은 프로젝트명 기준으로 자동 생성한다.
 - secret 값은 출력하지 않고 `set`, `empty`, `missing` 상태만 확인한다.

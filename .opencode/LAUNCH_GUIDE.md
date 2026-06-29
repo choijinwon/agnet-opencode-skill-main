@@ -5,6 +5,7 @@ OpenCode MLflow Launch
 
 1. 먼저 워크스페이스를 분석합니다.
    model_found: true | false
+   .opencode/sample(s)는 복사용 원본이라 분석하지 않습니다.
 
 2. 모델 있음
    루트/data 모델 목록 -> 모델 선택 -> Build에서 aiu_studio/ 폴더 그대로 복사 + 환경변수 체크 + aiu_studio/runtest_2.py 생성

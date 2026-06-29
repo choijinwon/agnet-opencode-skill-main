@@ -94,7 +94,6 @@ MODEL_SCAN_SKIP_DIRS = {
     "build",
     "dist",
     "env",
-    "mlruns",
     "node_modules",
     "venv",
 }
@@ -593,7 +592,7 @@ def source_input_required_status(model_settings: EnvFileStatus | None) -> list[E
     for item in model_settings.key_status:
         if item.name not in AI_STUDIO_ENV_KEYS:
             continue
-        if item.status in {"missing", "empty", "local_default", "ssl_not_allowed"}:
+        if item.status in {"missing", "empty", "ssl_not_allowed"}:
             required.append(item)
     return required
 
@@ -678,8 +677,8 @@ def build_report(project: Path, entrypoint_name: str | None = None) -> Environme
             "3. aiu_studio/ 템플릿 복사 + 선택 모델 기준 전체 코드 변환: prepare_selected_model.py가 처리한다.",
             "4. 선택 모델 일치 확인: 선택 모델 원본 경로, runtest_2.py, predict.py, mapping.json이 같은 모델을 가리키는지 확인한다.",
             f"5. 모델 환경변수 체크: {entrypoint_display}의 MLflow 입력값 3개와 자동값 2개를 set/empty/missing/auto_default/ssl_not_allowed로 확인한다.",
-            f"6. runtest_2.py 실행: python {entrypoint_display} 로 선택 모델 기준 변환/실행 파일을 먼저 실행한다.",
-            "7. 로컬 추론 테스트: aiu_studio/local_serving/localservingtest.py 기준으로 입력/출력 스키마를 확인한다.",
+            f"6. 원격 MLflow 배포/등록 실행: python {entrypoint_display} 로 선택 모델을 원격 MLflow 서버에 기록/등록한다.",
+            "7. 추론 스모크 테스트: aiu_studio/local_serving/localservingtest.py 기준으로 입력/출력 스키마를 확인한다.",
             "8. MLflow 검증: Run, artifact, registered model 기록을 확인한다.",
         ]
         if entrypoint is None:
@@ -694,7 +693,7 @@ def build_report(project: Path, entrypoint_name: str | None = None) -> Environme
             f"2. 샘플 규격 확인/보충: {project}의 aiu_custom/, local_serving/, saved_model/, requirements.txt, aiu_studio/input_example.json을 확인한다.",
             f"3. 환경 변수 입력/export: {entrypoint_display}의 설정 블록 값을 직접 입력하고 실행 시 MLFLOW_*로 export한다.",
             "4. 패키지 설치: 폐쇄망 WSL은 bash .opencode/wsl/install_offline.sh를 우선 사용하고, wheelhouse가 없으면 온라인 WSL에서 bash .opencode/wsl/download_wheels.sh로 먼저 준비한다.",
-            f"5. 로컬 학습 모델 실행: python {entrypoint_display}",
+            f"5. 모델 실행 및 원격 MLflow 기록: python {entrypoint_display}",
             "6. 산출물 확인: MLflow artifact_path='ai_studio' 아래 ai_studio/code 또는 로컬 ai_studio/metrics, ai_studio/code 생성 여부를 확인한다.",
         ]
     python_version_status = "set" if python_version == EXPECTED_PYTHON_VERSION else "version_mismatch"
@@ -717,7 +716,7 @@ def build_report(project: Path, entrypoint_name: str | None = None) -> Environme
     if package_version("mlflow") is None:
         failures.append("missing_dependency:mlflow")
         next_steps.append("Install or activate an environment that includes mlflow.")
-    tracking_ready = any(item.name == "MLFLOW_TRACKING_URI" and item.status in {"set", "exported", "local_default"} for item in export_ready)
+    tracking_ready = any(item.name == "MLFLOW_TRACKING_URI" and item.status in {"set", "exported"} for item in export_ready)
     if env_status("MLFLOW_TRACKING_URI") == "missing" and not tracking_ready:
         next_steps.append("Confirm local or remote MLFLOW_TRACKING_URI before MLflow verification.")
     if source_input_required:

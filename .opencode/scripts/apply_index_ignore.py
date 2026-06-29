@@ -27,7 +27,6 @@ PATTERNS = [
     "*.whl",
     "*.tar.gz",
     "*.zip",
-    "mlruns/",
     "mlartifacts/",
     "mlflow.db",
     "ai_studio/tracking/",

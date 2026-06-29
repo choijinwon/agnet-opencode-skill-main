@@ -209,11 +209,12 @@ mlflow_register_model_name = globals().get("mlflow_register_model_name", "{frame
 
 
 def export_ai_studio_mlflow_env() -> None:
-    AI_STUDIO_TRACKING_DIR.mkdir(parents=True, exist_ok=True)
+    if not mlflow_tracking_url:
+        raise ValueError("mlflow_tracking_url_required: set remote MLflow tracking URL before deployment")
     if mlflow_tracking_url.lower().startswith("https://"):
         raise ValueError("ssl_not_allowed: use http:// or file:// for mlflow_tracking_url")
     exports = {{
-        "MLFLOW_TRACKING_URI": mlflow_tracking_url or AI_STUDIO_TRACKING_DIR.as_uri(),
+        "MLFLOW_TRACKING_URI": mlflow_tracking_url,
         "MLFLOW_TRACKING_USERNAME": mlflow_tracking_username,
         "MLFLOW_TRACKING_PASSWORD": mlflow_tracking_password,
         "MLFLOW_EXPERIMENT_NAME": mlflow_experiment_name,
@@ -222,8 +223,6 @@ def export_ai_studio_mlflow_env() -> None:
     for name, value in exports.items():
         if value:
             _ai_studio_os.environ[name] = value
-    if not mlflow_tracking_url:
-        _ai_studio_os.environ.setdefault("MLFLOW_ALLOW_FILE_STORE", "true")
 
 
 def ensure_ai_studio_dirs() -> None:

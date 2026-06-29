@@ -15,7 +15,6 @@ MODEL_SCAN_SKIP_DIRS = {
     "__pycache__",
     "ai_studio",
     "aiu_studio",
-    "mlruns",
     "node_modules",
     "venv",
 }

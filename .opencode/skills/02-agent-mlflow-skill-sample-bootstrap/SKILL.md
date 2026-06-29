@@ -69,7 +69,7 @@ TOD Guide
 2. 샘플 규격 확인/보충
 3. 환경 변수 입력/export
 4. 패키지 설치
-5. 로컬 학습 모델 실행
+5. 모델 실행 및 원격 MLflow 기록
 6. 산출물 확인
 ```
 
@@ -161,7 +161,6 @@ saved_model/
 ```text
 .venv/
 __pycache__/
-mlruns/
 ai_studio/
 mlflow.db
 .DS_Store

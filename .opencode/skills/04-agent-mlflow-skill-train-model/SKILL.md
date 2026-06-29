@@ -15,7 +15,7 @@ metadata:
 
 ```text
 판단 결과: pass | warn | needs_user_input | blocked
-현재 단계: 6. 로컬 학습 모델 실행
+현재 단계: 6. 원격 MLflow 배포/등록 실행
 현재 대상: selected_project_path 또는 copied sample folder
 핵심 판단: entrypoint 확정, 실행 성공, ai_studio 산출물 생성
 다음 단계: 추론 테스트
@@ -29,8 +29,8 @@ metadata:
 3. aiu_studio/ 템플릿 복사 + 선택 모델 기준 전체 코드 변환
 4. 선택 모델 일치 확인
 5. 모델 환경변수 체크
-6. runtest_2.py 실행
-7. 로컬 추론 테스트
+6. 원격 MLflow 배포/등록 실행
+7. 추론 스모크 테스트
 8. MLflow 검증
 ```
 
@@ -78,7 +78,7 @@ MLflow artifact:
 실행 파일 자동 판단:
 python .opencode/scripts/run_training.py --project <project>
 
-로컬 학습 실행:
+원격 MLflow 배포/등록 실행:
 python .opencode/scripts/run_training.py --project <project> --execute
 
 명시적 entrypoint 실행:
@@ -103,7 +103,7 @@ python .opencode/scripts/adapt_ai_studio.py --project <project> --entrypoint <fi
 local metrics   -> ai_studio/metrics/
 local code      -> ai_studio/code/
 MLflow artifact -> artifact_path="ai_studio" 아래 code/
-tracking store  -> aiu_studio/local_serving/aiu_studio/
+tracking target -> 사용자가 입력한 원격 MLflow tracking 서버
 reference model -> saved_model/, model/, framework native model file
 ```
 
@@ -171,7 +171,7 @@ blocked:
 3. aiu_studio/ 템플릿 복사 + 선택 모델 기준 전체 코드 변환
 4. 선택 모델 일치 확인
 5. MLflow 입력값 3개와 자동값 2개 상태 확인
-6. aiu_studio/runtest_2.py 실행
+6. aiu_studio/runtest_2.py 원격 MLflow 배포/등록 실행
 7. aiu_studio/local_serving/localservingtest.py로 추론 입력/출력 확인
 8. MLflow run, artifact, registered model 검증
 ```

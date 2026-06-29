@@ -59,9 +59,9 @@ Step 4. 선택 모델 일치 확인
         selected_model_path, runtest_2.py, predict.py, mapping.json이 같은 선택 모델 원본 경로를 가리키는지 확인한다.
 Step 5. 모델 환경변수 체크
         입력값 3개와 자동값 2개 상태를 확인한다.
-Step 6. runtest_2.py 실행
+Step 6. 원격 MLflow 배포/등록 실행
         aiu_studio/runtest_2.py를 먼저 실행해 선택 모델 기준 변환/실행 파일을 확인한다.
-Step 7. 로컬 추론 테스트
+Step 7. 추론 스모크 테스트
         aiu_studio/local_serving/localservingtest.py 기준으로 입력/출력 스키마를 확인한다.
         기본은 화면 출력만 수행하고 프로젝트 루트 local_serving/ 폴더를 생성하지 않는다.
 Step 8. MLflow 검증
@@ -146,7 +146,7 @@ blocked:
 local metrics   -> ai_studio/metrics/
 local code      -> ai_studio/code/
 MLflow artifact -> artifact_path="ai_studio" 아래 code/
-tracking store  -> aiu_studio/local_serving/aiu_studio/
+tracking target -> 사용자가 입력한 원격 MLflow tracking 서버
 ```
 
 ## Shared Safety

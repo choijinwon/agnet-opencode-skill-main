@@ -161,7 +161,6 @@ GENERATED_SKIP_DIRS = {
     ".venv",
     "__pycache__",
     "ai_studio",
-    "mlruns",
     "node_modules",
 }
 
@@ -732,7 +731,7 @@ def check_model_outputs(project: Path) -> DoctorCheck:
         "warn",
         "모델 산출물 또는 ai_studio 산출물이 아직 보이지 않습니다.",
         [],
-        ["로컬 학습 모델 실행 후 ai_studio/metrics, ai_studio/code 또는 모델 파일을 확인하세요."],
+        ["모델 실행 및 원격 MLflow 기록 후 ai_studio/metrics, ai_studio/code 또는 모델 파일을 확인하세요."],
     )
 
 
@@ -746,7 +745,7 @@ def build_next_steps(checks: list[DoctorCheck]) -> list[str]:
         if step not in deduped:
             deduped.append(step)
     if not deduped:
-        deduped.append("doctor 기준으로 다음 단계 진행 가능: 패키지 설치 -> 로컬 학습 모델 실행 -> 산출물 확인.")
+        deduped.append("doctor 기준으로 다음 단계 진행 가능: 패키지 설치 -> 모델 실행 및 원격 MLflow 기록 -> 산출물 확인.")
     return deduped
 
 

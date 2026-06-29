@@ -31,11 +31,11 @@ Step 4  선택 모델 일치 확인
 Step 5  모델 환경변수 체크
         check_environment.py
 
-Step 6  runtest_2.py 실행
+Step 6  원격 MLflow 배포/등록 실행
         aiu_studio/runtest_2.py
         input_example.json은 프로젝트 루트가 아니라 aiu_studio/input_example.json에 있어야 하며, 상대경로 산출물도 aiu_studio/ 아래에 생성되도록 실행 시 작업 디렉터리를 aiu_studio/로 고정한다.
 
-Step 7  로컬 추론 테스트
+Step 7  추론 스모크 테스트
         aiu_studio/local_serving/localservingtest.py
 
 Step 8  MLflow 검증
@@ -78,7 +78,7 @@ python .opencode/scripts/response_speed_check.py --project .
 python .opencode/scripts/apply_index_ignore.py --project .
 ```
 
-이 명령은 워크스페이스 루트의 `.ignore`, `.rgignore`, `.gitignore`에 관리 블록을 추가한다. 제외 대상은 `.venv/`, `node_modules/`, `mlruns/`, `aiu_studio/local_serving/aiu_studio/`, `ai_studio/tracking/`, `ai_studio/code/`, `saved_model/`, `datasets/`, `*.pt`, `*.pkl`, `*.safetensors`, `*.bst`, `*.ubj` 같은 생성물과 대용량 모델 파일이다. `.opencode` 경로는 제외 패턴에 넣지 않는다.
+이 명령은 워크스페이스 루트의 `.ignore`, `.rgignore`, `.gitignore`에 관리 블록을 추가한다. 제외 대상은 `.venv/`, `node_modules/`, `aiu_studio/local_serving/aiu_studio/`, `ai_studio/tracking/`, `ai_studio/code/`, `saved_model/`, `datasets/`, `*.pt`, `*.pkl`, `*.safetensors`, `*.bst`, `*.ubj` 같은 생성물과 대용량 모델 파일이다. `.opencode` 경로는 제외 패턴에 넣지 않는다.
 
 자세한 운영 기준은 `.opencode/performance/CLOSED_NETWORK_SPEED.md`를 본다.
 
@@ -215,7 +215,7 @@ python .opencode/scripts/bootstrap_sample_project.py --project <model-project-fo
 python .opencode/scripts/bootstrap_sample_project.py --project <model-project-folder> --sample pytorch --scaffold-existing --execute
 ```
 
-복사 대상은 소스 구조 중심이며 `.venv/`, `__pycache__/`, `model/`, `artifacts/ai_studio/`, `mlruns/`, `ai_studio/`, `mlflow.db` 같은 생성 산출물은 제외한다.
+복사 대상은 소스 구조 중심이며 `.venv/`, `__pycache__/`, `model/`, `artifacts/ai_studio/`, `ai_studio/`, `mlflow.db` 같은 생성 산출물은 제외한다.
 
 복사 후 `aiu_custom/`, `local_serving/`, `saved_model/` 필수 폴더는 항상 복사된 샘플 폴더 안에 보장한다.
 
@@ -226,7 +226,7 @@ python .opencode/scripts/bootstrap_sample_project.py --project <model-project-fo
 2. 샘플 규격 확인/보충
 3. 환경 변수 입력/export
 4. 패키지 설치
-5. 로컬 학습 모델 실행
+5. 모델 실행 및 원격 MLflow 기록
 6. 산출물 확인
 ```
 
@@ -303,7 +303,7 @@ mlflow_experiment_name -> MLFLOW_EXPERIMENT_NAME
 mlflow_register_model_name -> MLFLOW_REGISTER_MODEL_NAME
 ```
 
-`mlflow_tracking_url`을 비워두면 로컬 기본값 `file://<project>/aiu_studio/local_serving/aiu_studio`를 사용한다. MLflow artifact는 `artifact_path="ai_studio"` 아래 `ai_studio/code` 구조로 기록하고, 로컬 확인용 산출물은 `ai_studio/metrics/`, `ai_studio/code/`에 생성한다. 로컬 file store를 위해 `MLFLOW_ALLOW_FILE_STORE=true`도 함께 설정한다.
+원격 배포 기본값은 `mlflow_tracking_url = ""`이다. 자동 tracking URI를 넣지 않으므로 사용자가 직접 원격 MLflow tracking 서버 URL을 입력해야 한다. MLflow artifact는 `artifact_path="ai_studio"` 아래 `ai_studio/code` 구조로 기록하고, 확인용 산출물은 `ai_studio/metrics/`, `ai_studio/code/`에 생성한다.
 
 PyTorch 샘플 기본값은 `mlflow_experiment_name=pytorch_sample`, `mlflow_register_model_name=pytorch_sample_model`이다.
 `mlflow_tracking_password` 값은 출력하지 않는다.

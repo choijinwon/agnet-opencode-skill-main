@@ -22,7 +22,7 @@ ML 개발자가 챗봇을 통해 다음 작업을 순서대로 수행할 수 있
 2. 샘플 규격 확인/보충
 3. 환경 변수 입력/export
 4. 패키지 설치
-5. 로컬 학습 모델 실행
+5. 모델 실행 및 원격 MLflow 기록
 6. 산출물 확인
 ```
 
@@ -231,7 +231,7 @@ next_action:
   2. 샘플 규격 확인/보충
   3. 환경 변수 입력/export
   4. 패키지 설치
-  5. 로컬 학습 모델 실행
+  5. 모델 실행 및 원격 MLflow 기록
   6. 산출물 확인
 ```
 
@@ -263,7 +263,7 @@ next_action:
   2. 샘플 규격 확인/보충
   3. 환경 변수 입력/export
   4. 패키지 설치
-  5. 로컬 학습 모델 실행
+  5. 모델 실행 및 원격 MLflow 기록
   6. 산출물 확인
 ```
 
@@ -567,7 +567,7 @@ Step 1  프로젝트 구조 분석
 Step 2  실행 환경 검증
         .opencode/scripts/check_environment.py
 
-Step 3  로컬 학습 실행 및 모델 생성 확인
+Step 3  모델 실행 및 원격 MLflow 기록 확인
         .opencode/scripts/run_training.py
         .opencode/scripts/test_local_sample.py
 

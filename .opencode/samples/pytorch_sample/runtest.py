@@ -64,9 +64,8 @@ def missing_mlflow_settings() -> list[str]:
 def export_mlflow_environment() -> None:
     if is_todo_value(mlflow_tracking_url):
         raise ValueError("mlflow_tracking_url_todo_not_allowed")
-    AI_STUDIO_TRACKING_DIR.mkdir(parents=True, exist_ok=True)
     exports = {
-        "MLFLOW_TRACKING_URI": mlflow_tracking_url or AI_STUDIO_TRACKING_DIR.as_uri(),
+        "MLFLOW_TRACKING_URI": mlflow_tracking_url,
         "MLFLOW_TRACKING_USERNAME": mlflow_tracking_username,
         "MLFLOW_TRACKING_PASSWORD": mlflow_tracking_password,
         "MLFLOW_EXPERIMENT_NAME": mlflow_experiment_name,
@@ -75,8 +74,6 @@ def export_mlflow_environment() -> None:
     for name, value in exports.items():
         if value:
             os.environ[name] = value
-    if not mlflow_tracking_url:
-        os.environ.setdefault("MLFLOW_ALLOW_FILE_STORE", "true")
 
 
 def load_selected_model():
@@ -123,7 +120,7 @@ def log_mlflow_outputs(summary_path: Path) -> None:
     try:
         mlflow.set_tracking_uri(os.environ["MLFLOW_TRACKING_URI"])
         mlflow.set_experiment(mlflow_experiment_name)
-        with mlflow.start_run(run_name="pytorch_sample_local_test"):
+        with mlflow.start_run(run_name="pytorch_sample_remote_deploy"):
             mlflow.log_param("sample", "pytorch")
             mlflow.log_param("dataset_required", False)
             mlflow.log_metric("model_loaded", 1.0)
@@ -136,13 +133,13 @@ def log_mlflow_outputs(summary_path: Path) -> None:
             active_run = mlflow.active_run()
             print(f"MLflow run created: {active_run.info.run_id if active_run else 'unknown'}")
     except Exception as exc:
-        print(f"MLflow logging failed; local ai_studio outputs were created. reason={exc}")
+        print(f"MLflow remote deployment failed; ai_studio outputs were created. reason={exc}")
 
 
 def main() -> None:
     missing = missing_mlflow_settings()
     if missing:
-        print("MLflow/AI Studio 설정을 runtest.py에 직접 입력하세요.")
+        print("원격 MLflow 배포/등록을 위해 MLflow/AI Studio 설정을 runtest.py에 직접 입력하세요.")
         print("missing settings:")
         for name in missing:
             print(f"- {name}")

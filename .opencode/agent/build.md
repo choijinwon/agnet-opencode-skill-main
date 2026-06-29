@@ -121,7 +121,7 @@ next_action:
   2. 샘플 규격 확인/보충
   3. 환경 변수 입력/export
   4. 패키지 설치
-  5. 로컬 학습 모델 실행
+  5. 모델 실행 및 원격 MLflow 기록
   6. 산출물 확인
 ```
 
@@ -146,7 +146,7 @@ Model-found detailed process:
 
 ```text
 Step 1. 루트/data 모델 목록 확인
-        현재 --project 폴더 안에서만 스캔하되 .opencode, .git, .venv, ai_studio, mlruns 같은 생성/도구 폴더는 제외한다.
+        현재 --project 폴더 안에서만 스캔하되 .opencode, .git, .venv, ai_studio 같은 생성/도구 폴더는 제외한다.
         상위 폴더, 홈 디렉터리, 드라이브 루트, 번들 샘플 폴더를 자동 검색하지 않는다.
         .pkl, .joblib, .pt, .pth, .onnx, .keras, .h5, .safetensors, .bst, .ubj 모델 파일을 model_artifact_paths로 표시한다.
 
@@ -205,8 +205,8 @@ Step 9. aiu_custom 파일 변환/갱신
 3. aiu_studio/ 템플릿 복사 + 선택 모델 기준 전체 코드 변환
 4. 선택 모델 일치 확인
 5. 모델 환경변수 체크
-6. runtest_2.py 실행
-7. 로컬 추론 테스트
+6. 원격 MLflow 배포/등록 실행
+7. 추론 스모크 테스트
 8. MLflow 검증
 ```
 
@@ -236,13 +236,13 @@ Step 5. 모델 환경변수 체크
         두 자동값은 선택한 모델 파일명에서 확장자를 제거한 이름 기준으로 생성한다.
         상태는 set/empty/missing/auto_default로 표시한다.
 
-Step 6. runtest_2.py 실행
-        생성된 aiu_studio/runtest_2.py를 먼저 실행해 선택 모델 기준 변환/실행 파일을 확인한다.
+Step 6. 원격 MLflow 배포/등록 실행
+        생성된 aiu_studio/runtest_2.py를 실행해 선택 모델을 원격 MLflow tracking 서버에 기록/등록한다.
         실행 시 작업 디렉터리는 aiu_studio/로 고정한다.
-        mlflow_tracking_url이 비어 있으면 로컬 tracking 저장소는 mlruns/가 아니라 aiu_studio/local_serving/aiu_studio/ 아래에 생성되어야 한다.
+        mlflow_tracking_url 기본값은 ""이며, 사용자가 직접 입력해야 한다.
         input_example.json, saved_model/, outputs/ 같은 상대경로 파일/산출물은 프로젝트 루트가 아니라 aiu_studio/ 아래에 생성되어야 한다.
 
-Step 7. 로컬 추론 테스트
+Step 7. 추론 스모크 테스트
         aiu_studio/local_serving/localservingtest.py 기준으로 입력/출력 스키마를 확인한다.
         이 파일은 선택 모델 경로, MODEL_KIND, load_selected_model()을 반영해 생성한다.
         기본은 화면 출력만 수행하고 프로젝트 루트 local_serving/ 폴더를 생성하지 않는다.

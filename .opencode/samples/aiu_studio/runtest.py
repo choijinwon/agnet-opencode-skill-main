@@ -21,7 +21,6 @@ DATA_MODEL_PATH = SOURCE_MODEL_PATH
 MODEL_PATH = SOURCE_MODEL_PATH
 MODEL_KIND = "unknown"
 INPUT_EXAMPLE_PATH = AI_STUDIO_DIR / "input_example.json"
-LOCAL_MLFLOW_STORE_DIR = AI_STUDIO_DIR / "local_serving" / "aiu_studio"
 
 # MLflow/AI Studio settings
 # User input: tracking URL, username, password.
@@ -32,9 +31,8 @@ mlflow_tracking_password = ""
 mlflow_experiment_name = "aiu_studio"
 mlflow_register_model_name = "aiu_studio_model"
 
-# If mlflow_tracking_url is empty, generated code uses this local file store.
-local_mlflow_store_dir = str(LOCAL_MLFLOW_STORE_DIR)
-effective_mlflow_tracking_uri = mlflow_tracking_url or LOCAL_MLFLOW_STORE_DIR.as_uri()
+# Remote deployment keeps mlflow_tracking_url empty until the user fills it in.
+effective_mlflow_tracking_uri = mlflow_tracking_url
 
 
 def load_selected_model():

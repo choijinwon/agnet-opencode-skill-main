@@ -67,7 +67,6 @@ MODEL_SCAN_SKIP_DIRS = {
     "build",
     "dist",
     "env",
-    "mlruns",
     "node_modules",
     "venv",
 }
@@ -436,8 +435,8 @@ def main():
             EnvVarStatus("3. aiu_studio/ 템플릿 복사 + 선택 모델 기준 전체 코드 변환", "done" if (work_path / "aiu_studio" / "runtest_2.py").exists() else "pending"),
             EnvVarStatus("4. 선택 모델 일치 확인", "manual_check"),
             EnvVarStatus("5. 모델 환경변수 체크", "done" if not missing_env else "needs_input"),
-            EnvVarStatus("6. runtest_2.py 실행", "done" if args.execute and return_code == 0 else "pending"),
-            EnvVarStatus("7. 로컬 추론 테스트", "pending"),
+            EnvVarStatus("6. 원격 MLflow 배포/등록 실행", "done" if args.execute and return_code == 0 else "pending"),
+            EnvVarStatus("7. 추론 스모크 테스트", "pending"),
             EnvVarStatus("8. MLflow 검증", "pending"),
         ]
     else:
@@ -446,7 +445,7 @@ def main():
             EnvVarStatus("2. 샘플 규격 확인/보충", "done" if not missing_dirs else "needs_scaffold"),
             EnvVarStatus("3. 환경 변수 입력/export", "done" if not missing_env else "needs_input"),
             EnvVarStatus("4. 패키지 설치", "manual_check"),
-            EnvVarStatus("5. 로컬 학습 모델 실행", "done" if args.execute and return_code == 0 else "pending"),
+            EnvVarStatus("5. 모델 실행 및 원격 MLflow 기록", "done" if args.execute and return_code == 0 else "pending"),
             EnvVarStatus("6. 산출물 확인", "done" if artifacts else "pending"),
         ]
 

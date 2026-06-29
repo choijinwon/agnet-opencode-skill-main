@@ -102,7 +102,6 @@ SCAN_SKIP_DIRS = {
     "build",
     "dist",
     "env",
-    "mlruns",
     "node_modules",
     "venv",
 }

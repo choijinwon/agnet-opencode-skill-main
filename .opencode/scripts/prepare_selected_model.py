@@ -61,7 +61,6 @@ MODEL_SCAN_SKIP_DIRS = {
     "build",
     "dist",
     "env",
-    "mlruns",
     "node_modules",
     "venv",
 }
@@ -619,6 +618,37 @@ def rewrite_path_separator_literals(line: str) -> str:
     return PYTHON_STRING_LITERAL_PATTERN.sub(replace_literal, body) + suffix
 
 
+def input_example_literal_expression(token_text: str) -> str | None:
+    try:
+        value = ast.literal_eval(token_text)
+    except (SyntaxError, ValueError):
+        return None
+    if not isinstance(value, str):
+        return None
+    normalized = normalize_path_text(value)
+    if normalized in {"input_example.json", "aiu_studio/input_example.json"}:
+        return "str(INPUT_EXAMPLE_PATH)"
+    if normalized in {"sample_input.json", "aiu_studio/sample_input.json", "example.json", "aiu_studio/example.json"}:
+        return "str(INPUT_EXAMPLE_PATH)"
+    return None
+
+
+def rewrite_input_example_literals(line: str) -> str:
+    if not any(name in line for name in ["input_example.json", "sample_input.json", "example.json"]):
+        return line
+    suffix = "\n" if line.endswith("\n") else ""
+    body = line.rstrip("\n")
+
+    def replace_literal(match: re.Match[str]) -> str:
+        literal = match.group(0)
+        if "f" in match.group("prefix").lower():
+            return literal
+        expression = input_example_literal_expression(literal)
+        return expression if expression else literal
+
+    return PYTHON_STRING_LITERAL_PATTERN.sub(replace_literal, body) + suffix
+
+
 def loader_call_uses_model_path(code: str) -> bool:
     if "MODEL_PATH" in code:
         return True
@@ -694,8 +724,13 @@ def rewrite_reference_line(line: str, selected_relative: str, kind: str, load_hi
         return import_converted
     converted = rewrite_model_string_literals(line, selected_relative, kind, load_hint)
     converted = rewrite_path_separator_literals(converted)
+    converted = rewrite_input_example_literals(converted)
     converted = rewrite_code_paths_argument(converted)
     return rewrite_model_loader_line(converted, kind, load_hint)
+
+
+def rewrite_preserved_line(line: str) -> str:
+    return rewrite_input_example_literals(rewrite_path_separator_literals(line))
 
 
 def transform_reference_text(
@@ -767,17 +802,17 @@ def transform_reference_text(
                             continue
         match = assignment_pattern.match(stripped.rstrip("\n"))
         if not match:
-            output.append(rewrite_path_separator_literals(line) if preserve_code else rewrite_reference_line(line, selected_relative, kind, load_hint, required_package))
+            output.append(rewrite_preserved_line(line) if preserve_code else rewrite_reference_line(line, selected_relative, kind, load_hint, required_package))
             continue
 
         name, raw_value = match.groups()
         if stripped.rstrip("\n").rstrip().endswith(",") and name in {"CODE_PATHS", "code_paths", "MLFLOW_CODE_PATHS", "mlflow_code_paths"}:
-            output.append(rewrite_path_separator_literals(line) if preserve_code else rewrite_reference_line(line, selected_relative, kind, load_hint, required_package))
+            output.append(rewrite_preserved_line(line) if preserve_code else rewrite_reference_line(line, selected_relative, kind, load_hint, required_package))
             continue
 
         expression = replacement_expression(name, replacements)
         if expression is None:
-            output.append(rewrite_path_separator_literals(line) if preserve_code else rewrite_reference_line(line, selected_relative, kind, load_hint, required_package))
+            output.append(rewrite_preserved_line(line) if preserve_code else rewrite_reference_line(line, selected_relative, kind, load_hint, required_package))
             continue
 
         if not preserve_code and name in MLFLOW_SETTING_NAMES and not indent:
@@ -785,7 +820,7 @@ def transform_reference_text(
             output.append(f"# {line.rstrip()}\n")
             continue
         if not preserve_code and name in MLFLOW_SETTING_NAMES:
-            output.append(rewrite_path_separator_literals(line) if preserve_code else rewrite_reference_line(line, selected_relative, kind, load_hint, required_package))
+            output.append(rewrite_preserved_line(line) if preserve_code else rewrite_reference_line(line, selected_relative, kind, load_hint, required_package))
             continue
 
         _, comment = split_inline_comment(raw_value)
@@ -831,7 +866,6 @@ SOURCE_MODEL_PATH = PROJECT_DIR / "{selected_relative}"
 DATA_MODEL_PATH = SOURCE_MODEL_PATH
 MODEL_PATH = SOURCE_MODEL_PATH
 INPUT_EXAMPLE_PATH = AI_STUDIO_DIR / "input_example.json"
-LOCAL_MLFLOW_STORE_DIR = AI_STUDIO_DIR / "local_serving" / "aiu_studio"
 MODEL_KIND = "{kind}"
 MODEL_PROFILE = {json.dumps(profile, ensure_ascii=False, indent=4)}
 AIU_REQUIRED_PACKAGE = "{required_package}"
@@ -843,11 +877,9 @@ source_model_path = str(SOURCE_MODEL_PATH)
 data_model_path = str(DATA_MODEL_PATH)
 model_path = str(MODEL_PATH)
 input_example_path = str(INPUT_EXAMPLE_PATH)
-local_mlflow_store_dir = str(LOCAL_MLFLOW_STORE_DIR)
 
-# Step 6 실행 중 상대경로 산출물은 프로젝트 루트가 아니라 aiu_studio/ 아래에 생성되도록 고정합니다.
+# Step 6 원격 MLflow 배포/등록 중 상대경로 산출물은 프로젝트 루트가 아니라 aiu_studio/ 아래에 생성되도록 고정합니다.
 _aiu_os.chdir(AI_STUDIO_DIR)
-LOCAL_MLFLOW_STORE_DIR.mkdir(parents=True, exist_ok=True)
 
 def _aiu_existing_code_paths():
     candidates = [
@@ -873,12 +905,12 @@ mlflow_tracking_password = ""
 mlflow_experiment_name = "{default_experiment_name}"
 mlflow_register_model_name = "{default_register_model_name}"
 
-effective_mlflow_tracking_uri = mlflow_tracking_url or LOCAL_MLFLOW_STORE_DIR.as_uri()
-if not mlflow_tracking_url:
-    mlflow_tracking_url = effective_mlflow_tracking_uri
+effective_mlflow_tracking_uri = mlflow_tracking_url
 
 {loader}
 
+if not mlflow_tracking_url:
+    raise ValueError("mlflow_tracking_url_required: set remote MLflow tracking URL before deployment")
 if mlflow_tracking_url.lower().startswith("https://"):
     raise ValueError("ssl_not_allowed: use http:// or file:// for mlflow_tracking_url")
 
@@ -899,8 +931,8 @@ def _aiu_print_existing_model_tod():
     print("- 3. aiu_studio/ 템플릿 복사 + 선택 모델 기준 전체 코드 변환 - 완료")
     print("- 4. 선택 모델 일치 확인 - 완료")
     print("- 5. 모델 환경변수 체크 - 다음")
-    print("- 6. runtest_2.py 실행 - 완료")
-    print("- 7. 로컬 추론 테스트 - 다음")
+    print("- 6. 원격 MLflow 배포/등록 실행 - 완료")
+    print("- 7. 추론 스모크 테스트 - 다음")
     print("- 8. MLflow 검증 - 다음")
 
 _aiu_atexit.register(_aiu_print_existing_model_tod)
@@ -922,7 +954,7 @@ def generated_runtest_text(project: Path, selected_model: Path, kind: str, refer
         "PROJECT_DIR": "Path(__file__).resolve().parent.parent" if preserve_code else "PROJECT_DIR",
         "AI_STUDIO_CODE_DIR": 'AI_STUDIO_DIR / "code"',
         "AI_STUDIO_METRICS_DIR": 'AI_STUDIO_DIR / "metrics"',
-        "AI_STUDIO_TRACKING_DIR": 'AI_STUDIO_DIR / "local_serving" / "aiu_studio"' if preserve_code else "LOCAL_MLFLOW_STORE_DIR",
+        "AI_STUDIO_TRACKING_DIR": "AI_STUDIO_DIR",
         "SOURCE_MODEL_PATH": f'PROJECT_DIR / "{selected_relative}"',
         "DATA_MODEL_PATH": "SOURCE_MODEL_PATH",
         "MODEL_PATH": "SOURCE_MODEL_PATH",
@@ -1065,8 +1097,8 @@ def _print_tod(local_status="완료"):
     print("- 3. aiu_studio/ 템플릿 복사 + 선택 모델 기준 전체 코드 변환 - 완료")
     print("- 4. 선택 모델 일치 확인 - 완료")
     print("- 5. 모델 환경변수 체크 - 다음")
-    print("- 6. runtest_2.py 실행 - 완료")
-    print(f"- 7. 로컬 추론 테스트 - {{local_status}}")
+    print("- 6. 원격 MLflow 배포/등록 실행 - 완료")
+    print(f"- 7. 추론 스모크 테스트 - {{local_status}}")
     print("- 8. MLflow 검증 - 다음")
 
 
@@ -1437,8 +1469,8 @@ def print_report(report: PreparedModelReport) -> None:
     print("3. aiu_studio/ 템플릿 복사 + 선택 모델 기준 전체 코드 변환 - 완료" if auto_ready else "3. aiu_studio/ 템플릿 복사 + 선택 모델 기준 전체 코드 변환 - 대기")
     print("4. 선택 모델 일치 확인 - 완료" if auto_ready else "4. 선택 모델 일치 확인 - 대기")
     print("5. 모델 환경변수 체크 - 다음")
-    print("6. runtest_2.py 실행 - 다음")
-    print("7. 로컬 추론 테스트 - 다음")
+    print("6. 원격 MLflow 배포/등록 실행 - 다음")
+    print("7. 추론 스모크 테스트 - 다음")
     print("8. MLflow 검증 - 다음")
     if report.next_steps:
         print("Next steps:")

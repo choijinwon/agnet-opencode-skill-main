@@ -18,7 +18,7 @@ metadata:
 현재 단계: 2. 환경 검증
 현재 대상: selected_project_path
 핵심 판단: Python 3.11.9, MLflow 3.10.0, dependency, 설정 상태
-다음 단계: 샘플 규격 확인/보충 또는 로컬 학습 실행
+다음 단계: 샘플 규격 확인/보충 또는 원격 MLflow 배포/등록 실행
 ```
 
 ## Workflow
@@ -29,7 +29,7 @@ metadata:
 3. 샘플 규격 확인/보충
 4. 환경 변수 입력/export
 5. 패키지 설치
-6. 로컬 학습 모델 실행
+6. 원격 MLflow 배포/등록 실행
 7. 산출물 확인
 ```
 
@@ -101,7 +101,7 @@ python .opencode/scripts/apply_index_ignore.py --project .
 local metrics   -> ai_studio/metrics/
 local code      -> ai_studio/code/
 MLflow artifact -> artifact_path="ai_studio" 아래 code/
-tracking store  -> aiu_studio/local_serving/aiu_studio/
+tracking target -> 사용자가 입력한 원격 MLflow tracking 서버
 ```
 
 <details>
@@ -155,10 +155,6 @@ mlflow_register_model_name
 원인: 현재 Python이 3.11.9가 아님
 조치: 호환성 경고로 표시하고 필요 시 3.11.9 환경 사용
 
-증상: mlruns 폴더가 생김
-원인: tracking URI가 기본값으로 잡힘
-조치: 로컬 기본 tracking은 aiu_studio/local_serving/aiu_studio 기준으로 안내
-
 증상: 환경변수를 입력했는데 체크가 안 됨
 원인: run_model.py/runtest.py/aiu_studio/runtest.py 설정 블록 또는 export mapping 누락
 조치: 소스 설정 블록 값을 확인하고 MLFLOW_* export 상태를 표시
@@ -189,8 +185,7 @@ mflow_tracking_url -> 오타, mlflow_tracking_url로 수정 안내
 로컬 tracking:
 
 ```text
-MLFLOW_TRACKING_URI=file://<project>/aiu_studio/local_serving/aiu_studio
-MLFLOW_ALLOW_FILE_STORE=true
+MLFLOW_TRACKING_URI=<사용자가 입력한 http://... 또는 file://...>
 MLflow artifact는 artifact_path="ai_studio" 아래 code/ 구조로 기록
 ```
 

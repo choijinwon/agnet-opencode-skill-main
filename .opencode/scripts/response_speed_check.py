@@ -12,7 +12,6 @@ from pathlib import Path
 EXPECTED_IGNORE_PATTERNS = [
     ".venv/",
     "node_modules/",
-    "mlruns/",
     "ai_studio/tracking/",
     "aiu_studio/local_serving/aiu_studio/",
     "ai_studio/metrics/",
@@ -47,7 +46,6 @@ SLOW_DIR_NAMES = {
     "dist",
     "lightning_logs",
     "mlartifacts",
-    "mlruns",
     "model",
     "models",
     "node_modules",

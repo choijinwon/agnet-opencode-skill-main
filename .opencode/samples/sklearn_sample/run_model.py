@@ -102,7 +102,7 @@ def log_mlflow_outputs(summary_path: Path) -> None:
     try:
         mlflow.set_tracking_uri(os.environ["MLFLOW_TRACKING_URI"])
         mlflow.set_experiment(mlflow_experiment_name)
-        with mlflow.start_run(run_name="sklearn_sample_local_training") as run:
+        with mlflow.start_run(run_name="sklearn_sample_local_training"):
             mlflow.log_param("sample", "sklearn")
             mlflow.log_metric("sample_accuracy", 0.98)
             mlflow.log_metric("sample_loss", 0.02)
@@ -112,7 +112,8 @@ def log_mlflow_outputs(summary_path: Path) -> None:
                 upload_code_dir.mkdir(parents=True, exist_ok=True)
                 (upload_code_dir / summary_path.name).write_text(summary_path.read_text(encoding="utf-8"), encoding="utf-8")
                 mlflow.log_artifacts(str(upload_root), artifact_path="ai_studio")
-            print(f"MLflow run created: {run.info.run_id}")
+            active_run = mlflow.active_run()
+            print(f"MLflow run created: {active_run.info.run_id if active_run else 'unknown'}")
     except Exception as exc:
         print(f"MLflow logging failed; local ai_studio outputs were created. reason={exc}")
 

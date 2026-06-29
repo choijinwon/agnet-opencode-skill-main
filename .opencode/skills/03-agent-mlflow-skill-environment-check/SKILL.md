@@ -81,7 +81,12 @@ python .opencode/scripts/check_environment.py --project <selected_project_path> 
 bash .opencode/wsl/install_offline.sh
 
 wheelhouse 준비:
+export PIP_INDEX_URL=http://<internal-pypi>/simple
 bash .opencode/wsl/download_wheels.sh
+
+torch SSL 설치 금지:
+https://download.pytorch.org, https://pypi.org 인덱스를 사용하지 않는다.
+wheelhouse 오프라인 설치 또는 내부 http:// PyPI 미러만 사용한다.
 
 인덱싱 제외 적용:
 python .opencode/scripts/apply_index_ignore.py --project .
@@ -158,6 +163,10 @@ mlflow_register_model_name
 증상: 폐쇄망 설치가 느림
 원인: PyPI 다운로드/resolver 지연
 조치: .opencode/wsl/wheelhouse 기반 install_offline.sh 우선
+
+증상: torch가 SSL 문제로 설치 불가
+원인: pip가 https:// PyPI 또는 https://download.pytorch.org 인덱스를 사용함
+조치: SSL 설치 금지. 내부 http:// PyPI 미러로 wheelhouse를 만들거나 별도 PC에서 wheel 파일을 받아 .opencode/wsl/wheelhouse/에 복사한 뒤 install_offline.sh 실행
 ```
 
 </details>

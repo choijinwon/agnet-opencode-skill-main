@@ -20,6 +20,6 @@ fi
 # shellcheck disable=SC1091
 source "$VENV_DIR/bin/activate"
 
-python -m pip install --no-index --find-links "$WHEELHOUSE" --requirement "$REQUIREMENTS"
+python -m pip --isolated install --no-index --find-links "$WHEELHOUSE" --requirement "$REQUIREMENTS"
 
 echo "Offline install complete using: $WHEELHOUSE"

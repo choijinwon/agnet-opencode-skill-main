@@ -16,12 +16,12 @@ END = "# <<< AI Studio MLflow adapter <<<"
 REQUIRED_DIRS = ["aiu_custom", "local_serving", "saved_model"]
 REQUIRED_FILES = ["input_example.json", "requirements.txt"]
 ENTRYPOINT_HINTS = [
-    "runtest.py",
-    "run_test.py",
     "aiu_studio/runtest.py",
     "aiu_studio/run_test.py",
     "aui_studio/runtest.py",
     "aui_studio/run_test.py",
+    "runtest.py",
+    "run_test.py",
     "run_model.py",
     "run.py",
     "train.py",
@@ -80,6 +80,18 @@ def rel(path: Path, base: Path) -> str:
         return path.as_posix()
 
 
+def unique_paths(paths: list[Path]) -> list[Path]:
+    unique = []
+    seen = set()
+    for path in paths:
+        key = path.resolve()
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(path)
+    return unique
+
+
 def find_entrypoints(project: Path) -> list[Path]:
     found = []
     for name in ENTRYPOINT_HINTS:
@@ -87,7 +99,7 @@ def find_entrypoints(project: Path) -> list[Path]:
         if candidate.is_file():
             found.append(candidate)
     found.extend(path for path in project.glob("*.py") if path.is_file())
-    return sorted(set(found))
+    return unique_paths(found)
 
 
 def resolve_entrypoint(project: Path, entrypoint_name: str | None) -> tuple[Path | None, list[Path], str | None]:

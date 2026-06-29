@@ -13,12 +13,12 @@ SAMPLE_OPTIONS = ["sklearn", "pytorch", "tensorflow"]
 SAMPLE_PROJECT_NAMES = {f"{name}_sample" for name in SAMPLE_OPTIONS}
 ENTRYPOINTS = [
     "runtest_2.py",
-    "runtest.py",
-    "run_test.py",
     "aiu_studio/runtest.py",
     "aiu_studio/run_test.py",
     "aui_studio/runtest.py",
     "aui_studio/run_test.py",
+    "runtest.py",
+    "run_test.py",
     "train.py",
     "run_model.py",
     "run.py",
@@ -43,12 +43,12 @@ AUTO_DEFAULT_SETTING_KEYS = {
 }
 MODEL_SETTING_FILES = [
     "runtest_2.py",
-    "runtest.py",
-    "run_test.py",
     "aiu_studio/runtest.py",
     "aiu_studio/run_test.py",
     "aui_studio/runtest.py",
     "aui_studio/run_test.py",
+    "runtest.py",
+    "run_test.py",
     "run_model.py",
 ]
 MODEL_SCAN_SKIP_DIRS = {
@@ -164,11 +164,21 @@ def is_sample_project(project: Path) -> bool:
     return project.name in SAMPLE_PROJECT_NAMES
 
 
+def unique_paths(paths: list[Path]) -> list[Path]:
+    unique = []
+    seen = set()
+    for path in paths:
+        key = path.resolve()
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(path)
+    return unique
+
+
 def find_entrypoint(project: Path) -> Path | None:
     candidates = find_entrypoint_candidates(project)
-    if len(candidates) == 1:
-        return candidates[0]
-    return None
+    return candidates[0] if candidates else None
 
 
 def find_entrypoint_candidates(project: Path) -> list[Path]:
@@ -178,7 +188,7 @@ def find_entrypoint_candidates(project: Path) -> list[Path]:
         if candidate.exists() and candidate.is_file():
             found.append(candidate)
     found.extend(sorted(path for path in project.glob("*.py") if path.is_file()))
-    return sorted(set(found))
+    return unique_paths(found)
 
 
 def resolve_entrypoint(project: Path, entrypoint_name: str | None) -> tuple[Path | None, list[Path], str | None]:

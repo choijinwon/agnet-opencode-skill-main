@@ -158,7 +158,7 @@ Step 4. 모델 형식 판별
         예: .pkl -> sklearn_pickle, .pt -> pytorch, .onnx -> onnx
 
 Step 5. aiu_studio 템플릿 폴더 복사
-        .opencode/templates/aiu_studio/ 실행 템플릿 폴더만 프로젝트 루트로 복사한다.
+        .opencode/templates/aiu_studio/ 실행 템플릿 폴더를 프로젝트 루트의 aiu_studio/로 폴더째 복사한다.
         모델 파일은 aiu_studio/로 복사하지 않는다.
 
 Step 6. 선택 모델 직접 읽기
@@ -166,8 +166,8 @@ Step 6. 선택 모델 직접 읽기
         MODEL_PATH = SOURCE_MODEL_PATH
 
 Step 7. runtest.py 참조
-        기존 runtest.py를 우선 참조한다.
-        루트에 없으면 aiu_studio/runtest.py, run_test.py 순서로 참조한다.
+        aiu_studio/runtest.py를 우선 참조한다.
+        없으면 프로젝트 루트 runtest.py, run_test.py 순서로 참조한다.
 
 Step 8. runtest_2.py 생성
         선택 모델 경로와 MODEL_KIND 기준으로 변환 생성한다.
@@ -211,7 +211,7 @@ python .opencode/scripts/prepare_selected_model.py --project <model-project-fold
 python .opencode/scripts/prepare_selected_model.py --project <model-project-folder> --model data/torch/model.pt --execute
 ```
 
-The first Build step for an existing model is always listing project-root and `data/**` model artifacts, selecting one model, and generating `runtest_2.py` from `runtest.py`, `aiu_studio/runtest.py`, or `run_test.py`. Do not assume `run_model.py`. If none of those reference files exists, do not create a fake reference file automatically; ask the user to place the real reference file in the project.
+The first Build step for an existing model is always listing project-root and `data/**` model artifacts, selecting one model, and generating `runtest_2.py` from `aiu_studio/runtest.py`, `runtest.py`, or `run_test.py`. Do not assume `run_model.py`. If none of those reference files exists, do not create a fake reference file automatically; ask the user to place the real reference file in the project.
 
 ## MLflow Tracking Guide
 

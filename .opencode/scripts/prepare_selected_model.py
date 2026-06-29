@@ -24,17 +24,16 @@ SUPPORTED_MODEL_KINDS = {
 }
 
 REFERENCE_ENTRYPOINTS = [
-    "runtest.py",
-    "run_test.py",
     "aiu_studio/runtest.py",
     "aiu_studio/run_test.py",
     "aui_studio/runtest.py",
     "aui_studio/run_test.py",
+    "runtest.py",
+    "run_test.py",
 ]
 ROOT = Path(__file__).resolve().parents[1]
 AIU_STUDIO_DIR_NAME = "aiu_studio"
 AIU_STUDIO_TEMPLATE_DIR = ROOT / "templates" / AIU_STUDIO_DIR_NAME
-AIU_STUDIO_TEMPLATE_SUBDIRS = ["code", "metrics", "tracking"]
 MODEL_SCAN_SKIP_DIRS = {
     ".git",
     ".mypy_cache",
@@ -141,21 +140,21 @@ def default_mlflow_names(project: Path) -> tuple[str, str]:
     return experiment_name, f"{experiment_name}_model"
 
 
-def copy_aiu_studio_template(project: Path, execute: bool) -> tuple[list[str], list[str]]:
+def copy_aiu_studio_template(project: Path, execute: bool) -> tuple[list[str], list[str], list[str]]:
     copied: list[str] = []
     skipped: list[str] = []
+    failures: list[str] = []
     target = project / AIU_STUDIO_DIR_NAME
     if target.exists():
         skipped.append(AIU_STUDIO_DIR_NAME + "/")
-        return copied, skipped
+        return copied, skipped, failures
+    if not AIU_STUDIO_TEMPLATE_DIR.is_dir():
+        failures.append(f"aiu_studio_template_missing:{AIU_STUDIO_TEMPLATE_DIR}")
+        return copied, skipped, failures
     if execute:
-        if AIU_STUDIO_TEMPLATE_DIR.exists():
-            shutil.copytree(AIU_STUDIO_TEMPLATE_DIR, target)
-        else:
-            for relative in AIU_STUDIO_TEMPLATE_SUBDIRS:
-                (target / relative).mkdir(parents=True, exist_ok=True)
+        shutil.copytree(AIU_STUDIO_TEMPLATE_DIR, target)
     copied.append(AIU_STUDIO_DIR_NAME + "/")
-    return copied, skipped
+    return copied, skipped, failures
 
 
 def generated_runtest_text(project: Path, selected_model: Path, kind: str, reference: Path) -> str:
@@ -334,9 +333,12 @@ def build_report(args: argparse.Namespace) -> PreparedModelReport:
     if report.failures:
         return report
 
-    copied, skipped = copy_aiu_studio_template(project, args.execute)
+    copied, skipped, copy_failures = copy_aiu_studio_template(project, args.execute)
     report.copied_template_dirs.extend(copied)
     report.skipped.extend(skipped)
+    report.failures.extend(copy_failures)
+    if report.failures:
+        return report
     changed, write_skipped, write_failures = write_runtest_2(project, selected_model, selected_kind, reference, args.execute, args.force)
     report.copied_template_dirs.extend(changed)
     report.skipped.extend(write_skipped)

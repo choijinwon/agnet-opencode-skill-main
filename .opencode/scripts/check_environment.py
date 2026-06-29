@@ -36,23 +36,23 @@ SSL_BLOCKED_SETTING_KEYS = {
 
 MODEL_SETTING_FILES = [
     "runtest_2.py",
-    "runtest.py",
-    "run_test.py",
     "aiu_studio/runtest.py",
     "aiu_studio/run_test.py",
     "aui_studio/runtest.py",
     "aui_studio/run_test.py",
+    "runtest.py",
+    "run_test.py",
     "run_model.py",
     "run.py",
 ]
 ENTRYPOINTS = [
     "runtest_2.py",
-    "runtest.py",
-    "run_test.py",
     "aiu_studio/runtest.py",
     "aiu_studio/run_test.py",
     "aui_studio/runtest.py",
     "aui_studio/run_test.py",
+    "runtest.py",
+    "run_test.py",
     "train.py",
     "run_model.py",
     "run.py",
@@ -63,12 +63,12 @@ ENTRYPOINTS = [
 SAMPLE_PROJECT_NAMES = {"sklearn_sample", "pytorch_sample", "tensorflow_sample"}
 MODEL_MARKERS = [
     "runtest_2.py",
-    "runtest.py",
-    "run_test.py",
     "aiu_studio/runtest.py",
     "aiu_studio/run_test.py",
     "aui_studio/runtest.py",
     "aui_studio/run_test.py",
+    "runtest.py",
+    "run_test.py",
     "train.py",
     "run_model.py",
     "predict.py",
@@ -376,6 +376,18 @@ def is_sample_project(project: Path) -> bool:
     return project.name in SAMPLE_PROJECT_NAMES
 
 
+def unique_paths(paths: list[Path]) -> list[Path]:
+    unique = []
+    seen = set()
+    for path in paths:
+        key = path.resolve()
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(path)
+    return unique
+
+
 def find_entrypoint_candidates(project: Path) -> list[Path]:
     found = []
     for name in ENTRYPOINTS:
@@ -383,7 +395,7 @@ def find_entrypoint_candidates(project: Path) -> list[Path]:
         if candidate.exists() and candidate.is_file():
             found.append(candidate)
     found.extend(sorted(path for path in project.glob("*.py") if path.is_file()))
-    return sorted(set(found))
+    return unique_paths(found)
 
 
 def parse_env_file(path: Path) -> dict[str, str]:
@@ -559,7 +571,7 @@ def build_report(project: Path, entrypoint_name: str | None = None) -> Environme
         tod_guide = [
             "1. 루트/data 모델 목록 확인: 프로젝트 루트 전체와 data/**에서 사용할 모델 후보를 확인한다.",
             "2. 사용할 모델 선택: prepare_selected_model.py --model <번호|경로>로 선택한다.",
-            "3. 자동 준비 실행: aiu_studio/ 템플릿 복사와 runtest_2.py 생성은 prepare_selected_model.py가 처리한다.",
+            "3. 자동 준비 실행: aiu_studio/ 템플릿 폴더째 복사와 runtest_2.py 생성은 prepare_selected_model.py가 처리한다.",
             "4. 환경 검증: 현재 출력의 Python, dependency, MLflow 설치 상태를 확인한다.",
             f"5. 모델 환경변수 체크: {entrypoint_display}의 MLflow 입력값 3개와 자동값 2개를 set/empty/missing/auto_default/ssl_not_allowed로 확인한다.",
             f"6. 추론 테스트: python {entrypoint_display} 또는 aiu_custom/predict.py 기준으로 로드/추론 확인한다.",

@@ -5,9 +5,9 @@ from pathlib import Path
 
 
 MODEL_HINTS = [
-    "runtest.py",
     "aiu_studio/runtest.py",
     "aui_studio/runtest.py",
+    "runtest.py",
     "run_model.py",
     "train.py",
     "predict.py",

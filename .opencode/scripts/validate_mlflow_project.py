@@ -21,12 +21,12 @@ SAMPLE_PRIORITY = ["sklearn_sample", "pytorch_sample", "tensorflow_sample"]
 ENTRYPOINT_NAMES = [
     "register_model.py",
     "runtest_2.py",
-    "runtest.py",
-    "run_test.py",
     "aiu_studio/runtest.py",
     "aiu_studio/run_test.py",
     "aui_studio/runtest.py",
     "aui_studio/run_test.py",
+    "runtest.py",
+    "run_test.py",
     "run_model.py",
     "run.py",
     "serve.py",
@@ -40,12 +40,12 @@ ENTRYPOINT_NAMES = [
 TRAINING_ENTRYPOINT_NAMES = [
     "register_model.py",
     "runtest_2.py",
-    "runtest.py",
-    "run_test.py",
     "aiu_studio/runtest.py",
     "aiu_studio/run_test.py",
     "aui_studio/runtest.py",
     "aui_studio/run_test.py",
+    "runtest.py",
+    "run_test.py",
     "run_model.py",
     "run.py",
     "main.py",
@@ -372,16 +372,28 @@ def find_first_existing(project: Path, names: list[str]) -> Path | None:
     return None
 
 
+def unique_paths(paths: list[Path]) -> list[Path]:
+    unique = []
+    seen = set()
+    for path in paths:
+        key = path.resolve()
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(path)
+    return unique
+
+
 def find_entrypoints(project: Path) -> list[Path]:
     found = [project / name for name in ENTRYPOINT_NAMES if (project / name).exists()]
     found.extend(path for path in iter_files(project, max_depth=2) if path.suffix == ".py")
-    return sorted(set(found))
+    return unique_paths(found)
 
 
 def find_training_entrypoints(project: Path) -> list[Path]:
     found = [project / name for name in TRAINING_ENTRYPOINT_NAMES if (project / name).exists()]
     found.extend(path for path in project.glob("*.py") if path.is_file())
-    return sorted(set(found))
+    return unique_paths(found)
 
 
 def check_aiu_custom(project: Path, entrypoints: list[Path]) -> Check:

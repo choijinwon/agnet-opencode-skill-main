@@ -146,14 +146,14 @@ def copy_aiu_studio_folder(project: Path, execute: bool) -> tuple[list[str], lis
     skipped: list[str] = []
     failures: list[str] = []
     target = project / AIU_STUDIO_DIR_NAME
-    if target.exists():
-        skipped.append(AIU_STUDIO_DIR_NAME + "/")
-        return copied, skipped, failures
     if not AIU_STUDIO_SAMPLE_DIR.is_dir():
         failures.append(f"aiu_studio_folder_missing:{AIU_STUDIO_SAMPLE_DIR}")
         return copied, skipped, failures
+    if target.exists() and not target.is_dir():
+        failures.append(f"aiu_studio_target_not_directory:{target}")
+        return copied, skipped, failures
     if execute:
-        shutil.copytree(AIU_STUDIO_SAMPLE_DIR, target)
+        shutil.copytree(AIU_STUDIO_SAMPLE_DIR, target, dirs_exist_ok=True)
     copied.append(AIU_STUDIO_DIR_NAME + "/")
     return copied, skipped, failures
 
@@ -302,7 +302,6 @@ def build_report(args: argparse.Namespace) -> PreparedModelReport:
     model_paths = [rel(path, project) for path in models]
     selected_model, selection_error = resolve_model_selection(project, models, args.model)
     selected_kind = model_kind(selected_model) if selected_model else None
-    reference = find_reference_entrypoint(project)
 
     report = PreparedModelReport(
         project_path=str(project),
@@ -310,7 +309,7 @@ def build_report(args: argparse.Namespace) -> PreparedModelReport:
         model_artifact_paths=model_paths,
         selected_model_path=rel(selected_model, project) if selected_model else None,
         model_kind=selected_kind,
-        reference_entrypoint=rel(reference, project) if reference else None,
+        reference_entrypoint=None,
         generated_entrypoint="runtest_2.py",
         execute=args.execute,
     )
@@ -327,9 +326,6 @@ def build_report(args: argparse.Namespace) -> PreparedModelReport:
         report.next_steps.append("선택 모델은 <model-project-folder> 아래에 있어야 합니다.")
     if selected_model and selected_kind is None:
         report.failures.append("unsupported_model_suffix")
-    if reference is None:
-        report.failures.append("reference_entrypoint_missing:runtest.py_or_run_test.py")
-        report.next_steps.append("기존 runtest.py 또는 run_test.py를 프로젝트 루트나 aiu_studio/ 아래에 넣어주세요.")
 
     if report.failures:
         return report
@@ -340,6 +336,14 @@ def build_report(args: argparse.Namespace) -> PreparedModelReport:
     report.failures.extend(copy_failures)
     if report.failures:
         return report
+
+    reference = find_reference_entrypoint(project)
+    report.reference_entrypoint = rel(reference, project) if reference else None
+    if reference is None:
+        report.failures.append("reference_entrypoint_missing:runtest.py_or_run_test.py")
+        report.next_steps.append("aiu_studio/ 또는 프로젝트 루트에 기존 runtest.py 또는 run_test.py를 넣어주세요.")
+        return report
+
     changed, write_skipped, write_failures = write_runtest_2(project, selected_model, selected_kind, reference, args.execute, args.force)
     report.copied_template_dirs.extend(changed)
     report.skipped.extend(write_skipped)
@@ -395,7 +399,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Select a project-root or data/** model artifact and generate runtest_2.py without modifying runtest.py.")
     parser.add_argument("--project", default=".", help="model project folder")
     parser.add_argument("--model", help="model index from model_artifact_paths or a project-relative path")
-    parser.add_argument("--execute", action="store_true", help="copy aiu_studio/ template folder and create runtest_2.py")
+    parser.add_argument("--execute", action="store_true", help="copy samples/aiu_studio/ into project-root aiu_studio/ and create runtest_2.py")
     parser.add_argument("--force", action="store_true", help="overwrite existing runtest_2.py")
     parser.add_argument("--json", action="store_true", help="print machine-readable JSON")
     args = parser.parse_args()

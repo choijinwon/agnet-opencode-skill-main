@@ -1496,6 +1496,10 @@ def generated_runtest_text(project: Path, selected_model: Path, kind: str, refer
     if preserve_code:
         transformed = insert_preserved_data_prep_block(transformed, kind)
     transformed = insert_runtest_sequence_block(transformed, sequence)
+    transformed = transformed.replace(
+        "모델 학습 서버 배포를 위해 MLflow/AI Studio 설정을 runtest.py에 직접 입력하세요.",
+        "모델 학습 서버 배포를 위해 MLflow/AI Studio 설정을 runtest_2.py에 직접 입력하세요.",
+    )
     return transformed.rstrip() + "\n"
 
 

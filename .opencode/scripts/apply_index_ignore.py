@@ -31,6 +31,7 @@ PATTERNS = [
     "mlartifacts/",
     "mlflow.db",
     "ai_studio/tracking/",
+    "aiu_studio/local_serving/aiu_studio/",
     "ai_studio/metrics/",
     "ai_studio/code/",
     "ai_studio/artifacts/",

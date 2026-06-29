@@ -20,6 +20,9 @@ from pathlib import Path
 
 
 EXPECTED_PYTHON_VERSION = "3.11.9"
+EXPECTED_PACKAGE_VERSIONS = {
+    "mlflow": "==3.10.0",
+}
 
 SKILL_FOLDERS = [
     "01-agent-mlflow-skill-project-analyze",
@@ -274,17 +277,25 @@ def parse_requirement_line(raw_line: str) -> tuple[str, str] | None:
 
 def requirement_rows(project: Path) -> list[tuple[str, str, str | None, str]]:
     rows = []
+    seen: set[str] = set()
     path = project / "requirements.txt"
-    if not path.exists():
-        return rows
-    for raw_line in path.read_text(encoding="utf-8", errors="ignore").splitlines():
-        parsed = parse_requirement_line(raw_line)
-        if parsed is None:
+    if path.exists():
+        for raw_line in path.read_text(encoding="utf-8", errors="ignore").splitlines():
+            parsed = parse_requirement_line(raw_line)
+            if parsed is None:
+                continue
+            name, required_spec = parsed
+            seen.add(name)
+            installed = package_version(name)
+            status = "missing" if installed is None else version_constraint_status(installed, required_spec)
+            rows.append((name, required_spec or "any", installed, status))
+    for name, required_spec in EXPECTED_PACKAGE_VERSIONS.items():
+        normalized = normalize_package_name(name)
+        if normalized in seen:
             continue
-        name, required_spec = parsed
-        installed = package_version(name)
+        installed = package_version(normalized)
         status = "missing" if installed is None else version_constraint_status(installed, required_spec)
-        rows.append((name, required_spec or "any", installed, status))
+        rows.append((normalized, required_spec, installed, status))
     return rows
 
 

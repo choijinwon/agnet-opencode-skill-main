@@ -125,6 +125,15 @@ MODEL_IMPORT_PACKAGE_NAMES = {
     "xgboost": "xgboost",
     "safetensors": "safetensors",
 }
+ALWAYS_KEEP_IMPORT_MODULES = {
+    "sys",
+    "io",
+    "os",
+    "json",
+    "joblib",
+    "mlflow",
+    "logging",
+}
 MODEL_PATH_REFERENCE_PATTERN = re.compile(
     r"(?P<path>[A-Za-z0-9가-힣_./\\() -]+(?:"
     + "|".join(re.escape(suffix) for suffix in sorted(SUPPORTED_MODEL_KINDS, key=len, reverse=True))
@@ -347,21 +356,16 @@ def default_mlflow_names(selected_model: Path) -> tuple[str, str]:
 
 def model_profile(project: Path, selected_model: Path, kind: str) -> dict[str, str]:
     details = MODEL_KIND_DETAILS.get(kind, {})
-    aiu_relative = aiu_model_relative_path(selected_model, kind)
     return {
         "model_name": selected_model.name,
         "model_suffix": selected_model.suffix.lower(),
         "model_kind": kind,
         "model_relative_path": rel(selected_model, project),
-        "aiu_model_relative_path": f"{AIU_STUDIO_DIR_NAME}/{aiu_relative}",
+        "runtime_model_path": rel(selected_model, project),
         "model_parent": rel(selected_model.parent, project),
         "required_package": details.get("required_package", "unknown"),
         "load_hint": details.get("load_hint", "custom loader required"),
     }
-
-
-def aiu_model_relative_path(selected_model: Path, kind: str) -> str:
-    return f"models/{kind}/{selected_model.name}"
 
 
 def runtime_project_path_expr(project: Path, path: Path) -> str:
@@ -594,6 +598,8 @@ def rewrite_model_import_line(line: str, required_package: str) -> str:
     if package is None:
         return line
     module_name, package_name = package
+    if module_name in ALWAYS_KEEP_IMPORT_MODULES:
+        return line
     if package_name == required_package:
         return line
     suffix = "\n" if line.endswith("\n") else ""
@@ -628,6 +634,7 @@ def transform_reference_text(
     output: list[str] = []
     inserted = False
     future_import_pattern = re.compile(r"^\s*from\s+__future__\s+import\s+")
+    import_pattern = re.compile(r"^\s*(import\s+[A-Za-z_][A-Za-z0-9_]*(?:\s+as\s+[A-Za-z_][A-Za-z0-9_]*)?|from\s+[A-Za-z_][A-Za-z0-9_.]*\s+import\s+.+)")
     assignment_pattern = re.compile(r"^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$")
 
     insert_at = 0
@@ -641,6 +648,20 @@ def transform_reference_text(
             insert_at += 1
             continue
         if future_import_pattern.match(line):
+            insert_at += 1
+            continue
+        break
+    while insert_at < len(lines):
+        line = lines[insert_at]
+        if not line.strip():
+            next_index = insert_at + 1
+            while next_index < len(lines) and not lines[next_index].strip():
+                next_index += 1
+            if next_index < len(lines) and import_pattern.match(lines[next_index]):
+                insert_at += 1
+                continue
+            break
+        if import_pattern.match(line):
             insert_at += 1
             continue
         break
@@ -705,7 +726,6 @@ def transform_reference_text(
 
 def aiu_injected_block(project: Path, selected_model: Path, kind: str, reference: Path) -> str:
     selected_relative = rel(selected_model, project)
-    aiu_model_relative = aiu_model_relative_path(selected_model, kind)
     reference_expr = runtime_project_path_expr(project, reference)
     default_experiment_name, default_register_model_name = default_mlflow_names(selected_model)
     profile = model_profile(project, selected_model, kind)
@@ -719,9 +739,9 @@ def aiu_injected_block(project: Path, selected_model: Path, kind: str, reference
     return f'''
 
 # --- AIU Studio selected model conversion ---
-# 선택된 모델을 먼저 판별하고, 실행 기준 모델은 aiu_studio/models/ 아래 복사본을 읽습니다.
-# MODEL_KIND에 맞는 load_selected_model()을 생성해 선택 모델 기준으로 변환합니다.
-# 이 블록은 자동 생성되지만 아래 원본 runtest.py 구조와 주석은 유지합니다.
+# 선택된 모델을 먼저 판별하고, 원본 모델 경로를 직접 읽도록 변환합니다.
+# MODEL_KIND에 맞는 load_selected_model()을 생성해 aiu_studio/ 템플릿 코드를 선택 모델 기준으로 갱신합니다.
+# 이 블록은 자동 변환되지만 아래 원본 runtest.py 구조와 주석은 최대한 유지합니다.
 import os as _aiu_os
 import atexit as _aiu_atexit
 from pathlib import Path as _AIUPath
@@ -729,10 +749,11 @@ from pathlib import Path as _AIUPath
 AI_STUDIO_DIR = _AIUPath(__file__).resolve().parent
 PROJECT_DIR = AI_STUDIO_DIR.parent
 ORIGINAL_MODEL_PATH = PROJECT_DIR / "{selected_relative}"
-SOURCE_MODEL_PATH = AI_STUDIO_DIR / "{aiu_model_relative}"
+SOURCE_MODEL_PATH = PROJECT_DIR / "{selected_relative}"
 DATA_MODEL_PATH = SOURCE_MODEL_PATH
 MODEL_PATH = SOURCE_MODEL_PATH
 INPUT_EXAMPLE_PATH = AI_STUDIO_DIR / "input_example.json"
+LOCAL_MLFLOW_STORE_DIR = AI_STUDIO_DIR / "local_serving" / "aiu_studio"
 MODEL_KIND = "{kind}"
 MODEL_PROFILE = {json.dumps(profile, ensure_ascii=False, indent=4)}
 AIU_REQUIRED_PACKAGE = "{required_package}"
@@ -744,9 +765,11 @@ source_model_path = str(SOURCE_MODEL_PATH)
 data_model_path = str(DATA_MODEL_PATH)
 model_path = str(MODEL_PATH)
 input_example_path = str(INPUT_EXAMPLE_PATH)
+local_mlflow_store_dir = str(LOCAL_MLFLOW_STORE_DIR)
 
 # Step 6 실행 중 상대경로 산출물은 프로젝트 루트가 아니라 aiu_studio/ 아래에 생성되도록 고정합니다.
 _aiu_os.chdir(AI_STUDIO_DIR)
+LOCAL_MLFLOW_STORE_DIR.mkdir(parents=True, exist_ok=True)
 
 def _aiu_existing_code_paths():
     candidates = [
@@ -772,13 +795,17 @@ mlflow_tracking_password = ""
 mlflow_experiment_name = "{default_experiment_name}"
 mlflow_register_model_name = "{default_register_model_name}"
 
+effective_mlflow_tracking_uri = mlflow_tracking_url or LOCAL_MLFLOW_STORE_DIR.as_uri()
+if not mlflow_tracking_url:
+    mlflow_tracking_url = effective_mlflow_tracking_uri
+
 {loader}
 
 if mlflow_tracking_url.lower().startswith("https://"):
     raise ValueError("ssl_not_allowed: use http:// or file:// for mlflow_tracking_url")
 
 for _aiu_env_name, _aiu_env_value in {{
-    "MLFLOW_TRACKING_URI": mlflow_tracking_url,
+    "MLFLOW_TRACKING_URI": effective_mlflow_tracking_uri,
     "MLFLOW_TRACKING_USERNAME": mlflow_tracking_username,
     "MLFLOW_TRACKING_PASSWORD": mlflow_tracking_password,
     "MLFLOW_EXPERIMENT_NAME": mlflow_experiment_name,
@@ -789,10 +816,10 @@ for _aiu_env_name, _aiu_env_value in {{
 
 def _aiu_print_existing_model_tod():
     print("\\nTOD Guide:")
-    print("- 1. 루트/data 모델 목록 확인 - 완료")
-    print("- 2. 사용할 모델 선택 - 완료")
-    print("- 3. 자동 준비 실행 - 완료")
-    print("- 4. 환경 검증 - 다음")
+    print("- 1. 모델 목록 확인 - 완료")
+    print("- 2. 모델 경로로 선택 - 완료")
+    print("- 3. aiu_studio/ 템플릿 복사 + 선택 모델 기준 전체 코드 변환 - 완료")
+    print("- 4. 선택 모델 일치 확인 - 완료")
     print("- 5. 모델 환경변수 체크 - 다음")
     print("- 6. runtest_2.py 실행 - 완료")
     print("- 7. 로컬 추론 테스트 - 다음")
@@ -807,13 +834,12 @@ _aiu_atexit.register(_aiu_print_existing_model_tod)
 def generated_runtest_text(project: Path, selected_model: Path, kind: str, reference: Path) -> str:
     reference_text = reference.read_text(encoding="utf-8", errors="ignore")
     selected_relative = rel(selected_model, project)
-    aiu_model_relative = aiu_model_relative_path(selected_model, kind)
     default_experiment_name, default_register_model_name = default_mlflow_names(selected_model)
     details = MODEL_KIND_DETAILS.get(kind, {})
     required_package = details.get("required_package", "unknown")
     load_hint = details.get("load_hint", "custom loader required")
     replacements = {
-        "SOURCE_MODEL_PATH": f'AI_STUDIO_DIR / "{aiu_model_relative}"',
+        "SOURCE_MODEL_PATH": f'PROJECT_DIR / "{selected_relative}"',
         "DATA_MODEL_PATH": "SOURCE_MODEL_PATH",
         "MODEL_PATH": "SOURCE_MODEL_PATH",
         "MODEL_KIND": repr(kind),
@@ -848,7 +874,7 @@ def generated_runtest_text(project: Path, selected_model: Path, kind: str, refer
         reference_text,
         aiu_injected_block(project, selected_model, kind, reference),
         replacements,
-        f"{AIU_STUDIO_DIR_NAME}/{aiu_model_relative}",
+        selected_relative,
         kind,
         load_hint,
         required_package,
@@ -858,7 +884,6 @@ def generated_runtest_text(project: Path, selected_model: Path, kind: str, refer
 
 def generated_localservingtest_text(project: Path, selected_model: Path, kind: str, reference: Path) -> str:
     selected_relative = rel(selected_model, project)
-    aiu_model_relative = aiu_model_relative_path(selected_model, kind)
     reference_expr = runtime_project_path_expr(project, reference)
     profile = model_profile(project, selected_model, kind)
     details = MODEL_KIND_DETAILS.get(kind, {})
@@ -880,7 +905,7 @@ LOCAL_SERVING_DIR = Path(__file__).resolve().parent
 AI_STUDIO_DIR = LOCAL_SERVING_DIR.parent
 PROJECT_DIR = AI_STUDIO_DIR.parent
 ORIGINAL_MODEL_PATH = PROJECT_DIR / "{selected_relative}"
-SOURCE_MODEL_PATH = AI_STUDIO_DIR / "{aiu_model_relative}"
+SOURCE_MODEL_PATH = PROJECT_DIR / "{selected_relative}"
 DATA_MODEL_PATH = SOURCE_MODEL_PATH
 MODEL_PATH = SOURCE_MODEL_PATH
 MODEL_KIND = "{kind}"
@@ -889,9 +914,8 @@ AIU_REQUIRED_PACKAGE = "{required_package}"
 AIU_LOAD_HINT = "{load_hint}"
 REFERENCE_ENTRYPOINT = {reference_expr}
 
-# AIU Studio 변환: 선택 모델 복사본 aiu_studio/{aiu_model_relative} 기준 추론 테스트입니다.
-# 원본 모델 위치: {selected_relative}
-# 모델 파일은 aiu_studio/models/{kind}/ 아래 복사본을 읽습니다.
+# AIU Studio 변환: 선택 모델 원본 경로 {selected_relative} 기준 추론 테스트입니다.
+# 모델 파일은 aiu_studio/로 복사하지 않고 프로젝트 내 원본 위치에서 직접 읽습니다.
 # MODEL_KIND={kind}, loader={load_hint}
 
 {loader}
@@ -942,10 +966,10 @@ def run_inference():
 
 def _print_tod(local_status="완료"):
     print("\\nTOD Guide:")
-    print("- 1. 루트/data 모델 목록 확인 - 완료")
-    print("- 2. 사용할 모델 선택 - 완료")
-    print("- 3. 자동 준비 실행 - 완료")
-    print("- 4. 환경 검증 - 다음")
+    print("- 1. 모델 목록 확인 - 완료")
+    print("- 2. 모델 경로로 선택 - 완료")
+    print("- 3. aiu_studio/ 템플릿 복사 + 선택 모델 기준 전체 코드 변환 - 완료")
+    print("- 4. 선택 모델 일치 확인 - 완료")
     print("- 5. 모델 환경변수 체크 - 다음")
     print("- 6. runtest_2.py 실행 - 완료")
     print(f"- 7. 로컬 추론 테스트 - {{local_status}}")
@@ -969,7 +993,6 @@ if __name__ == "__main__":
 
 def generated_predict_text(project: Path, selected_model: Path, kind: str) -> str:
     selected_relative = rel(selected_model, project)
-    aiu_model_relative = aiu_model_relative_path(selected_model, kind)
     profile = model_profile(project, selected_model, kind)
     details = MODEL_KIND_DETAILS.get(kind, {})
     required_package = details.get("required_package", "unknown")
@@ -987,7 +1010,7 @@ AIU_CUSTOM_DIR = Path(__file__).resolve().parent
 AI_STUDIO_DIR = AIU_CUSTOM_DIR.parent
 PROJECT_DIR = AI_STUDIO_DIR.parent
 ORIGINAL_MODEL_PATH = PROJECT_DIR / "{selected_relative}"
-SOURCE_MODEL_PATH = AI_STUDIO_DIR / "{aiu_model_relative}"
+SOURCE_MODEL_PATH = PROJECT_DIR / "{selected_relative}"
 DATA_MODEL_PATH = SOURCE_MODEL_PATH
 MODEL_PATH = SOURCE_MODEL_PATH
 MODEL_KIND = "{kind}"
@@ -995,9 +1018,8 @@ MODEL_PROFILE = {json.dumps(profile, ensure_ascii=False, indent=4)}
 AIU_REQUIRED_PACKAGE = "{required_package}"
 AIU_LOAD_HINT = "{load_hint}"
 
-# AIU Studio 변환: 선택 모델 복사본 aiu_studio/{aiu_model_relative} 기준 predict.py입니다.
-# 원본 모델 위치: {selected_relative}
-# 모델 파일은 aiu_studio/models/{kind}/ 아래 복사본을 읽습니다.
+# AIU Studio 변환: 선택 모델 원본 경로 {selected_relative} 기준 predict.py입니다.
+# 모델 파일은 aiu_studio/로 복사하지 않고 프로젝트 내 원본 위치에서 직접 읽습니다.
 # MODEL_KIND={kind}, loader={load_hint}
 
 {loader}
@@ -1074,15 +1096,13 @@ def predict(payload):
 
 def generated_mapping_json(project: Path, selected_model: Path, kind: str) -> str:
     selected_relative = rel(selected_model, project)
-    aiu_relative = aiu_model_relative_path(selected_model, kind)
     details = MODEL_KIND_DETAILS.get(kind, {})
     mapping = {
         "model": {
             "name": selected_model.name,
             "kind": kind,
-            "relative_path": f"{AIU_STUDIO_DIR_NAME}/{aiu_relative}",
+            "relative_path": selected_relative,
             "source_path": selected_relative,
-            "aiu_studio_path": f"{AIU_STUDIO_DIR_NAME}/{aiu_relative}",
             "load_hint": details.get("load_hint", "custom loader required"),
             "required_package": details.get("required_package", "unknown"),
         },
@@ -1094,8 +1114,9 @@ def generated_mapping_json(project: Path, selected_model: Path, kind: str) -> st
             "local_serving_test": "local_serving/localservingtest.py",
         },
         "policy": {
-            "copy_model_to_aiu_studio": True,
-            "model_source": "aiu_studio_models_by_model_kind",
+            "copy_model_to_aiu_studio": False,
+            "model_source": "selected_project_model_path",
+            "transform_aiu_studio_templates": True,
             "secret_output": "masked",
         },
     }
@@ -1164,22 +1185,6 @@ def write_aiu_mapping(project: Path, selected_model: Path, kind: str, execute: b
     return changed, skipped, failures
 
 
-def copy_selected_model_to_aiu(project: Path, selected_model: Path, kind: str, execute: bool) -> tuple[list[str], list[str], list[str]]:
-    target = project / AIU_STUDIO_DIR_NAME / aiu_model_relative_path(selected_model, kind)
-    changed: list[str] = []
-    skipped: list[str] = []
-    failures: list[str] = []
-    existed_before = target.exists()
-    if execute:
-        target.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(selected_model, target)
-        if not target.is_file():
-            failures.append(f"aiu_model_copy_failed:{rel(target, project)}")
-            return changed, skipped, failures
-    changed.append(f"{rel(target, project)} (refreshed)" if existed_before else rel(target, project))
-    return changed, skipped, failures
-
-
 def build_report(args: argparse.Namespace) -> PreparedModelReport:
     project = Path(args.project).expanduser().resolve()
     if not project.exists():
@@ -1238,13 +1243,6 @@ def build_report(args: argparse.Namespace) -> PreparedModelReport:
     if report.failures:
         return report
 
-    model_copy_changed, model_copy_skipped, model_copy_failures = copy_selected_model_to_aiu(project, selected_model, selected_kind, args.execute)
-    report.prepared_paths.extend(model_copy_changed)
-    report.skipped.extend(model_copy_skipped)
-    report.failures.extend(model_copy_failures)
-    if report.failures:
-        return report
-
     reference = find_reference_entrypoint(project)
     report.reference_entrypoint = rel(reference, project) if reference else None
     if reference is None:
@@ -1277,7 +1275,7 @@ def build_report(args: argparse.Namespace) -> PreparedModelReport:
     if args.execute and not report.failures:
         report.next_steps.extend(
             [
-                "자동 준비 완료: 모델 프로젝트 구조 분석 + aiu_studio/ 폴더 복사 + 선택 모델 aiu_studio/models/<MODEL_KIND>/ 복사 + 환경변수 체크 + aiu_studio/runtest_2.py 변환/갱신 + aiu_studio/aiu_custom/predict.py 변환/갱신 + aiu_studio/aiu_custom/mapping.json 변환/갱신 + aiu_studio/local_serving/localservingtest.py 변환/갱신",
+                "자동 준비 완료: 모델 프로젝트 구조 분석 + aiu_studio/ 템플릿 복사 + 선택 모델 기준 전체 코드 변환/갱신",
                 "python aiu_studio/runtest_2.py",
                 "python aiu_studio/local_serving/localservingtest.py",
                 "추론 테스트 결과는 화면에 출력합니다.",
@@ -1334,17 +1332,16 @@ def print_report(report: PreparedModelReport) -> None:
     auto_ready = all(
         path in report.prepared_paths or f"{path} (refreshed)" in report.prepared_paths
         for path in [
-            f"aiu_studio/models/{report.model_kind}/{Path(report.selected_model_path).name}" if report.selected_model_path and report.model_kind else "",
             "aiu_studio/runtest_2.py",
             "aiu_studio/aiu_custom/predict.py",
             "aiu_studio/aiu_custom/mapping.json",
             "aiu_studio/local_serving/localservingtest.py",
         ]
     )
-    print("1. 루트/data 모델 목록 확인 - 완료" if report.model_artifact_paths else "1. 루트/data 모델 목록 확인 - 모델 없음")
-    print("2. 사용할 모델 선택 - 완료" if model_selected else "2. 사용할 모델 선택 - 대기")
-    print("3. 자동 준비 실행 - 완료" if auto_ready else "3. 자동 준비 실행 - 대기")
-    print("4. 환경 검증 - 다음")
+    print("1. 모델 목록 확인 - 완료" if report.model_artifact_paths else "1. 모델 목록 확인 - 모델 없음")
+    print("2. 모델 경로로 선택 - 완료" if model_selected else "2. 모델 경로로 선택 - 대기")
+    print("3. aiu_studio/ 템플릿 복사 + 선택 모델 기준 전체 코드 변환 - 완료" if auto_ready else "3. aiu_studio/ 템플릿 복사 + 선택 모델 기준 전체 코드 변환 - 대기")
+    print("4. 선택 모델 일치 확인 - 완료" if auto_ready else "4. 선택 모델 일치 확인 - 대기")
     print("5. 모델 환경변수 체크 - 다음")
     print("6. runtest_2.py 실행 - 다음")
     print("7. 로컬 추론 테스트 - 다음")

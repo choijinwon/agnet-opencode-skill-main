@@ -1,13 +1,13 @@
 # OpenCode MLflow Scripts
 
-이 폴더는 `.opencode/skills`의 MLflow 흐름을 보조하는 로컬 스크립트를 포함한다. 모델이 있으면 프로젝트 루트 전체와 `data/**` 모델 목록 확인부터 시작하는 11단계, 모델이 없으면 샘플 복사 후 6단계로 진행한다.
+이 폴더는 `.opencode/skills`의 MLflow 흐름을 보조하는 로컬 스크립트를 포함한다. 모델이 있으면 프로젝트 루트 전체와 `data/**` 모델 목록 확인부터 시작하는 8단계, 모델이 없으면 샘플 복사 후 6단계로 진행한다.
 
 대상은 사용자가 지정한 모델 프로젝트 폴더다.
-사용자 모델 파일은 프로젝트 루트 바로 아래 또는 `data/**` 하위 트리 어디에나 둘 수 있으며, 자동 준비 시 `aiu_studio/models/<MODEL_KIND>/<filename>`로 복사해 실행 기준으로 사용한다.
+사용자 모델 파일은 프로젝트 루트 바로 아래 또는 `data/**` 하위 트리 어디에나 둘 수 있으며, 자동 준비 시 모델 파일을 `aiu_studio/`로 복사하지 않고 선택한 원본 경로를 직접 읽도록 코드를 변환한다.
 `data/` 아래 폴더명은 고정값이 아니며 사용자 프로젝트마다 다를 수 있다.
 예: `model.joblib`, `models/model.joblib`, `data/<임의폴더>/model.joblib`, `data/sklearn/model.pkl`, `data/checkpoints/model.pt`
 모델 있음 흐름에서는 `.opencode/samples/aiu_studio/` 폴더를 프로젝트 루트의 `aiu_studio/`로 그대로 복사한다. 내부 파일 구성은 고정하지 않고 비교/수정하지 않는다.
-기존 `runtest.py`는 루트 또는 `aiu_studio/` 아래에서 참조하고, 수정하지 않고 복사된 `aiu_studio/` 파일들을 선택 모델 복사본 기준으로 변환/갱신한다.
+기존 `runtest.py`는 루트 또는 `aiu_studio/` 아래에서 참조하고, 수정하지 않고 복사된 `aiu_studio/` 파일들을 선택 모델 원본 경로 기준으로 변환/갱신한다.
 Linux 경로에 Windows 구분자(`\`, `＼`, `￦`, `₩`)가 섞이면 생성 파일에서 `/`로 자동 정규화한다.
 
 유지보수자는 먼저 `.opencode/scripts/MAINTENANCE.md`를 확인한다. 각 스크립트의 책임, 주요 함수, 수정 포인트, 주의사항을 파일별로 정리해두었다.
@@ -15,19 +15,18 @@ Linux 경로에 Windows 구분자(`\`, `＼`, `￦`, `₩`)가 섞이면 생성 
 ## Script Mapping
 
 ```text
-Step 1  루트/data 모델 목록 확인
+Step 1  모델 목록 확인
         prepare_selected_model.py
         validate_mlflow_project.py
 
-Step 2  사용할 모델 선택
+Step 2  모델 경로로 선택
         prepare_selected_model.py
 
-Step 3  자동 준비 실행
+Step 3  aiu_studio/ 템플릿 복사 + 선택 모델 기준 전체 코드 변환
         prepare_selected_model.py
 
-Step 4  환경 검증
-        check_environment.py
-        doctor.py
+Step 4  선택 모델 일치 확인
+        prepare_selected_model.py --model selected
 
 Step 5  모델 환경변수 체크
         check_environment.py
@@ -36,7 +35,7 @@ Step 6  runtest_2.py 실행
         aiu_studio/runtest_2.py
         input_example.json과 상대경로 산출물은 aiu_studio/ 아래에 생성되도록 실행 시 작업 디렉터리를 aiu_studio/로 고정한다.
 
-Step 7  추론 테스트
+Step 7  로컬 추론 테스트
         aiu_studio/local_serving/localservingtest.py
 
 Step 8  MLflow 검증
@@ -79,7 +78,7 @@ python .opencode/scripts/response_speed_check.py --project .
 python .opencode/scripts/apply_index_ignore.py --project .
 ```
 
-이 명령은 워크스페이스 루트의 `.ignore`, `.rgignore`, `.gitignore`에 관리 블록을 추가한다. 제외 대상은 `.venv/`, `node_modules/`, `mlruns/`, `ai_studio/tracking/`, `ai_studio/code/`, `saved_model/`, `datasets/`, `*.pt`, `*.pkl`, `*.safetensors`, `*.bst`, `*.ubj` 같은 생성물과 대용량 모델 파일이다. `.opencode` 경로는 제외 패턴에 넣지 않는다.
+이 명령은 워크스페이스 루트의 `.ignore`, `.rgignore`, `.gitignore`에 관리 블록을 추가한다. 제외 대상은 `.venv/`, `node_modules/`, `mlruns/`, `aiu_studio/local_serving/aiu_studio/`, `ai_studio/tracking/`, `ai_studio/code/`, `saved_model/`, `datasets/`, `*.pt`, `*.pkl`, `*.safetensors`, `*.bst`, `*.ubj` 같은 생성물과 대용량 모델 파일이다. `.opencode` 경로는 제외 패턴에 넣지 않는다.
 
 자세한 운영 기준은 `.opencode/performance/CLOSED_NETWORK_SPEED.md`를 본다.
 
@@ -166,7 +165,7 @@ python .opencode/scripts/adapt_ai_studio.py --project <model-project-folder> --e
 ```text
 - entrypoint 백업 생성: <file>.ai_studio.bak
 - MLflow 입력값 3개, 자동 생성값 2개, MLFLOW_* export helper 삽입
-- ai_studio/metrics, ai_studio/code, ai_studio/tracking 경로 helper 삽입
+- ai_studio/metrics, ai_studio/code, aiu_studio/local_serving/aiu_studio 경로 helper 삽입
 - aiu_custom/predict.py, local_serving/serve.py, saved_model/, input_example.json 보충
 - requirements.txt가 없으면 프레임워크/Import 기반 최소 패키지 작성
 - 루트/data 모델 원본은 복사하거나 이동하지 않음
@@ -238,7 +237,7 @@ python .opencode/scripts/bootstrap_sample_project.py --project <model-project-fo
 
 ### check_environment.py
 
-Python, dependency, MLflow, `ai_studio.env` 상태를 확인한다.
+Python 3.11.9, dependency, MLflow 3.10.0, `ai_studio.env` 상태를 확인한다.
 Python 기준 버전은 3.11.9이다. 다른 버전이면 `version_mismatch:python`으로 분류한다.
 `requirements.txt`가 있으면 필요한 pip 패키지 목록, 현재 설치 여부, 설치된 버전, 요구 버전, 버전 불일치 여부를 함께 출력한다.
 Python 버전이 다르면 `차단 항목 요약`에 다음 형식으로 표시한다.
@@ -303,7 +302,7 @@ mlflow_experiment_name -> MLFLOW_EXPERIMENT_NAME
 mlflow_register_model_name -> MLFLOW_REGISTER_MODEL_NAME
 ```
 
-`mlflow_tracking_url`을 비워두면 샘플은 로컬 기본값 `file://<sample>/ai_studio/tracking`를 사용한다. MLflow artifact는 `artifact_path="ai_studio"` 아래 `ai_studio/code` 구조로 기록하고, 로컬 확인용 산출물은 `ai_studio/metrics/`, `ai_studio/code/`에 생성한다. 로컬 file store를 위해 `MLFLOW_ALLOW_FILE_STORE=true`도 함께 설정한다.
+`mlflow_tracking_url`을 비워두면 로컬 기본값 `file://<project>/aiu_studio/local_serving/aiu_studio`를 사용한다. MLflow artifact는 `artifact_path="ai_studio"` 아래 `ai_studio/code` 구조로 기록하고, 로컬 확인용 산출물은 `ai_studio/metrics/`, `ai_studio/code/`에 생성한다. 로컬 file store를 위해 `MLFLOW_ALLOW_FILE_STORE=true`도 함께 설정한다.
 
 PyTorch 샘플 기본값은 `mlflow_experiment_name=pytorch_sample`, `mlflow_register_model_name=pytorch_sample_model`이다.
 `mlflow_tracking_password` 값은 출력하지 않는다.

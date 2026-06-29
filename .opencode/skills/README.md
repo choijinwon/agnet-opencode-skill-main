@@ -13,7 +13,7 @@
    모델이 없으면 1 sklearn / 2 pytorch / 3 tensorflow 선택
 
 03. Environment Check
-   Python 3.11.9, dependency, MLflow, 설정 상태 확인
+   Python 3.11.9, dependency, MLflow 3.10.0, 설정 상태 확인
 
 04. Train Model
    선택 모델 기준 aiu_studio/runtest_2.py 생성 또는 실제 entrypoint 실행
@@ -33,7 +33,7 @@
 - 모델 검색은 현재 `--project` 폴더 안에서만 수행한다. 상위 폴더, 홈 디렉터리, 드라이브 루트, 번들 샘플 폴더를 자동 검색하지 않는다.
 - `data/sklearn/model.pkl`, `data/checkpoints/model.pt`처럼 `data/` 아래 폴더명이 달라도 모델로 인식한다.
 - 지원 확장자: `.pkl`, `.joblib`, `.pt`, `.pth`, `.onnx`, `.h5`, `.keras`, `.safetensors`, `.bst`, `.ubj`.
-- 선택 모델 파일은 `aiu_studio/models/<MODEL_KIND>/<filename>`로 복사하고, 생성 파일은 이 복사본을 읽는다.
+- 선택 모델 파일은 `aiu_studio/`로 복사하지 않고, 변환된 `aiu_studio/` 코드는 선택 모델 원본 경로를 직접 읽는다.
 - `.opencode/samples/aiu_studio/` 폴더를 프로젝트 루트의 `aiu_studio/`로 그대로 복사한다.
 - `aiu_studio/` 내부 파일 구성은 고정하지 않고 비교/수정하지 않는다.
 - `data/` 원본에는 새 파일을 생성하지 않는다.
@@ -47,21 +47,21 @@
 - secret 값은 출력하지 않고 `set`, `empty`, `missing` 상태만 확인한다.
 
 ```text
-Step 1. 루트/data 모델 목록 확인
+Step 1. 모델 목록 확인
         현재 --project 폴더와 그 안의 data/**에서 지원 모델 확장자 10개를 검색한다.
-Step 2. 사용할 모델 선택
+Step 2. 모델 경로로 선택
         model_artifact_paths를 번호로 보여주되, 자동 준비에는 실제 경로 선택을 우선한다.
         번호는 현재 출력된 목록 순서에 의존한다. 이미 준비된 선택 모델은 --model selected로 재사용한다.
         선택이 없으면 자동 준비를 진행하지 않고 선택 요청으로 멈춘다.
-Step 3. 자동 준비 실행
-        aiu_studio/ 폴더 그대로 복사, MODEL_KIND 판별, 복사된 aiu_studio 파일들을 선택 모델 기준으로 변환/갱신한다.
-Step 4. 환경 검증
-        Python 3.11.9, dependency, MLflow 설치 상태를 확인한다.
+Step 3. aiu_studio/ 템플릿 복사 + 선택 모델 기준 전체 코드 변환
+        aiu_studio/ 폴더를 그대로 복사하고, MODEL_KIND 판별 후 복사된 aiu_studio 파일들을 선택 모델 기준으로 변환/갱신한다.
+Step 4. 선택 모델 일치 확인
+        selected_model_path, runtest_2.py, predict.py, mapping.json이 같은 선택 모델 원본 경로를 가리키는지 확인한다.
 Step 5. 모델 환경변수 체크
         입력값 3개와 자동값 2개 상태를 확인한다.
 Step 6. runtest_2.py 실행
         aiu_studio/runtest_2.py를 먼저 실행해 선택 모델 기준 변환/실행 파일을 확인한다.
-Step 7. 추론 테스트
+Step 7. 로컬 추론 테스트
         aiu_studio/local_serving/localservingtest.py 기준으로 입력/출력 스키마를 확인한다.
         기본은 화면 출력만 수행하고 프로젝트 루트 local_serving/ 폴더를 생성하지 않는다.
 Step 8. MLflow 검증
@@ -146,7 +146,7 @@ blocked:
 local metrics   -> ai_studio/metrics/
 local code      -> ai_studio/code/
 MLflow artifact -> artifact_path="ai_studio" 아래 code/
-tracking store  -> ai_studio/tracking/
+tracking store  -> aiu_studio/local_serving/aiu_studio/
 ```
 
 ## Shared Safety

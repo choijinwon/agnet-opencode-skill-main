@@ -24,13 +24,13 @@ metadata:
 ## Workflow
 
 ```text
-1. 프로젝트 기준 경로 확인
-2. 사용할 모델 선택
-3. 자동 준비 실행
-4. 환경 검증
+1. 모델 목록 확인
+2. 모델 경로로 선택
+3. aiu_studio/ 템플릿 복사 + 선택 모델 기준 전체 코드 변환
+4. 선택 모델 일치 확인
 5. 모델 환경변수 체크
 6. runtest_2.py 실행
-7. 추론 테스트
+7. 로컬 추론 테스트
 8. MLflow 검증
 ```
 
@@ -41,7 +41,7 @@ metadata:
 2. 사용할 모델을 번호 또는 경로로 선택한다.
 3. MODEL_KIND를 확장자 기준으로 판별한다.
 4. aiu_studio/runtest.py를 우선 읽기 전용으로 참조하고 없으면 루트 runtest.py, run_test.py를 참조한다.
-5. 기존 runtest.py 또는 aiu_studio/runtest.py는 절대 수정하지 않고 aiu_studio/runtest_2.py만 생성한다.
+5. 기존 runtest.py 또는 aiu_studio/runtest.py는 절대 수정하지 않고 aiu_studio/ 내부 템플릿 코드를 선택 모델 기준으로 변환/갱신한다.
 6. 모델 파일은 aiu_studio/로 복사하지 않는다.
 7. 실행 전 MLflow/AI Studio 설정 블록을 확인한다.
 ```
@@ -103,7 +103,7 @@ python .opencode/scripts/adapt_ai_studio.py --project <project> --entrypoint <fi
 local metrics   -> ai_studio/metrics/
 local code      -> ai_studio/code/
 MLflow artifact -> artifact_path="ai_studio" 아래 code/
-tracking store  -> ai_studio/tracking/
+tracking store  -> aiu_studio/local_serving/aiu_studio/
 reference model -> saved_model/, model/, framework native model file
 ```
 
@@ -166,10 +166,10 @@ blocked:
 기존 모델 흐름:
 
 ```text
-1. 루트/data 모델 목록 확인
-2. model_artifact_paths에서 사용할 모델 선택
-3. 자동 준비 실행: aiu_studio/ 폴더 그대로 복사, MODEL_KIND 판별, runtest.py 구조/주석/모델 로딩 코드 기반 aiu_studio/runtest_2.py와 aiu_studio/local_serving/localservingtest.py 생성
-4. Python 3.11.9와 requirements 설치/버전 확인
+1. 모델 목록 확인
+2. 모델 경로로 선택
+3. aiu_studio/ 템플릿 복사 + 선택 모델 기준 전체 코드 변환
+4. 선택 모델 일치 확인
 5. MLflow 입력값 3개와 자동값 2개 상태 확인
 6. aiu_studio/runtest_2.py 실행
 7. aiu_studio/local_serving/localservingtest.py로 추론 입력/출력 확인

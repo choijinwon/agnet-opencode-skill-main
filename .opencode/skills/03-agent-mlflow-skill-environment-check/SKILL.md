@@ -17,7 +17,7 @@ metadata:
 판단 결과: pass | warn | needs_user_input | blocked
 현재 단계: 2. 환경 검증
 현재 대상: selected_project_path
-핵심 판단: Python 3.11.9, MLflow, dependency, 설정 상태
+핵심 판단: Python 3.11.9, MLflow 3.10.0, dependency, 설정 상태
 다음 단계: 샘플 규격 확인/보충 또는 로컬 학습 실행
 ```
 
@@ -38,7 +38,7 @@ metadata:
 ```text
 1. Python 실행 파일과 버전을 확인한다.
 2. dependency 파일과 핵심 패키지를 확인한다.
-3. MLflow 설치/version을 확인한다.
+3. MLflow 3.10.0 설치/version을 확인한다.
 4. run_model.py, runtest.py 또는 aiu_studio/runtest.py 설정 블록을 확인한다.
 5. 비어 있는 값은 사용자가 직접 소스에 입력하도록 안내한다.
 ```
@@ -51,7 +51,7 @@ metadata:
 - Python 현재 version / 기대 version 3.11.9
 - dependency 파일 상태
 - requirements.txt 필요 패키지 / 설치 여부 / 설치 버전 / 요구 버전 / 버전 불일치
-- MLflow 설치/version 상태
+- MLflow 3.10.0 설치/version 상태
 - 환경 변수 상태
 - 실행 파일명이 다른 경우 --entrypoint <file> 사용 여부
 - 입력이 필요한 값
@@ -101,7 +101,7 @@ python .opencode/scripts/apply_index_ignore.py --project .
 local metrics   -> ai_studio/metrics/
 local code      -> ai_studio/code/
 MLflow artifact -> artifact_path="ai_studio" 아래 code/
-tracking store  -> ai_studio/tracking/
+tracking store  -> aiu_studio/local_serving/aiu_studio/
 ```
 
 <details>
@@ -110,7 +110,7 @@ tracking store  -> ai_studio/tracking/
 ```text
 pass:
 - Python 3.11.9
-- MLflow 설치됨
+- MLflow 3.10.0 설치됨
 - 핵심 dependency 확인됨
 - 필수 MLflow 설정이 소스 또는 환경에 있음
 
@@ -157,7 +157,7 @@ mlflow_register_model_name
 
 증상: mlruns 폴더가 생김
 원인: tracking URI가 기본값으로 잡힘
-조치: 로컬 기본 tracking은 ai_studio/tracking 기준으로 안내
+조치: 로컬 기본 tracking은 aiu_studio/local_serving/aiu_studio 기준으로 안내
 
 증상: 환경변수를 입력했는데 체크가 안 됨
 원인: run_model.py/runtest.py/aiu_studio/runtest.py 설정 블록 또는 export mapping 누락
@@ -189,7 +189,7 @@ mflow_tracking_url -> 오타, mlflow_tracking_url로 수정 안내
 로컬 tracking:
 
 ```text
-MLFLOW_TRACKING_URI=file://<project>/ai_studio/tracking
+MLFLOW_TRACKING_URI=file://<project>/aiu_studio/local_serving/aiu_studio
 MLFLOW_ALLOW_FILE_STORE=true
 MLflow artifact는 artifact_path="ai_studio" 아래 code/ 구조로 기록
 ```

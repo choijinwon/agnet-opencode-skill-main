@@ -14,6 +14,7 @@ EXPECTED_IGNORE_PATTERNS = [
     "node_modules/",
     "mlruns/",
     "ai_studio/tracking/",
+    "aiu_studio/local_serving/aiu_studio/",
     "ai_studio/metrics/",
     "ai_studio/code/",
     "saved_model/",

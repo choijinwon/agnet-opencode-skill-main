@@ -129,15 +129,16 @@ The first next action after folder copy must be environment validation. The seco
 
 ## Existing Model Flow
 
-If `model_found: true`, do not ask the user to choose a sample. Continue with the discovered model project path and use the model-found 11-step process.
+If `model_found: true`, do not ask the user to choose a sample. Continue with the discovered model project path and use the model-found 8-step process.
 
 Existing model assumptions:
 
 - The user's model file may be directly under the project root or anywhere under the recursive `data/**` tree. The folder name under `data/` is user-defined, not fixed. Supported suffixes are `.pkl`, `.joblib`, `.pt`, `.pth`, `.onnx`, `.keras`, `.h5`, `.safetensors`, `.bst`, and `.ubj`. Examples: `model.pkl`, `models/model.joblib`, `data/<any-folder>/model.joblib`, `data/checkpoints/model.pt`, or `data/models/model.safetensors`.
-- Copy the selected model file into `aiu_studio/models/<MODEL_KIND>/<filename>` and use that copied path for generated execution files.
+- Read and classify the selected model, then transform all copied `aiu_studio/` template files for that model.
+- Do not copy the selected model file into `aiu_studio/`. Generated/converted code must read the selected project model path directly.
 - If Linux paths contain Windows separators such as `\`, `＼`, `￦`, or `₩`, normalize them to `/` during generated file conversion.
 - Only `.opencode/samples/aiu_studio/` is copied to the project root as `aiu_studio/` for existing-model flow.
-- The confirmed generated entrypoint must read the selected model from `aiu_studio/models/<MODEL_KIND>/<filename>`.
+- The confirmed generated entrypoint must reflect the selected model path, MODEL_KIND, loader, wrapper, and mapping.
 - Prefer generated `aiu_studio/runtest_2.py` for selected-model tests. Do not modify the existing `runtest.py`.
 - Secret values must never be printed; report only `set`, `empty`, or `missing`.
 
@@ -164,14 +165,14 @@ Step 4. 모델 형식 판별
         확장자 기준으로 MODEL_KIND를 결정한다.
         예: .pkl -> sklearn_pickle, .pt -> pytorch, .onnx -> onnx
 
-Step 5. aiu_studio 폴더 복사
+Step 5. aiu_studio 템플릿 복사
         .opencode/samples/aiu_studio/ 폴더를 프로젝트 루트의 aiu_studio/로 그대로 복사한다.
-        aiu_studio/ 내부 파일 구성은 고정하지 않고 비교/수정하지 않는다.
-        기존 aiu_studio/가 있어도 skip 판단하지 않고 같은 이름 파일은 복사본으로 갱신한다.
-        선택 모델은 aiu_studio/models/<MODEL_KIND>/<filename>로 복사한다.
+        모델 파일은 aiu_studio/로 복사하지 않는다.
+        복사된 aiu_studio/ 내부 모든 템플릿 코드는 선택 모델 기준으로 변환/갱신한다.
+        기존 runtest.py는 수정하지 않는다.
 
-Step 6. 선택 모델 복사본 읽기
-        선택된 모델 복사본을 aiu_studio/ 폴더 안에서 읽도록 설정한다.
+Step 6. 선택 모델 읽기/판별
+        선택한 모델 경로를 읽어 MODEL_KIND와 로더 기준을 판별한다.
         MODEL_PATH = SOURCE_MODEL_PATH
 
 Step 7. runtest.py 참조
@@ -192,20 +193,19 @@ Step 8. runtest_2.py 변환/갱신
 Step 9. aiu_custom 파일 변환/갱신
         복사된 aiu_studio/aiu_custom/predict.py를 선택 모델 경로와 MODEL_KIND 기준으로 변환/갱신한다.
         aiu_studio/aiu_custom/mapping.json도 선택 모델 기준으로 변환/갱신한다.
-        ModelWrapper는 aiu_studio/models/<MODEL_KIND>/<filename> 복사본을 로드한다.
+        ModelWrapper는 선택 모델 기준 로더와 경로를 사용한다.
         추론 테스트는 변환된 ModelWrapper를 우선 사용한다.
 
-사용자에게 보여줄 TOD는 자동 처리 단계 3-9를 `자동 준비 실행` 하나로 묶어 간략히 표시한다. 모델 선택 이후에는 Launch 규칙이나 긴 세부 규칙을 다시 보여주지 않는다.
+사용자에게 보여줄 TOD는 아래 8단계로 고정한다. 모델 선택 이후에는 Launch 규칙이나 긴 세부 규칙을 다시 보여주지 않는다.
 
 ```text
-1. 루트/data 모델 목록 확인
-2. 사용할 모델 선택
-3. 자동 준비 실행
-   포함: 모델 프로젝트 구조 분석 + aiu_studio/ 복사 + aiu_studio/models/<MODEL_KIND>/ 모델 복사 + 환경변수 체크 + aiu_studio/runtest_2.py 변환/갱신 + aiu_studio/aiu_custom/predict.py 변환/갱신 + aiu_studio/aiu_custom/mapping.json 변환/갱신 + aiu_studio/local_serving/localservingtest.py 변환/갱신
-4. 환경 검증
+1. 모델 목록 확인
+2. 모델 경로로 선택
+3. aiu_studio/ 템플릿 복사 + 선택 모델 기준 전체 코드 변환
+4. 선택 모델 일치 확인
 5. 모델 환경변수 체크
 6. runtest_2.py 실행
-7. 추론 테스트
+7. 로컬 추론 테스트
 8. MLflow 검증
 ```
 
@@ -215,36 +215,38 @@ If the project has `aiu_studio/runtest_2.py` and the user enters only a TOD numb
 After executing any existing-model TOD number, always show the current `TOD Guide` status. Step 6 and Step 7 generated scripts also print TOD themselves.
 
 ```text
-4 -> python .opencode/scripts/check_environment.py --project . --entrypoint aiu_studio/runtest_2.py
+4 -> python .opencode/scripts/prepare_selected_model.py --project . --model selected
 5 -> python .opencode/scripts/check_environment.py --project . --entrypoint aiu_studio/runtest_2.py
 6 -> python aiu_studio/runtest_2.py
 7 -> python aiu_studio/local_serving/localservingtest.py
 8 -> python .opencode/scripts/verify_mlflow.py --tracking-uri <tracking-uri> --experiment-name <experiment-name>
 ```
 
+For `4`, always report it as `선택 모델 일치 확인`; compare selected model, `runtest_2.py`, `predict.py`, `mapping.json`, and `localservingtest.py`.
 For `5`, always report it as `모델 환경변수 체크`. The output must show the MLflow input values as `set`, `empty`, `missing`, `auto_default`, or `ssl_not_allowed`; never print secret values.
 
-Step 9. 환경 검증
-        Python, dependency, MLflow 설치 상태를 확인한다.
+Step 4. 선택 모델 일치 확인
+        selected_model_path, aiu_studio/runtest_2.py, aiu_studio/aiu_custom/predict.py, aiu_studio/aiu_custom/mapping.json, aiu_studio/local_serving/localservingtest.py가 같은 선택 모델을 가리키는지 확인한다.
 
-Step 10. 모델 환경변수 체크
+Step 5. 모델 환경변수 체크
         aiu_studio/runtest_2.py 또는 확정 entrypoint의 MLflow 입력값 3개와 자동값 2개를 확인한다.
         사용자가 입력할 값: mlflow_tracking_url, mlflow_tracking_username, mlflow_tracking_password.
         자동 생성값: mlflow_experiment_name, mlflow_register_model_name.
         두 자동값은 선택한 모델 파일명에서 확장자를 제거한 이름 기준으로 생성한다.
         상태는 set/empty/missing/auto_default로 표시한다.
 
-Step 11. runtest_2.py 실행
+Step 6. runtest_2.py 실행
         생성된 aiu_studio/runtest_2.py를 먼저 실행해 선택 모델 기준 변환/실행 파일을 확인한다.
         실행 시 작업 디렉터리는 aiu_studio/로 고정한다.
-        input_example.json, saved_model/, outputs/, mlruns/ 같은 상대경로 파일/산출물은 프로젝트 루트가 아니라 aiu_studio/ 아래에 생성되어야 한다.
+        mlflow_tracking_url이 비어 있으면 로컬 tracking 저장소는 mlruns/가 아니라 aiu_studio/local_serving/aiu_studio/ 아래에 생성되어야 한다.
+        input_example.json, saved_model/, outputs/ 같은 상대경로 파일/산출물은 프로젝트 루트가 아니라 aiu_studio/ 아래에 생성되어야 한다.
 
-Step 12. 추론 테스트
+Step 7. 로컬 추론 테스트
         aiu_studio/local_serving/localservingtest.py 기준으로 입력/출력 스키마를 확인한다.
         이 파일은 선택 모델 경로, MODEL_KIND, load_selected_model()을 반영해 생성한다.
         기본은 화면 출력만 수행하고 프로젝트 루트 local_serving/ 폴더를 생성하지 않는다.
 
-Step 13. MLflow 검증
+Step 8. MLflow 검증
         Run, artifact, registered model 기록을 확인한다.
 ```
 
@@ -267,7 +269,7 @@ python .opencode/scripts/prepare_selected_model.py --project <model-project-fold
 Describe that one command to the user as:
 
 ```text
-다음 작업 수행(한 번에): aiu_studio/ 복사 + 모델 복사 + runtest_2.py/predict.py/mapping.json/localservingtest.py 변환
+다음 작업 수행(한 번에): aiu_studio/ 템플릿 복사 + 선택 모델 기준 전체 코드 변환
 ```
 
 The first Build step for an existing model is always listing project-root and `data/**` model artifacts, selecting one model, and generating `aiu_studio/runtest_2.py` from `aiu_studio/runtest.py`, `runtest.py`, or `run_test.py`. Do not assume `run_model.py`. If none of those reference files exists, do not create a fake reference file automatically; ask the user to place the real reference file in the project.

@@ -158,6 +158,9 @@ CORE_PACKAGES = [
 ]
 
 EXPECTED_PYTHON_VERSION = "3.11.9"
+EXPECTED_PACKAGE_VERSIONS = {
+    "mlflow": "==3.10.0",
+}
 REQUIREMENT_OPERATORS = ["==", "!=", ">=", "<=", "~=", ">", "<"]
 
 
@@ -166,6 +169,7 @@ class PackageStatus:
     name: str
     status: str
     version: str | None = None
+    required_version: str = "any"
 
 
 @dataclass
@@ -312,25 +316,42 @@ def parse_requirement_line(raw_line: str) -> tuple[str, str] | None:
 
 def requirement_statuses(project: Path) -> list[RequirementStatus]:
     statuses: list[RequirementStatus] = []
+    seen: set[str] = set()
     requirements_path = project / "requirements.txt"
-    if not requirements_path.exists():
-        return statuses
-    for raw_line in requirements_path.read_text(encoding="utf-8", errors="ignore").splitlines():
-        parsed = parse_requirement_line(raw_line)
-        if parsed is None:
+    if requirements_path.exists():
+        for raw_line in requirements_path.read_text(encoding="utf-8", errors="ignore").splitlines():
+            parsed = parse_requirement_line(raw_line)
+            if parsed is None:
+                continue
+            name, required_spec = parsed
+            seen.add(name)
+            installed = package_version(name)
+            if installed is None:
+                status = "missing"
+            else:
+                status = version_constraint_status(installed, required_spec)
+            statuses.append(
+                RequirementStatus(
+                    source="requirements.txt",
+                    requirement=strip_inline_comment(raw_line),
+                    name=name,
+                    required_version=required_spec or "any",
+                    installed_version=installed,
+                    status=status,
+                )
+            )
+    for name, required_spec in EXPECTED_PACKAGE_VERSIONS.items():
+        normalized = normalize_package_name(name)
+        if normalized in seen:
             continue
-        name, required_spec = parsed
-        installed = package_version(name)
-        if installed is None:
-            status = "missing"
-        else:
-            status = version_constraint_status(installed, required_spec)
+        installed = package_version(normalized)
+        status = "missing" if installed is None else version_constraint_status(installed, required_spec)
         statuses.append(
             RequirementStatus(
-                source="requirements.txt",
-                requirement=strip_inline_comment(raw_line),
-                name=name,
-                required_version=required_spec or "any",
+                source="expected",
+                requirement=f"{name}{required_spec}",
+                name=normalized,
+                required_version=required_spec,
                 installed_version=installed,
                 status=status,
             )
@@ -618,7 +639,9 @@ def build_report(project: Path, entrypoint_name: str | None = None) -> Environme
     packages = []
     for package in CORE_PACKAGES:
         version = package_version(package)
-        packages.append(PackageStatus(package, "set" if version else "missing", version))
+        required_spec = EXPECTED_PACKAGE_VERSIONS.get(normalize_package_name(package), "any")
+        status = "missing" if version is None else ("set" if required_spec == "any" else version_constraint_status(version, required_spec))
+        packages.append(PackageStatus(package, status, version, required_spec))
     requirements = requirement_statuses(project)
 
     env_vars = [EnvVarStatus(key, env_status(key)) for key in ENV_KEYS]
@@ -641,13 +664,13 @@ def build_report(project: Path, entrypoint_name: str | None = None) -> Environme
     if existing_model_flow:
         entrypoint_display = entrypoint or "사용자가 실제 사용하는 파일명"
         tod_guide = [
-            "1. 루트/data 모델 목록 확인: 프로젝트 루트 전체와 data/**에서 사용할 모델 후보를 확인한다.",
-            "2. 사용할 모델 선택: prepare_selected_model.py --model <번호|경로>로 선택한다.",
-            "3. 자동 준비 실행: aiu_studio/ 폴더 그대로 복사와 aiu_studio/runtest_2.py 생성은 prepare_selected_model.py가 처리한다.",
-            "4. 환경 검증: 현재 출력의 Python, dependency, MLflow 설치 상태를 확인한다.",
+            "1. 모델 목록 확인: 프로젝트 루트 전체와 data/**에서 사용할 모델 후보를 확인한다.",
+            "2. 모델 경로로 선택: prepare_selected_model.py --model <경로> 또는 --model selected로 선택한다.",
+            "3. aiu_studio/ 템플릿 복사 + 선택 모델 기준 전체 코드 변환: prepare_selected_model.py가 처리한다.",
+            "4. 선택 모델 일치 확인: 선택 모델 원본 경로, runtest_2.py, predict.py, mapping.json이 같은 모델을 가리키는지 확인한다.",
             f"5. 모델 환경변수 체크: {entrypoint_display}의 MLflow 입력값 3개와 자동값 2개를 set/empty/missing/auto_default/ssl_not_allowed로 확인한다.",
             f"6. runtest_2.py 실행: python {entrypoint_display} 로 선택 모델 기준 변환/실행 파일을 먼저 실행한다.",
-            "7. 추론 테스트: aiu_custom/predict.py 또는 test_inference.py 기준으로 입력/출력 스키마를 확인한다.",
+            "7. 로컬 추론 테스트: aiu_studio/local_serving/localservingtest.py 기준으로 입력/출력 스키마를 확인한다.",
             "8. MLflow 검증: Run, artifact, registered model 기록을 확인한다.",
         ]
         if entrypoint is None:
@@ -738,7 +761,8 @@ def print_text(report: EnvironmentReport):
     print("\nPackages:")
     for package in report.packages:
         suffix = f" {package.version}" if package.version else ""
-        print(f"- {package.name}: {package.status}{suffix}")
+        expected = f" (expected: {package.required_version})" if package.required_version != "any" else ""
+        print(f"- {package.name}: {package.status}{suffix}{expected}")
     if report.requirements:
         print("\nDependency check from requirements.txt:")
         for item in report.requirements:

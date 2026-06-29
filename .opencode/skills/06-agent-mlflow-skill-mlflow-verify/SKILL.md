@@ -89,7 +89,7 @@ python .opencode/scripts/verify_mlflow.py --project <project> --experiment-name 
 local metrics   -> ai_studio/metrics/
 local code      -> ai_studio/code/
 MLflow artifact -> artifacts/ai_studio/code/
-tracking store  -> ai_studio/tracking/
+tracking store  -> aiu_studio/local_serving/aiu_studio/
 ```
 
 <details>

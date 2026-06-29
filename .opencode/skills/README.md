@@ -53,19 +53,19 @@ Step 2. 모델 경로로 선택
         model_artifact_paths를 번호로 보여주되, 자동 준비에는 실제 경로 선택을 우선한다.
         번호는 현재 출력된 목록 순서에 의존한다. 이미 준비된 선택 모델은 --model selected로 재사용한다.
         선택이 없으면 자동 준비를 진행하지 않고 선택 요청으로 멈춘다.
-Step 3. aiu_studio/ 템플릿 복사 + 선택 모델 기준 전체 코드 변환
-        aiu_studio/ 폴더를 그대로 복사하고, MODEL_KIND 판별 후 복사된 aiu_studio 파일들을 선택 모델 기준으로 변환/갱신한다.
-Step 4. 선택 모델 일치 확인
-        selected_model_path, runtest_2.py, aiu_custom/model.py, mapping.json, localservingtest.py가 같은 선택 모델 원본 경로를 가리키는지 확인한다.
+Step 3. 선택 모델 환경 변환
+        aiu_studio/ 폴더를 그대로 복사하고, MODEL_KIND 판별 후 복사된 aiu_studio 파일들을 선택 모델 환경에 맞게 변환/갱신한다.
+        변환 대상은 모델 로더, 데이터 준비, input_example, MLflow 경로, local serving, 선택 모델 관련 주석이다.
+        내부 일치 검증은 자동으로 수행하며 사용자에게 파일별 확인 목록을 요구하지 않는다.
         predict.py는 코드 변환 대상이 아니며 선택 모델 required_package import 상태만 확인한다.
-Step 5. 모델 환경변수 체크
+Step 4. 모델 환경변수 체크
         입력값 3개와 자동값 2개 상태를 확인한다.
-Step 6. 원격 MLflow 배포/등록 실행
+Step 5. 원격 MLflow 배포/등록 실행
         aiu_studio/runtest_2.py를 먼저 실행해 선택 모델 기준 변환/실행 파일을 확인한다.
-Step 7. 추론 스모크 테스트
-        aiu_studio/local_serving/localservingtest.py 기준으로 입력/출력 스키마를 확인한다.
+Step 6. 추론 스모크 테스트
+        선택 모델 환경으로 변환된 local serving 입력/출력 스키마를 확인한다.
         기본은 화면 출력만 수행하고 프로젝트 루트 local_serving/ 폴더를 생성하지 않는다.
-Step 8. MLflow 검증
+Step 7. MLflow 검증
         Run, artifact, registered model 기록을 확인한다.
 ```
 

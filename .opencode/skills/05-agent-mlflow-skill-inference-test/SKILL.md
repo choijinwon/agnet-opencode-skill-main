@@ -31,7 +31,7 @@ metadata:
 5. predict 실행
 6. 출력 schema 확인. 기본은 화면 출력만 수행하고 프로젝트 루트 local_serving/ 폴더를 생성하지 않음
 7. 추론 테스트 완료
-8. MLflow 검증으로 이동
+7. MLflow 검증으로 이동
 ```
 
 ## What To Do Now

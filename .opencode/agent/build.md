@@ -200,17 +200,16 @@ Step 9. aiu_custom 파일 확인
         aiu_studio/aiu_custom/mapping.json도 선택 모델 기준으로 변환/갱신한다.
         추론 테스트는 aiu_studio/aiu_custom/model.py의 ModelWrapper를 우선 사용한다.
 
-사용자에게 보여줄 TOD는 아래 8단계로 고정한다. 모델 선택 이후에는 Launch 규칙이나 긴 세부 규칙을 다시 보여주지 않는다.
+사용자에게 보여줄 TOD는 아래 7단계로 고정한다. 모델 선택 이후에는 Launch 규칙이나 긴 세부 규칙을 다시 보여주지 않는다.
 
 ```text
 1. 모델 목록 확인
 2. 모델 경로로 선택
-3. aiu_studio/ 템플릿 복사 + 선택 모델 기준 전체 코드 변환
-4. 선택 모델 일치 확인
-5. 모델 환경변수 체크
-6. 원격 MLflow 배포/등록 실행
-7. 추론 스모크 테스트
-8. MLflow 검증
+3. 선택 모델 환경 변환
+4. 모델 환경변수 체크
+5. 원격 MLflow 배포/등록 실행
+6. 추론 스모크 테스트
+7. MLflow 검증
 ```
 
 ## Existing Model TOD Number Input
@@ -219,11 +218,11 @@ If the project has `aiu_studio/runtest_2.py` and the user enters only a TOD numb
 After executing any existing-model TOD number, always show the current `TOD Guide` status. Step 6 and Step 7 generated scripts also print TOD themselves.
 
 ```text
-4 -> python .opencode/scripts/prepare_selected_model.py --project . --model selected
-5 -> python .opencode/scripts/check_environment.py --project . --entrypoint aiu_studio/runtest_2.py
-6 -> python aiu_studio/runtest_2.py
-7 -> python aiu_studio/local_serving/localservingtest.py
-8 -> python .opencode/scripts/verify_mlflow.py --tracking-uri <tracking-uri> --experiment-name <experiment-name>
+3 -> python .opencode/scripts/prepare_selected_model.py --project . --model selected --execute
+4 -> python .opencode/scripts/check_environment.py --project . --entrypoint aiu_studio/runtest_2.py
+5 -> python aiu_studio/runtest_2.py
+6 -> python aiu_studio/local_serving/localservingtest.py
+7 -> python .opencode/scripts/verify_mlflow.py --tracking-uri <tracking-uri> --experiment-name <experiment-name>
 ```
 
 On Windows PowerShell, run Step 6 from the selected project's `aiu_studio` folder:
@@ -239,34 +238,36 @@ cd '<selected-project-path>'
 python '<opencode-package-path>\.opencode\scripts\verify_mlflow.py' --project '<selected-project-path>' --tracking-uri <tracking-uri> --experiment-name <experiment-name>
 ```
 
-For `4`, always report it as `선택 모델 일치 확인`; compare selected model, `runtest_2.py`, `model.py`, `mapping.json`, and `localservingtest.py`. For `predict.py`, check import compatibility only.
-For `5`, always report it as `모델 환경변수 체크`. The output must show the MLflow input values as `set`, `empty`, `missing`, `auto_default`, or `ssl_not_allowed`; never print secret values.
+For `3`, always report it as `선택 모델 환경 변환`; copy `aiu_studio/` and transform copied runtime files for the selected model kind, model loader, data preparation, comments, MLflow paths, and local serving behavior. Do not ask the user to inspect individual generated files.
+For `4`, always report it as `모델 환경변수 체크`. The output must show the MLflow input values as `set`, `empty`, `missing`, `auto_default`, or `ssl_not_allowed`; never print secret values.
 
-Step 4. 선택 모델 일치 확인
-        selected_model_path, aiu_studio/runtest_2.py, aiu_studio/aiu_custom/model.py, aiu_studio/aiu_custom/mapping.json, aiu_studio/local_serving/localservingtest.py가 같은 선택 모델을 가리키는지 확인한다.
+Step 3. 선택 모델 환경 변환
+        사용자가 선택한 모델 경로와 MODEL_KIND를 기준으로 aiu_studio/ 폴더를 복사하고 모델 환경에 맞게 변환한다.
+        변환 대상은 모델 로더, 데이터 준비, input_example, MLflow artifact/code_paths, local serving 동작, 선택 모델 관련 주석이다.
+        내부 일치 검증은 자동으로 수행하되 사용자에게 파일별 확인 목록을 길게 보여주지 않는다.
         aiu_studio/aiu_custom/predict.py는 코드 변환 대상이 아니며 선택 모델 required_package import 상태만 확인한다.
 
-Step 5. 모델 환경변수 체크
+Step 4. 모델 환경변수 체크
         aiu_studio/runtest_2.py 또는 확정 entrypoint의 MLflow 입력값 3개와 자동값 2개를 확인한다.
         사용자가 입력할 값: mlflow_tracking_url, mlflow_tracking_username, mlflow_tracking_password.
         자동 생성값: mlflow_experiment_name, mlflow_register_model_name.
         두 자동값은 선택한 모델 파일명에서 확장자를 제거한 이름 기준으로 생성한다.
         상태는 set/empty/missing/auto_default로 표시한다.
 
-Step 6. 원격 MLflow 배포/등록 실행
+Step 5. 원격 MLflow 배포/등록 실행
         생성된 aiu_studio/runtest_2.py를 실행해 선택 모델을 원격 MLflow tracking 서버에 기록/등록한다.
         Windows PowerShell에서는 cd '<selected-project-path>\aiu_studio' 후 python runtest_2.py로 실행한다.
         실행 시 작업 디렉터리는 aiu_studio/로 고정한다.
         mlflow_tracking_url 기본값은 ""이며, 사용자가 직접 입력해야 한다.
         input_example.json, saved_model/, outputs/ 같은 상대경로 파일/산출물은 프로젝트 루트가 아니라 aiu_studio/ 아래에 생성되어야 한다.
 
-Step 7. 추론 스모크 테스트
+Step 6. 추론 스모크 테스트
         aiu_studio/local_serving/localservingtest.py 기준으로 입력/출력 스키마를 확인한다.
         Windows PowerShell에서는 cd '<selected-project-path>\aiu_studio\local_serving' 후 python localservingtest.py로 실행한다.
         이 파일은 선택 모델 경로, MODEL_KIND, load_selected_model()을 반영해 생성한다.
         기본은 화면 출력만 수행하고 프로젝트 루트 local_serving/ 폴더를 생성하지 않는다.
 
-Step 8. MLflow 검증
+Step 7. MLflow 검증
         Run, artifact, registered model 기록을 확인한다.
         Windows PowerShell에서는 cd '<selected-project-path>' 후 python '<opencode-package-path>\.opencode\scripts\verify_mlflow.py' --project '<selected-project-path>' --tracking-uri <tracking-uri> --experiment-name <experiment-name>로 실행한다.
 ```
@@ -290,7 +291,7 @@ python .opencode/scripts/prepare_selected_model.py --project <model-project-fold
 Describe that one command to the user as:
 
 ```text
-다음 작업 수행(한 번에): aiu_studio/ 템플릿 복사 + 선택 모델 기준 전체 코드 변환
+다음 작업 수행(한 번에): 선택 모델 환경 변환
 ```
 
 The first Build step for an existing model is always listing project-root and `data/**` model artifacts, selecting one model, and generating `aiu_studio/runtest_2.py` from `aiu_studio/runtest.py`, `runtest.py`, or `run_test.py`. Do not assume `run_model.py`. If none of those reference files exists, do not create a fake reference file automatically; ask the user to place the real reference file in the project.

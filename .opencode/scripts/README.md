@@ -22,33 +22,31 @@ Step 1  모델 목록 확인
 Step 2  모델 경로로 선택
         prepare_selected_model.py
 
-Step 3  aiu_studio/ 템플릿 복사 + 선택 모델 기준 전체 코드 변환
+Step 3  선택 모델 환경 변환
         prepare_selected_model.py
 
-Step 4  선택 모델 일치 확인
-        prepare_selected_model.py --model selected
-
-Step 5  모델 환경변수 체크
+Step 4  모델 환경변수 체크
         check_environment.py
 
-Step 6  원격 MLflow 배포/등록 실행
+Step 5  원격 MLflow 배포/등록 실행
         aiu_studio/runtest_2.py
         input_example.json은 프로젝트 루트가 아니라 aiu_studio/input_example.json에 있어야 하며, 상대경로 산출물도 aiu_studio/ 아래에 생성되도록 실행 시 작업 디렉터리를 aiu_studio/로 고정한다.
 
-Step 7  추론 스모크 테스트
+Step 6  추론 스모크 테스트
         aiu_studio/local_serving/localservingtest.py
 
-Step 8  MLflow 검증
+Step 7  MLflow 검증
         verify_mlflow.py
 ```
 
 기존 모델 흐름에서 `aiu_studio/runtest_2.py`가 있으면 Build 모드 숫자 입력은 TOD 단계로 처리한다.
 
 ```text
-5 -> python .opencode/scripts/check_environment.py --project . --entrypoint aiu_studio/runtest_2.py
-6 -> python aiu_studio/runtest_2.py
-7 -> python aiu_studio/local_serving/localservingtest.py
-8 -> python .opencode/scripts/verify_mlflow.py --tracking-uri <tracking-uri> --experiment-name <experiment-name>
+3 -> python .opencode/scripts/prepare_selected_model.py --project . --model selected --execute
+4 -> python .opencode/scripts/check_environment.py --project . --entrypoint aiu_studio/runtest_2.py
+5 -> python aiu_studio/runtest_2.py
+6 -> python aiu_studio/local_serving/localservingtest.py
+7 -> python .opencode/scripts/verify_mlflow.py --tracking-uri <tracking-uri> --experiment-name <experiment-name>
 ```
 
 Windows PowerShell에서는 선택 프로젝트의 실행 폴더로 이동한 뒤 실행한다.

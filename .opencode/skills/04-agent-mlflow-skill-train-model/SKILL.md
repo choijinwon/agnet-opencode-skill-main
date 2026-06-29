@@ -26,12 +26,11 @@ metadata:
 ```text
 1. 모델 목록 확인
 2. 모델 경로로 선택
-3. aiu_studio/ 템플릿 복사 + 선택 모델 기준 전체 코드 변환
-4. 선택 모델 일치 확인
-5. 모델 환경변수 체크
-6. 원격 MLflow 배포/등록 실행
-7. 추론 스모크 테스트
-8. MLflow 검증
+3. 선택 모델 환경 변환
+4. 모델 환경변수 체크
+5. 원격 MLflow 배포/등록 실행
+6. 추론 스모크 테스트
+7. MLflow 검증
 ```
 
 ## What To Do Now
@@ -168,12 +167,11 @@ blocked:
 ```text
 1. 모델 목록 확인
 2. 모델 경로로 선택
-3. aiu_studio/ 템플릿 복사 + 선택 모델 기준 전체 코드 변환
-4. 선택 모델 일치 확인
-5. MLflow 입력값 3개와 자동값 2개 상태 확인
-6. aiu_studio/runtest_2.py 원격 MLflow 배포/등록 실행
-7. aiu_studio/local_serving/localservingtest.py로 추론 입력/출력 확인
-8. MLflow run, artifact, registered model 검증
+3. 선택 모델 환경 변환
+4. MLflow 입력값 3개와 자동값 2개 상태 확인
+5. aiu_studio/runtest_2.py 원격 MLflow 배포/등록 실행
+6. 선택 모델 환경으로 변환된 local serving 입력/출력 확인
+7. MLflow run, artifact, registered model 검증
 ```
 
 샘플 모델 흐름:

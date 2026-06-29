@@ -1175,12 +1175,11 @@ def _aiu_print_existing_model_tod():
     print("\\nTOD Guide:")
     print("- 1. 모델 목록 확인 - 완료")
     print("- 2. 모델 경로로 선택 - 완료")
-    print("- 3. aiu_studio/ 템플릿 복사 + 선택 모델 기준 전체 코드 변환 - 완료")
-    print("- 4. 선택 모델 일치 확인 - 완료")
-    print("- 5. 모델 환경변수 체크 - 다음")
-    print("- 6. 원격 MLflow 배포/등록 실행 - 완료")
-    print("- 7. 추론 스모크 테스트 - 다음")
-    print("- 8. MLflow 검증 - 다음")
+    print("- 3. 선택 모델 환경 변환 - 완료")
+    print("- 4. 모델 환경변수 체크 - 다음")
+    print("- 5. 원격 MLflow 배포/등록 실행 - 완료")
+    print("- 6. 추론 스모크 테스트 - 다음")
+    print("- 7. MLflow 검증 - 다음")
 
 _aiu_atexit.register(_aiu_print_existing_model_tod)
 # --- /AIU Studio selected model conversion ---
@@ -1519,12 +1518,11 @@ def _print_tod(local_status="완료"):
     print("\\nTOD Guide:")
     print("- 1. 모델 목록 확인 - 완료")
     print("- 2. 모델 경로로 선택 - 완료")
-    print("- 3. aiu_studio/ 템플릿 복사 + 선택 모델 기준 전체 코드 변환 - 완료")
-    print("- 4. 선택 모델 일치 확인 - 완료")
-    print("- 5. 모델 환경변수 체크 - 다음")
-    print("- 6. 원격 MLflow 배포/등록 실행 - 완료")
-    print(f"- 7. 추론 스모크 테스트 - {{local_status}}")
-    print("- 8. MLflow 검증 - 다음")
+    print("- 3. 선택 모델 환경 변환 - 완료")
+    print("- 4. 모델 환경변수 체크 - 다음")
+    print("- 5. 원격 MLflow 배포/등록 실행 - 완료")
+    print(f"- 6. 추론 스모크 테스트 - {{local_status}}")
+    print("- 7. MLflow 검증 - 다음")
 
 
 def main():
@@ -1956,7 +1954,7 @@ def build_report(args: argparse.Namespace) -> PreparedModelReport:
     if args.execute and not report.failures:
         report.next_steps.extend(
             [
-                "자동 준비 완료: 모델 프로젝트 구조 분석 + aiu_studio/ 템플릿 복사 + 선택 모델 기준 전체 코드 변환/갱신",
+                "자동 준비 완료: 모델 프로젝트 구조 분석 + 선택 모델 환경 변환",
                 "PowerShell에서는 선택 프로젝트의 aiu_studio 폴더로 이동한 뒤 실행하세요.",
                 f"cd {powershell_quote_path(project / AIU_STUDIO_DIR_NAME)}",
                 "python runtest_2.py",
@@ -2036,12 +2034,11 @@ def print_report(report: PreparedModelReport) -> None:
     )
     print("1. 모델 목록 확인 - 완료" if report.model_artifact_paths else "1. 모델 목록 확인 - 모델 없음")
     print("2. 모델 경로로 선택 - 완료" if model_selected else "2. 모델 경로로 선택 - 대기")
-    print("3. aiu_studio/ 템플릿 복사 + 선택 모델 기준 전체 코드 변환 - 완료" if auto_ready else "3. aiu_studio/ 템플릿 복사 + 선택 모델 기준 전체 코드 변환 - 대기")
-    print("4. 선택 모델 일치 확인 - 완료" if auto_ready else "4. 선택 모델 일치 확인 - 대기")
-    print("5. 모델 환경변수 체크 - 다음")
-    print("6. 원격 MLflow 배포/등록 실행 - 다음")
-    print("7. 추론 스모크 테스트 - 다음")
-    print("8. MLflow 검증 - 다음")
+    print("3. 선택 모델 환경 변환 - 완료" if auto_ready else "3. 선택 모델 환경 변환 - 대기")
+    print("4. 모델 환경변수 체크 - 다음")
+    print("5. 원격 MLflow 배포/등록 실행 - 다음")
+    print("6. 추론 스모크 테스트 - 다음")
+    print("7. MLflow 검증 - 다음")
     if report.next_steps:
         print("Next steps:")
         for step in report.next_steps:

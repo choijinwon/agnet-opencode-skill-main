@@ -660,10 +660,10 @@ def check_ai_studio_code(project: Path, setting_file_arg: str | None) -> DoctorC
     else:
         missing.append("AI Studio artifact/output path")
 
-    if "aiu_custom" in text or "ModelWrapper" in text or "code_paths" in text or (project / "aiu_custom").exists():
-        evidence.append("aiu_custom/code_paths marker: found")
+    if "aiu_custom" in text or "ModelWrapper" in text or (project / "aiu_custom").exists():
+        evidence.append("aiu_custom/ModelWrapper marker: found")
     else:
-        missing.append("aiu_custom wrapper/code_paths marker")
+        missing.append("aiu_custom wrapper marker")
 
     if missing:
         return DoctorCheck(
@@ -674,7 +674,7 @@ def check_ai_studio_code(project: Path, setting_file_arg: str | None) -> DoctorC
             [
                 f"{rel(setting_file, project)}에 MLflow 설정 블록 5개와 MLFLOW_* export를 추가하세요.",
                 "MLflow artifact는 artifact_path=\"ai_studio\" 기준으로 기록되게 맞추세요.",
-                "aiu_custom ModelWrapper 또는 code_paths 사용 여부를 확인하세요.",
+                "aiu_custom ModelWrapper 사용 여부를 확인하세요.",
             ],
         )
     return DoctorCheck("AI Studio 코드 적합성", "pass", "실행 파일에 AI Studio/MLflow 연동 마커가 있습니다.", evidence)

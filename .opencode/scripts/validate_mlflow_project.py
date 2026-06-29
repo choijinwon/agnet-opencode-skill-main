@@ -394,13 +394,12 @@ def find_training_entrypoints(project: Path) -> list[Path]:
 
 
 def check_aiu_custom(project: Path, entrypoints: list[Path]) -> Check:
-    # AI Studio style pyfunc registration depends on aiu_custom being shipped
-    # with the model project because mlflow.pyfunc.log_model uses it through
-    # code_paths and ModelWrapper.
+    # AI Studio style pyfunc registration depends on the aiu_custom wrapper
+    # being present with the model project.
     entrypoint_text = "\n".join(read_text(path) for path in entrypoints)
     required = any(
         marker in entrypoint_text
-        for marker in ["aiu_custom", "ModelWrapper", "code_paths", "PythonModel"]
+        for marker in ["aiu_custom", "ModelWrapper", "PythonModel"]
     )
     aiu_dir = project / "aiu_custom"
     model_wrapper_file = aiu_dir / "model_wrapper.py"
@@ -446,9 +445,6 @@ def check_aiu_custom(project: Path, entrypoints: list[Path]) -> Check:
         missing.append("aiu_custom/model_wrapper.py or aiu_custom/predict.py")
     if predict_file.exists() and "ModelWrapper" not in predict_text:
         missing.append("ModelWrapper class")
-    if re.search(r"\bcode_paths\s*=\s*(\[\s*\]|None)(?:\s*[,)]|\s*$)", entrypoint_text):
-        missing.append("code_paths must include existing aiu_studio/ folder paths such as aiu_studio/local_serving/")
-
     if missing:
         return Check(
             "AI Studio custom wrapper",

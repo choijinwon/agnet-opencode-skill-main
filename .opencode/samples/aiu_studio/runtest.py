@@ -174,7 +174,6 @@ def main() -> None:
         mlflow.pyfunc.log_model(
             artifact_path="ai_studio",
             python_model=ModelWrapper(),
-            code_paths=["aiu_custom"],
             artifacts={
                 "model": MODEL_PATH.as_posix(),
                 "config": CONFIG_PATH.as_posix(),

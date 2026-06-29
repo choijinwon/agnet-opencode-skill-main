@@ -100,10 +100,6 @@ MODEL_RELATED_SETTING_NAMES = {
     "model_load_hint",
     "REQUIRED_PACKAGE",
     "required_package",
-    "CODE_PATHS",
-    "code_paths",
-    "MLFLOW_CODE_PATHS",
-    "mlflow_code_paths",
     "INPUT_EXAMPLE_PATH",
     "input_example_path",
     "INPUT_EXAMPLE_FILE",
@@ -897,39 +893,6 @@ def rewrite_summary_line(line: str, kind: str) -> str:
     )
 
 
-def rewrite_code_paths_argument(line: str) -> str:
-    if "code_paths" not in line:
-        return line
-    suffix = "\n" if line.endswith("\n") else ""
-    body = line.rstrip("\n")
-    converted = re.sub(r"\bcode_paths\s*=\s*\[\s*\]", "code_paths=AIU_CODE_PATHS", body)
-    converted = re.sub(r"\bcode_paths\s*=\s*None\b", "code_paths=AIU_CODE_PATHS", converted)
-    if converted == body:
-        return line
-    code, comment = split_inline_comment(converted)
-    converted_comment = comment or "# AIU Studio 변환: 워크스페이스 내부 실제 코드 폴더 경로를 사용합니다."
-    return f"{code}  {converted_comment}{suffix}"
-
-
-def code_paths_multiline_empty_start(line: str) -> bool:
-    code, _ = split_inline_comment(line.rstrip("\n"))
-    return bool(re.search(r"\bcode_paths\s*=\s*\[\s*$", code))
-
-
-def code_paths_multiline_empty_end(line: str) -> bool:
-    return line.strip().rstrip(",") == "]"
-
-
-def converted_code_paths_line(line: str) -> str:
-    suffix = "\n" if line.endswith("\n") else ""
-    indent = line[: len(line) - len(line.lstrip())]
-    return (
-        f"{indent}code_paths=AIU_CODE_PATHS  "
-        "# AIU Studio 변환: 워크스페이스 내부 실제 코드 폴더 경로를 사용합니다."
-        f"{suffix}"
-    )
-
-
 def import_package_for_line(line: str) -> tuple[str, str] | None:
     stripped = line.strip()
     match = re.match(r"import\s+([A-Za-z_][A-Za-z0-9_]*)\b", stripped)
@@ -970,7 +933,6 @@ def rewrite_reference_line(line: str, selected_relative: str, kind: str, load_hi
     converted = rewrite_model_string_literals(line, selected_relative, kind, load_hint)
     converted = rewrite_path_separator_literals(converted)
     converted = rewrite_input_example_literals(converted)
-    converted = rewrite_code_paths_argument(converted)
     converted = rewrite_data_prep_call_line(converted, kind)
     converted = rewrite_model_prep_line(converted, kind)
     converted = rewrite_summary_line(converted, kind)
@@ -979,8 +941,7 @@ def rewrite_reference_line(line: str, selected_relative: str, kind: str, load_hi
 
 def rewrite_preserved_line(line: str) -> str:
     converted = rewrite_path_separator_literals(line)
-    converted = rewrite_input_example_literals(converted)
-    return rewrite_code_paths_argument(converted)
+    return rewrite_input_example_literals(converted)
 
 
 SAFE_EXECUTION_REGISTRATION_FIELDS = {
@@ -1018,7 +979,6 @@ def transform_reference_text(
     future_import_pattern = re.compile(r"^\s*from\s+__future__\s+import\s+")
     import_pattern = re.compile(r"^\s*(import\s+[A-Za-z_][A-Za-z0-9_]*(?:\s+as\s+[A-Za-z_][A-Za-z0-9_]*)?|from\s+[A-Za-z_][A-Za-z0-9_.]*\s+import\s+.+)")
     assignment_pattern = re.compile(r"^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$")
-    skip_empty_code_paths_list = False
 
     insert_at = 0
     if lines and lines[0].startswith("#!"):
@@ -1050,22 +1010,12 @@ def transform_reference_text(
         break
 
     for index, line in enumerate(lines):
-        if skip_empty_code_paths_list:
-            if code_paths_multiline_empty_end(line):
-                skip_empty_code_paths_list = False
-            continue
-
         if not preserve_code and index == insert_at and not inserted:
             output.append(injected_block)
             inserted = True
 
         stripped = line.lstrip()
         indent = line[: len(line) - len(stripped)]
-        if code_paths_multiline_empty_start(line):
-            output.append(converted_code_paths_line(line))
-            skip_empty_code_paths_list = True
-            continue
-
         if not preserve_code and stripped.startswith("#") and not re.match(r"^#.*coding[:=]", stripped):
             next_index = index + 1
             while next_index < len(lines) and not lines[next_index].strip():
@@ -1086,10 +1036,6 @@ def transform_reference_text(
             continue
 
         name, raw_value = match.groups()
-        if stripped.rstrip("\n").rstrip().endswith(",") and name in {"CODE_PATHS", "code_paths", "MLFLOW_CODE_PATHS", "mlflow_code_paths"}:
-            output.append(rewrite_preserved_line(line) if preserve_code else rewrite_reference_line(line, selected_relative, kind, load_hint, required_package))
-            continue
-
         expression = replacement_expression(name, replacements)
         if expression is None:
             output.append(rewrite_preserved_line(line) if preserve_code else rewrite_reference_line(line, selected_relative, kind, load_hint, required_package))
@@ -1188,20 +1134,6 @@ saved_model_dir = str(MODEL_OUTPUT_DIR)
 _aiu_os.chdir(AI_STUDIO_DIR)
 CONFIG_DIR.mkdir(parents=True, exist_ok=True)
 MODEL_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-
-def _aiu_existing_code_paths():
-    candidates = [
-        AI_STUDIO_DIR / "aiu_custom",
-        AI_STUDIO_DIR / "local_serving",
-    ]
-    return [str(path) for path in candidates if path.exists()]
-
-# MLflow pyfunc log_model(code_paths=...)에는 워크스페이스 내부의 실제 코드 폴더만 전달합니다.
-AIU_CODE_PATHS = _aiu_existing_code_paths()
-CODE_PATHS = AIU_CODE_PATHS
-code_paths = AIU_CODE_PATHS
-MLFLOW_CODE_PATHS = AIU_CODE_PATHS
-mlflow_code_paths = AIU_CODE_PATHS
 
 # MLflow/AI Studio settings
 # tracking URL, username, password는 사용자가 직접 입력합니다.
@@ -1435,7 +1367,7 @@ from aiu_custom.predict import ModelWrapper
 
 logging.getLogger("mlflow").setLevel(logging.ERROR)
 
-# 선택 모델 실행/등록에 필요한 연결부만 안전하게 변환합니다.
+# 선택 모델 실행/등록에 필요한 연결부만 안전하게 변환해줘.
 
 RUNTEST_2_SEQUENCE = {json.dumps(sequence, ensure_ascii=False, indent=4)}
 PROJECT_DIR = Path({absolute_path_text(project)!r})
@@ -1450,7 +1382,6 @@ REFERENCE_ENTRYPOINT = Path({absolute_path_text(reference)!r})
 INPUT_EXAMPLE_PATH = PROJECT_DIR / "input_example.json"
 CONFIG_DIR = PROJECT_DIR / "config"
 CONFIG_PATH = CONFIG_DIR / "config.json"
-AIU_CODE_PATHS = [str(path) for path in [PROJECT_DIR / "aiu_custom", PROJECT_DIR / "local_serving"] if path.exists()]
 
 # AI 환경 설정
 # 할당 받은 MLflow tracking server 값을 사용자가 직접 입력합니다.
@@ -1544,7 +1475,6 @@ def main() -> None:
         mlflow.pyfunc.log_model(
             artifact_path="ai_studio",
             python_model=ModelWrapper(),
-            code_paths=AIU_CODE_PATHS,
             artifacts={{
                 "model": str(MODEL_PATH),
                 "config": str(config_path),
@@ -1652,10 +1582,6 @@ def generated_runtest_text(project: Path, selected_model: Path, kind: str, refer
         "model_load_hint": "AIU_LOAD_HINT",
         "REQUIRED_PACKAGE": "AIU_REQUIRED_PACKAGE",
         "required_package": "AIU_REQUIRED_PACKAGE",
-        "CODE_PATHS": "AIU_CODE_PATHS",
-        "code_paths": "AIU_CODE_PATHS",
-        "MLFLOW_CODE_PATHS": "AIU_CODE_PATHS",
-        "mlflow_code_paths": "AIU_CODE_PATHS",
         "mlflow_tracking_url": '""',
         "mlflow_tracking_username": '""',
         "mlflow_tracking_password": '""',

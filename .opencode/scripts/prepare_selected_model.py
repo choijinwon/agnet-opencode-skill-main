@@ -422,6 +422,10 @@ def powershell_quote_path(path: Path) -> str:
     return "'" + str(path).replace("'", "''") + "'"
 
 
+def powershell_set_project_location(path: Path) -> str:
+    return f"Set-Location -LiteralPath {powershell_quote_path(path)}"
+
+
 def selected_model_display_name(project: Path, selected_model: Path) -> str:
     stem = selected_model.stem
     parent_name = selected_model.parent.name
@@ -1674,13 +1678,13 @@ def build_report(args: argparse.Namespace) -> PreparedModelReport:
         report.next_steps.extend(
             [
                 "자동 준비 완료: 모델 프로젝트 구조 분석 + aiu_studio/ 템플릿 복사 + 선택 모델 기준 전체 코드 변환/갱신",
-                "PowerShell에서는 &&를 쓰지 말고 아래처럼 프로젝트 폴더로 이동한 뒤 실행하세요.",
-                f"Set-Location {powershell_quote_path(project)}",
+                "PowerShell에서는 &&를 쓰지 말고, 선택한 프로젝트 경로로 이동한 뒤 실행하세요.",
+                powershell_set_project_location(project),
                 "python aiu_studio/runtest_2.py",
-                f"Set-Location {powershell_quote_path(project)}",
+                powershell_set_project_location(project),
                 "python aiu_studio/local_serving/localservingtest.py",
                 "추론 테스트 결과는 화면에 출력합니다.",
-                f"Set-Location {powershell_quote_path(project)}",
+                powershell_set_project_location(project),
                 "python .opencode/scripts/verify_mlflow.py --tracking-uri <tracking-uri> --experiment-name <experiment-name>",
             ]
         )

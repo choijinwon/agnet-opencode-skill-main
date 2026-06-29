@@ -47,7 +47,9 @@ def find_input_example(project: Path) -> Path | None:
 
 
 def find_model_path(project: Path) -> Path | None:
-    for selected_model in [project / "aiu_studio" / "code" / "selected_model.json", project / "ai_studio" / "code" / "selected_model.json"]:
+    for selected_model in [
+        project / "local_serving" / "selected_model.json",
+    ]:
         if not selected_model.exists():
             continue
         try:

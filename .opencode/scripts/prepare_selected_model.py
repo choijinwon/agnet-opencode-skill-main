@@ -36,6 +36,7 @@ ROOT = Path(__file__).resolve().parents[1]
 AIU_STUDIO_DIR_NAME = "aiu_studio"
 AIU_STUDIO_SAMPLE_DIR_NAME = "aiu_studio"
 AIU_STUDIO_SAMPLE_DIR = ROOT / "samples" / AIU_STUDIO_SAMPLE_DIR_NAME
+AIU_STUDIO_COPY_IGNORE_DIRS = {"code", "metrics", "tracking"}
 MODEL_SCAN_SKIP_DIRS = {
     ".git",
     ".mypy_cache",
@@ -256,7 +257,12 @@ def copy_aiu_studio_folder(project: Path, execute: bool) -> tuple[list[str], lis
         failures.append(f"aiu_studio_target_not_directory:{target}")
         return copied, skipped, failures
     if execute:
-        shutil.copytree(AIU_STUDIO_SAMPLE_DIR, target, dirs_exist_ok=True)
+        shutil.copytree(
+            AIU_STUDIO_SAMPLE_DIR,
+            target,
+            dirs_exist_ok=True,
+            ignore=shutil.ignore_patterns(*AIU_STUDIO_COPY_IGNORE_DIRS),
+        )
     copied.append(AIU_STUDIO_DIR_NAME + "/")
     return copied, skipped, failures
 
@@ -431,6 +437,8 @@ from pathlib import Path as _AIUPath
 
 AI_STUDIO_DIR = _AIUPath(__file__).resolve().parent
 PROJECT_DIR = AI_STUDIO_DIR.parent
+LOCAL_SERVING_DIR = PROJECT_DIR / "local_serving"
+SELECTED_MODEL_INFO_PATH = LOCAL_SERVING_DIR / "selected_model.json"
 SOURCE_MODEL_PATH = PROJECT_DIR / "{selected_relative}"
 DATA_MODEL_PATH = SOURCE_MODEL_PATH
 MODEL_PATH = SOURCE_MODEL_PATH
@@ -460,8 +468,7 @@ mlflow_register_model_name = "{default_register_model_name}"
 if mlflow_tracking_url.lower().startswith("https://"):
     raise ValueError("ssl_not_allowed: use http:// or file:// for mlflow_tracking_url")
 
-for _aiu_relative in ["code", "metrics", "tracking"]:
-    (AI_STUDIO_DIR / _aiu_relative).mkdir(parents=True, exist_ok=True)
+LOCAL_SERVING_DIR.mkdir(parents=True, exist_ok=True)
 
 for _aiu_env_name, _aiu_env_value in {{
     "MLFLOW_TRACKING_URI": mlflow_tracking_url,
@@ -473,7 +480,7 @@ for _aiu_env_name, _aiu_env_value in {{
     if _aiu_env_value:
         _aiu_os.environ[_aiu_env_name] = _aiu_env_value
 
-(AI_STUDIO_DIR / "code" / "selected_model.json").write_text(
+SELECTED_MODEL_INFO_PATH.write_text(
     _aiu_json.dumps(
         {{
             "model_path": str(MODEL_PATH),
@@ -484,12 +491,8 @@ for _aiu_env_name, _aiu_env_value in {{
             "load_hint": AIU_LOAD_HINT,
             "reference_entrypoint": str(REFERENCE_ENTRYPOINT),
             "generated_entrypoint": str(AI_STUDIO_DIR / "runtest_2.py"),
-            "result_folders": {{
-                "code": str(AI_STUDIO_DIR / "code"),
-                "metrics": str(AI_STUDIO_DIR / "metrics"),
-                "tracking": str(AI_STUDIO_DIR / "tracking"),
-            }},
-            "note": "Model file remains in the project source path and is not copied into aiu_studio/. Original runtest.py comments and structure are preserved in aiu_studio/runtest_2.py.",
+            "selected_model_info_path": str(SELECTED_MODEL_INFO_PATH),
+            "note": "Model file remains in the project source path and is not copied into aiu_studio/. code/, metrics/, and tracking/ folders are not created. Original runtest.py comments and structure are preserved in aiu_studio/runtest_2.py.",
         }},
         ensure_ascii=False,
         indent=2,
@@ -635,6 +638,7 @@ def build_report(args: argparse.Namespace) -> PreparedModelReport:
                 "python .opencode/scripts/check_environment.py --project <model-project-folder> --entrypoint aiu_studio/runtest_2.py",
                 "python aiu_studio/runtest_2.py",
                 "python .opencode/scripts/test_inference.py --project <model-project-folder>",
+                "선택 모델 정보: local_serving/selected_model.json",
                 "추론 테스트 결과: local_serving/inference_result.json",
                 "python .opencode/scripts/verify_mlflow.py --tracking-uri <tracking-uri> --experiment-name <experiment-name>",
             ]

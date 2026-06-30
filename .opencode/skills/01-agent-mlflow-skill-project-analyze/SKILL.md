@@ -39,10 +39,12 @@ metadata:
 ```text
 1. 현재 워크스페이스 경로를 확인한다.
 2. 프로젝트 루트 전체와 data/** 모델 원본 파일을 model_artifact_paths로 나열한다.
-3. `.opencode/sample` 또는 `.opencode/samples`는 복사용 원본이므로 분석 대상에서 제외한다.
-4. model_found 값을 먼저 결정한다.
-5. 모델이 있으면 model_artifact_paths를 번호로 보여주고 사용할 모델 번호 또는 경로 선택을 요청한다.
-6. 모델이 없으면 1 sklearn / 2 pytorch / 3 tensorflow 선택지를 보여준다.
+3. `.csv`는 모델이 아니라 데이터 파일로 data_file_paths에 표시한다.
+4. `.opencode/sample` 또는 `.opencode/samples`는 복사용 원본이므로 분석 대상에서 제외한다.
+5. model_found 값을 먼저 결정한다.
+6. 모델 artifact가 없고 Python 실행파일과 CSV가 있으면 샘플 선택 대신 entrypoint 실행 흐름으로 안내한다.
+7. 모델이 있으면 model_artifact_paths를 번호로 보여주고 사용할 모델 번호 또는 경로 선택을 요청한다.
+8. 모델도 Python 실행파일도 없으면 1 sklearn / 2 pytorch / 3 tensorflow 선택지를 보여준다.
 ```
 
 ## Output Contract
@@ -56,6 +58,8 @@ metadata:
 - inference_entrypoint
 - model_artifact_path
 - model_artifact_paths
+- data_file_paths
+- entrypoint_paths
 - selected_data_model_path
 - MODEL_KIND
 - input_example_path

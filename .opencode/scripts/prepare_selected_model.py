@@ -24,6 +24,7 @@ SUPPORTED_MODEL_KINDS = {
     ".bst": "xgboost_bst",
     ".ubj": "xgboost_ubj",
 }
+DATA_FILE_SUFFIXES = {".csv"}
 GENERIC_MODEL_STEMS = {
     "best",
     "checkpoint",
@@ -36,6 +37,15 @@ GENERIC_MODEL_STEMS = {
 REFERENCE_ENTRYPOINTS = [
     "runtest.py",
     "run_test.py",
+]
+PYTHON_ENTRYPOINTS = [
+    "runtest.py",
+    "run_test.py",
+    "run_model.py",
+    "run.py",
+    "main.py",
+    "train.py",
+    "app.py",
 ]
 ROOT = Path(__file__).resolve().parents[1]
 AIU_STUDIO_SAMPLE_DIR_NAME = "aiu_studio"
@@ -312,6 +322,8 @@ class PreparedModelReport:
     project_path: str
     data_root: str
     model_artifact_paths: list[str]
+    data_file_paths: list[str]
+    entrypoint_paths: list[str]
     selected_model_path: str | None
     model_kind: str | None
     reference_entrypoint: str | None
@@ -382,6 +394,40 @@ def scan_model_artifacts(project: Path) -> list[Path]:
             continue
         if path.is_file() and model_kind(path):
             found.append(path)
+    return sorted(set(found))
+
+
+def scan_data_files(project: Path) -> list[Path]:
+    if is_opencode_sample_source(project):
+        return []
+    found: list[Path] = []
+    for path in project.iterdir():
+        if path.is_file() and path.suffix.lower() in DATA_FILE_SUFFIXES:
+            found.append(path)
+
+    data_root = project / "data"
+    if data_root.is_dir():
+        for path in data_root.rglob("*"):
+            try:
+                relative_parts = path.relative_to(project).parts
+            except ValueError:
+                continue
+            if any(part in MODEL_SCAN_SKIP_DIRS for part in relative_parts):
+                continue
+            if path.is_file() and path.suffix.lower() in DATA_FILE_SUFFIXES:
+                found.append(path)
+    return sorted(set(found))
+
+
+def find_python_entrypoints(project: Path) -> list[Path]:
+    if is_opencode_sample_source(project):
+        return []
+    found: list[Path] = []
+    for name in PYTHON_ENTRYPOINTS:
+        path = project / name
+        if path.is_file():
+            found.append(path)
+    found.extend(sorted(path for path in project.glob("*.py") if path.is_file()))
     return sorted(set(found))
 
 
@@ -2099,7 +2145,11 @@ def build_report(args: argparse.Namespace) -> PreparedModelReport:
 
     data_root = project / "data"
     models = scan_model_artifacts(project)
+    data_files = scan_data_files(project)
+    entrypoints = find_python_entrypoints(project)
     model_paths = [rel(path, project) for path in models]
+    data_paths = [rel(path, project) for path in data_files]
+    entrypoint_paths = [rel(path, project) for path in entrypoints]
     selected_model, selection_error = resolve_model_selection(project, models, args.model)
     selected_kind = model_kind(selected_model) if selected_model else None
 
@@ -2107,6 +2157,8 @@ def build_report(args: argparse.Namespace) -> PreparedModelReport:
         project_path=str(project),
         data_root=str(data_root),
         model_artifact_paths=model_paths,
+        data_file_paths=data_paths,
+        entrypoint_paths=entrypoint_paths,
         selected_model_path=rel(selected_model, project) if selected_model else None,
         model_kind=selected_kind,
         reference_entrypoint=None,
@@ -2116,9 +2168,24 @@ def build_report(args: argparse.Namespace) -> PreparedModelReport:
     )
 
     if not models:
-        report.failures.append("model_artifact_paths_empty")
-        report.next_steps.append("현재 프로젝트 루트 바로 아래 또는 data/** 아래에 .pkl, .joblib, .pt, .pth, .onnx, .keras, .h5, .safetensors, .bst, .ubj 모델 파일을 넣어주세요.")
-    if selection_error:
+        if entrypoints and data_files:
+            report.failures.append("model_artifact_missing_entrypoint_with_csv")
+            report.next_steps.append("CSV 파일은 모델이 아니라 데이터로 판단합니다. Python 실행파일을 모델 생성/등록 entrypoint로 사용하세요.")
+            report.next_steps.append(f"감지된 CSV 데이터: {', '.join(data_paths[:5])}")
+            report.next_steps.append(f"감지된 Python 실행파일: {', '.join(entrypoint_paths[:5])}")
+            report.next_steps.append(f"실행 예: python .opencode/scripts/run_training.py --project {powershell_quote_path(project)} --entrypoint {powershell_quote_path(Path(entrypoint_paths[0]))} --execute")
+        elif data_files:
+            report.failures.append("csv_data_without_model_entrypoint")
+            report.next_steps.append("CSV 파일은 모델이 아니라 데이터입니다. 모델을 생성/로드/등록하는 Python 실행파일을 프로젝트 루트에 넣어주세요.")
+            report.next_steps.append(f"감지된 CSV 데이터: {', '.join(data_paths[:5])}")
+        elif entrypoints:
+            report.failures.append("entrypoint_without_model_artifact")
+            report.next_steps.append("모델 artifact는 없지만 Python 실행파일이 있습니다. 해당 파일이 모델 생성/등록 entrypoint인지 확인해 실행하세요.")
+            report.next_steps.append(f"실행 예: python .opencode/scripts/run_training.py --project {powershell_quote_path(project)} --entrypoint {powershell_quote_path(Path(entrypoint_paths[0]))} --execute")
+        else:
+            report.failures.append("model_artifact_paths_empty")
+            report.next_steps.append("현재 프로젝트 루트 바로 아래 또는 data/** 아래에 .pkl, .joblib, .pt, .pth, .onnx, .keras, .h5, .safetensors, .bst, .ubj 모델 파일을 넣어주세요.")
+    if selection_error and (models or args.model):
         report.failures.append(selection_error)
         if models:
             report.next_steps.append("사용할 모델을 번호 또는 경로로 선택하세요. 예: --model 1, --model model.joblib, --model data/torch/model.pt")
@@ -2240,6 +2307,18 @@ def print_report(report: PreparedModelReport) -> None:
     print("model_artifact_paths:")
     if report.model_artifact_paths:
         for index, path in enumerate(report.model_artifact_paths, start=1):
+            print(f"{index}. {path}")
+    else:
+        print("- none")
+    print("data_file_paths:")
+    if report.data_file_paths:
+        for index, path in enumerate(report.data_file_paths, start=1):
+            print(f"{index}. {path}")
+    else:
+        print("- none")
+    print("entrypoint_paths:")
+    if report.entrypoint_paths:
+        for index, path in enumerate(report.entrypoint_paths, start=1):
             print(f"{index}. {path}")
     else:
         print("- none")

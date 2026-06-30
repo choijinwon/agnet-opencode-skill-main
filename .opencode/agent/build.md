@@ -151,9 +151,12 @@ Step 1. 루트/data 모델 목록 확인
         검색 범위는 현재 프로젝트 루트 바로 아래 모델 파일과 현재 프로젝트 data/** 트리다.
         상위 폴더, 홈 디렉터리, 드라이브 루트, 임의 하위 폴더, 번들 샘플 폴더를 자동 검색하지 않는다.
         .pkl, .joblib, .pt, .pth, .onnx, .keras, .h5, .safetensors, .bst, .ubj 모델 파일을 model_artifact_paths로 표시한다.
+        .csv 파일은 모델이 아니라 데이터 파일로 표시한다.
+        모델 artifact가 없고 Python 실행파일과 CSV가 있으면 샘플 선택으로 가지 말고 Python 실행파일을 entrypoint로 확인한다.
 
 Step 2. 사용할 모델 선택
         현재 프로젝트 루트 바로 아래 또는 data/**에서 발견된 model_artifact_paths 목록을 번호로 보여준다.
+        CSV는 모델 선택 목록에 넣지 않는다.
         사용자는 프로젝트 상대 경로로 사용할 모델을 선택하는 것을 우선한다.
         번호 선택은 현재 표시된 목록에서만 유효하므로 자동 준비 명령에는 실제 경로를 우선 사용한다.
         이미 준비된 선택 모델을 다시 쓰는 경우 --model selected를 사용할 수 있다.
@@ -162,6 +165,7 @@ Step 2. 사용할 모델 선택
 
 Step 3. 선택 모델 위치 확인
         선택한 모델이 <model-project-folder> 아래에 있는지 확인한다.
+        모델 artifact가 없고 Python 실행파일 + CSV만 있으면 선택 모델 변환 대신 run_training.py --entrypoint <py파일> 흐름으로 안내한다.
 
 Step 4. 모델 형식 판별
         확장자 기준으로 MODEL_KIND를 결정한다.

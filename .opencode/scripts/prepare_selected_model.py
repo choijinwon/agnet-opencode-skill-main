@@ -1779,19 +1779,15 @@ def predict(payload):
 '''
 
 
-def generated_predict_text(project: Path, selected_model: Path, kind: str) -> str:
-    return f'''from __future__ import annotations
+def generated_predict_text(template_text: str) -> str:
+    text = template_text
+    if "import importlib.util" not in text:
+        if "from __future__ import annotations\n\n" in text:
+            text = text.replace("from __future__ import annotations\n\n", "from __future__ import annotations\n\nimport importlib.util\n", 1)
+        else:
+            text = "import importlib.util\n" + text
 
-import importlib.util
-from pathlib import Path
-
-
-# AI Studio 배포 엔트리포인트입니다.
-# 선택 모델 경로와 로딩 방식은 aiu_custom/model.py와 mapping.json이 담당합니다.
-# 이 파일에는 선택 모델 경로를 직접 쓰지 않습니다.
-
-
-def _model_module_path() -> Path:
+    delegate_block = '''def _model_module_path() -> Path:
     return Path(__file__).resolve().parent / "model.py"
 
 
@@ -1817,7 +1813,7 @@ def _create_delegate():
     return wrapper_class()
 
 
-class ModelWrapper:
+class ModelWrapper(mlflow.pyfunc.PythonModel):
     def __init__(self):
         self._delegate = None
 
@@ -1828,14 +1824,19 @@ class ModelWrapper:
                 self._delegate.load_context(context)
         return self._delegate
 
-    def predict(self, context, model_input):
+    def predict(self, context, model_input, params=None):
         delegate = self.load_context(context)
         return delegate.predict(context, model_input)
-
-
-def predict(payload):
-    return ModelWrapper().predict(None, payload)
 '''
+    pattern = re.compile(r"\nclass\s+ModelWrapper\b.*?(?=\ndef\s+predict\b)", re.DOTALL)
+    if pattern.search(text):
+        text = pattern.sub("\n\n" + delegate_block.rstrip() + "\n", text, count=1)
+    elif "def predict(payload):" in text:
+        text = text.replace("\ndef predict(payload):", "\n\n" + delegate_block.rstrip() + "\n\n\ndef predict(payload):", 1)
+    else:
+        text = text.rstrip() + "\n\n" + delegate_block.rstrip() + "\n\n\ndef predict(payload):\n    return ModelWrapper().predict(None, payload)\n"
+    text = text.replace("runtest.py", "runtest_2.py")
+    return text.rstrip() + "\n"
 
 
 def generated_mapping_json(project: Path, selected_model: Path, kind: str) -> str:
@@ -1957,7 +1958,12 @@ def write_aiu_predict(project: Path, selected_model: Path, kind: str, execute: b
         return changed, skipped, failures
     existed_before = target.exists()
     target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(generated_predict_text(project, selected_model, kind), encoding="utf-8")
+    if target.is_file():
+        template_text = target.read_text(encoding="utf-8", errors="ignore")
+    else:
+        template_path = AIU_STUDIO_SAMPLE_DIR / "aiu_custom" / "predict.py"
+        template_text = template_path.read_text(encoding="utf-8", errors="ignore") if template_path.is_file() else ""
+    target.write_text(generated_predict_text(template_text), encoding="utf-8")
     changed.append("aiu_custom/predict.py deployment entrypoint (refreshed)" if existed_before else "aiu_custom/predict.py deployment entrypoint")
     return changed, skipped, failures
 

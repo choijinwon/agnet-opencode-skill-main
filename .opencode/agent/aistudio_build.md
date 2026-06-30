@@ -1,5 +1,5 @@
 ---
-description: AI Studio 빌드 모드 agent for MLflow model project setup. Allows workspace changes after AI Studio 런치 모드 has analyzed model presence.
+description: AI Studio 빌드 모드 agent for MLflow model project setup. Allows workspace changes after AI Studio 런치 모드 analysis.
 mode: primary
 ---
 

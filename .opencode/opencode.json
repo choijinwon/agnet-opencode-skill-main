@@ -1,12 +1,12 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "default_agent": "launch",
+  "default_agent": "aistudio_launch",
   "agent": {
-    "launch": {
+    "aistudio_launch": {
       "description": "AI Studio 런치 모드: read-only guide and workspace analysis",
       "mode": "primary"
     },
-    "build": {
+    "aistudio_build": {
       "description": "AI Studio 빌드 모드: sample copy, environment checks, model execution, and file changes",
       "mode": "primary"
     }

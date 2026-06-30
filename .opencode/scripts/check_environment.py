@@ -33,10 +33,6 @@ AUTO_DEFAULT_SETTING_KEYS = {
     "mlflow_experiment_name",
     "mlflow_register_model_name",
 }
-SSL_BLOCKED_SETTING_KEYS = {
-    "mlflow_tracking_url",
-}
-
 MODEL_SETTING_FILES = [
     "runtest_2.py",
     "runtest.py",
@@ -669,10 +665,6 @@ def resolved_mlflow_settings(project: Path, entrypoint_name: str | None = None) 
     return values
 
 
-def ssl_not_allowed(value: str | None) -> bool:
-    return bool(value and value.strip().lower().startswith("https://"))
-
-
 def todo_placeholder(value: str | None) -> bool:
     if value is None:
         return False
@@ -687,8 +679,6 @@ def setting_value_status(key: str, value: str | None, missing_status: str = "mis
         return "auto_default" if key in AUTO_DEFAULT_SETTING_KEYS else "empty"
     if todo_placeholder(value):
         return "auto_default" if key in AUTO_DEFAULT_SETTING_KEYS else "missing"
-    if key in SSL_BLOCKED_SETTING_KEYS and ssl_not_allowed(value):
-        return "ssl_not_allowed"
     return "set"
 
 
@@ -730,13 +720,6 @@ def check_remote_mlflow_version(project: Path, entrypoint_name: str | None = Non
             local_version=local_version,
             detail="mlflow_tracking_url is missing",
         )
-    if ssl_not_allowed(tracking_uri):
-        return RemoteMlflowStatus(
-            tracking_uri_status="ssl_not_allowed",
-            status="skipped",
-            local_version=local_version,
-            detail="https tracking URI is not allowed",
-        )
     if tracking_uri.lower().startswith("file://"):
         return RemoteMlflowStatus(
             tracking_uri_status="local_file",
@@ -749,7 +732,7 @@ def check_remote_mlflow_version(project: Path, entrypoint_name: str | None = Non
             tracking_uri_status="unsupported",
             status="skipped",
             local_version=local_version,
-            detail="tracking URI must start with http:// for remote version check",
+            detail="tracking URI must start with http:// or https:// for remote version check",
         )
 
     username = settings.get("mlflow_tracking_username")
@@ -884,9 +867,7 @@ def export_ready_status(project: Path, entrypoint_name: str | None = None) -> li
     for setting_key, env_key in EXPORT_ENV_MAP.items():
         value = values.get(setting_key)
         env_value = os.environ.get(env_key)
-        if ssl_not_allowed(value) or ssl_not_allowed(env_value):
-            status = "ssl_not_allowed"
-        elif value:
+        if value:
             status = "set"
         elif env_status(env_key) == "set":
             status = "exported"
@@ -905,7 +886,7 @@ def source_input_required_status(model_settings: EnvFileStatus | None) -> list[E
     for item in model_settings.key_status:
         if item.name not in AI_STUDIO_ENV_KEYS:
             continue
-        if item.status in {"missing", "empty", "ssl_not_allowed"}:
+        if item.status in {"missing", "empty"}:
             required.append(item)
     return required
 
@@ -995,7 +976,7 @@ def build_report(project: Path, entrypoint_name: str | None = None) -> Environme
             "1. 모델 목록 확인: 현재 프로젝트 루트 바로 아래와 data/**에서 사용할 모델 후보를 확인한다.",
             "2. 모델 경로로 선택: prepare_selected_model.py --model <경로> 또는 --model selected로 선택한다.",
             "3. 선택 모델 환경 변환: 모델 형식 확인 후 .opencode/samples/aiu_studio/ 내부 파일/폴더를 워크스페이스 루트로 복사하고 samples/pytorch_sample/ 내부를 참조한 뒤 선택 모델 경로와 MODEL_KIND를 반영해 실행/등록 연결부를 변환한다.",
-            f"4. 모델 환경변수 체크: {entrypoint_display}의 MLflow 입력값 3개와 자동값 2개를 set/empty/missing/auto_default/ssl_not_allowed로 확인한다.",
+            f"4. 모델 환경변수 체크: {entrypoint_display}의 MLflow 입력값 3개와 자동값 2개를 set/empty/missing/auto_default로 확인한다.",
             f"5. 원격 MLflow 등록 실행: python {entrypoint_display} 로 선택 모델을 원격 MLflow 서버에 기록/등록한다.",
             "6. 추론 스모크 테스트: 선택 모델 환경으로 변환된 local serving 입력/출력 스키마를 확인한다.",
             "7. MLflow 검증: Run, artifact, registered model 기록을 확인한다.",
@@ -1081,10 +1062,8 @@ def build_report(project: Path, entrypoint_name: str | None = None) -> Environme
         else:
             next_steps.append("Fill MLflow/AI Studio settings directly in the confirmed entrypoint file.")
     for item in setting_source.key_status:
-        if item.status in {"missing", "empty", "ssl_not_allowed"}:
+        if item.status in {"missing", "empty"}:
             failures.append(f"missing_env:{item.name}")
-            if item.status == "ssl_not_allowed":
-                next_steps.append("SSL is not allowed for mlflow_tracking_url. Use http:// or file:// instead of https://.")
 
     virtual_env = os.environ.get("VIRTUAL_ENV") or os.environ.get("CONDA_PREFIX") or "not detected"
     return EnvironmentReport(

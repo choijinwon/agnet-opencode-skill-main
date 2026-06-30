@@ -88,10 +88,6 @@ AUTO_DEFAULT_SETTING_KEYS = {
     "mlflow_experiment_name",
     "mlflow_register_model_name",
 }
-SSL_BLOCKED_SETTING_KEYS = {
-    "mlflow_tracking_url",
-}
-
 ENV_EXPORT_MAP = {
     "mlflow_tracking_url": "MLFLOW_TRACKING_URI",
     "mlflow_tracking_username": "MLFLOW_TRACKING_USERNAME",
@@ -355,10 +351,6 @@ def parse_python_settings(path: Path) -> dict[str, str]:
     return values
 
 
-def ssl_not_allowed(value: str | None) -> bool:
-    return bool(value and value.strip().lower().startswith("https://"))
-
-
 def unique_paths(paths: list[Path]) -> list[Path]:
     unique = []
     seen = set()
@@ -589,10 +581,7 @@ def check_env_settings(project: Path, setting_file_arg: str | None) -> DoctorChe
         value = values.get(source_key, "")
         env_key = ENV_EXPORT_MAP[source_key]
         env_value = os.environ.get(env_key)
-        if source_key in SSL_BLOCKED_SETTING_KEYS and (ssl_not_allowed(value) or ssl_not_allowed(env_value)):
-            missing.append("mlflow_tracking_url_ssl_not_allowed")
-            evidence.append("mlflow_tracking_url: ssl_not_allowed")
-        elif value:
+        if value:
             if source_key == "mlflow_tracking_password":
                 evidence.append(f"{source_key}: set (값은 출력하지 않음)")
             else:
@@ -612,7 +601,7 @@ def check_env_settings(project: Path, setting_file_arg: str | None) -> DoctorChe
             [f"missing: {item}" for item in missing] + evidence,
             [
                 f"{rel(setting_file, project)} 설정 블록에 tracking URL, username, password를 직접 입력하세요.",
-                "SSL은 사용하지 않습니다. mlflow_tracking_url은 https://가 아니라 http:// 또는 file://를 사용하세요.",
+                "mlflow_tracking_url은 http://, https://, file://를 사용할 수 있습니다.",
                 "password 값은 화면에 출력하지 말고 set/missing 상태만 확인하세요.",
             ],
         )

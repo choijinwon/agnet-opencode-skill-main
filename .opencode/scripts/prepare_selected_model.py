@@ -1213,8 +1213,6 @@ effective_mlflow_tracking_uri = mlflow_tracking_url
 
 if not mlflow_tracking_url:
     raise ValueError("mlflow_tracking_url_required: set remote MLflow tracking URL before deployment")
-if mlflow_tracking_url.lower().startswith("https://"):
-    raise ValueError("ssl_not_allowed: use http:// or file:// for mlflow_tracking_url")
 
 for _aiu_env_name, _aiu_env_value in {{
     "MLFLOW_TRACKING_URI": effective_mlflow_tracking_uri,

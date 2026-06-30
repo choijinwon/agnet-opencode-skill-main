@@ -246,7 +246,7 @@ python '<opencode-package-path>\.opencode\scripts\verify_mlflow.py' --project '<
 ```
 
 For `3`, always report it as `선택 모델 환경 변환`; copy `aiu_studio/` and transform copied runtime files for the selected model kind, model loader, data preparation, comments, MLflow paths, and local serving behavior. Do not ask the user to inspect individual generated files.
-For `4`, always report it as `모델 환경변수 체크`. The output must show the MLflow input values as `set`, `empty`, `missing`, `auto_default`, or `ssl_not_allowed`; never print secret values.
+For `4`, always report it as `모델 환경변수 체크`. The output must show the MLflow input values as `set`, `empty`, `missing`, or `auto_default`; never print secret values.
 
 Step 3. 선택 모델 환경 변환
         사용자가 선택한 모델의 MODEL_KIND를 먼저 확인한 뒤 .opencode/samples/aiu_studio/ 내부 파일/폴더를 워크스페이스 루트로 복사하고 모델 환경에 맞게 변환한다.
@@ -318,7 +318,7 @@ For the confirmed entrypoint file, such as `run.py`, `runtest.py`, `runtest_2.py
 Required user input keys:
 
 ```text
-mlflow_tracking_url          tracking server URL, use http:// or file:// only; do not use https://
+mlflow_tracking_url          tracking server URL, use http://, https://, or file://
 mlflow_tracking_username     username
 mlflow_tracking_password     password, never print the value
 ```
@@ -356,7 +356,7 @@ mlflow_register_model_name=pytorch_sample_model
 ```
 
 If the user writes `mflow_tracking_url`, explain that the expected key is `mlflow_tracking_url`.
-If the user writes `https://...` for `mlflow_tracking_url`, explain that SSL is not allowed and they must use `http://...` or `file://...`.
+If the user writes `https://...` for `mlflow_tracking_url`, allow it and continue validation with the configured tracking server.
 
 Use these skills by task:
 

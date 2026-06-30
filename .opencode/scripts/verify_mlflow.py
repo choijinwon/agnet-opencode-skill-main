@@ -28,10 +28,6 @@ def list_artifacts(client, run_id: str, path: str = "") -> list[str]:
     return items
 
 
-def ssl_not_allowed(value: str | None) -> bool:
-    return bool(value and value.strip().lower().startswith("https://"))
-
-
 def main():
     parser = argparse.ArgumentParser(description="Verify MLflow experiment runs, artifacts, and model registry.")
     parser.add_argument("--tracking-uri", help="MLflow tracking URI")
@@ -44,21 +40,6 @@ def main():
 
     failures: list[str] = []
     next_steps: list[str] = []
-    if ssl_not_allowed(args.tracking_uri):
-        failures.append("ssl_not_allowed:tracking_uri")
-        next_steps.append("Use http:// or file:// for MLflow tracking URI. Do not use https://.")
-        report = MlflowVerifyReport(args.tracking_uri, args.experiment_name, args.experiment_id, 0, None, failures=failures, next_steps=next_steps)
-        if args.json:
-            print(json.dumps(asdict(report), ensure_ascii=False, indent=2))
-        else:
-            print(f"Tracking URI: {report.tracking_uri}")
-            print("Failures:")
-            for failure in report.failures:
-                print(f"- {failure}")
-            print("Next steps:")
-            for step in report.next_steps:
-                print(f"- {step}")
-        return 1
     try:
         import mlflow
         from mlflow.tracking import MlflowClient

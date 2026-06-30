@@ -74,9 +74,6 @@ def missing_mlflow_settings() -> list[str]:
 
 
 def export_mlflow_environment() -> None:
-    if mlflow_tracking_url.lower().startswith("https://"):
-        raise ValueError("ssl_not_allowed: use http:// or file:// for mlflow_tracking_url")
-
     exports = {
         "MLFLOW_TRACKING_URI": mlflow_tracking_url,
         "MLFLOW_TRACKING_USERNAME": mlflow_tracking_username,

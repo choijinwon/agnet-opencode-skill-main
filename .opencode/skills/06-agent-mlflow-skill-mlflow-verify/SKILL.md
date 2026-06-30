@@ -85,7 +85,7 @@ cd '<selected-project-path>'
 python '<opencode-package-path>\.opencode\scripts\verify_mlflow.py' --project '<selected-project-path>' --experiment-name <name>
 ```
 
-`--tracking-uri`에는 `https://`를 쓰지 않는다. SSL은 금지이며 `http://` 또는 `file://`를 사용한다.
+`--tracking-uri`에는 `http://`, `https://`, `file://`를 사용할 수 있다.
 
 ## Artifact Map
 

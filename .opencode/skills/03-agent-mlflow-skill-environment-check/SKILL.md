@@ -149,7 +149,7 @@ mlflow_experiment_name
 mlflow_register_model_name
 ```
 
-`mlflow_tracking_url`은 `https://`를 사용하지 않는다. SSL은 금지이며 `http://` 또는 `file://`를 사용한다.
+`mlflow_tracking_url`은 `http://`, `https://`, `file://`를 사용할 수 있다.
 
 </details>
 

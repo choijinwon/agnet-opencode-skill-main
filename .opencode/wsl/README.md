@@ -75,7 +75,7 @@ VENV_DIR=.venv-ai bash .opencode/wsl/install_offline.sh
 
 ```text
 kserve==0.15.0
-mlflow==3.13.0
+mlflow==3.10.0
 numpy==1.26.4
 pandas==2.2.3
 requests==2.32.4
@@ -85,6 +85,7 @@ matplotlib==3.10.3
 cloudpickle==3.1.1
 databricks-sdk==0.57.0
 smart-open==7.1.0
+lakes==1.0.10
 scikit-learn==1.7.0
 torch==2.7.1
 torchmetrics==1.7.3

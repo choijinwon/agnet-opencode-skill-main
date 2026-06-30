@@ -1933,21 +1933,25 @@ def generated_mapping_json(project: Path, selected_model: Path, kind: str) -> st
 
 
 def generated_requirements_text(kind: str) -> str:
-    details = MODEL_KIND_DETAILS.get(kind, {})
-    required_package = details.get("required_package", "unknown")
-    packages = ["mlflow==3.13.0", "numpy"]
-    if required_package and required_package != "unknown":
-        packages.append(str(required_package))
-
-    unique_packages = []
-    seen = set()
-    for package in packages:
-        key = package.lower()
-        if key in seen:
-            continue
-        seen.add(key)
-        unique_packages.append(package)
-    return "\n".join(unique_packages) + "\n"
+    packages = [
+        "kserve==0.15.0",
+        "mlflow==3.10.0",
+        "numpy==1.26.4",
+        "pandas==2.2.3",
+        "requests==2.32.4",
+        "requests-oauthlib==2.0.0",
+        "joblib==1.5.1",
+        "matplotlib==3.10.3",
+        "cloudpickle==3.1.1",
+        "databricks-sdk==0.57.0",
+        "smart-open==7.1.0",
+        "lakes==1.0.10",
+        "scikit-learn==1.7.0",
+        "torch==2.7.1",
+        "torchmetrics==1.7.3",
+        "torchvision==0.22.1",
+    ]
+    return "\n".join(packages) + "\n"
 
 
 def write_runtest_2(project: Path, selected_model: Path, kind: str, reference: Path, execute: bool, force: bool) -> tuple[list[str], list[str], list[str]]:

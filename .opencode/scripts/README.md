@@ -25,19 +25,22 @@ Step 2  모델 경로로 선택
 Step 3  선택 모델 환경 변환
         prepare_selected_model.py
 
-Step 4  모델 환경변수 체크
+Step 4  requirements.txt 재정의/확인
+        선택 모델 기준 필수 패키지와 모델별 추가 패키지를 확인하고 설치 기준으로 선택한다.
+
+Step 5  모델 환경변수 체크
         check_environment.py
         오류 사항이 있으면 경로/환경변수/패키지/버전 기준 서버 배포 오류사항 목록을 함께 보여준다.
 
-Step 5  원격 MLflow 등록 실행
+Step 6  원격 MLflow 등록 실행
         runtest_2.py
         input_example.json은 워크스페이스 루트의 input_example.json에 있어야 하며, 상대경로 산출물도 워크스페이스 루트 아래에 생성되도록 실행 시 작업 디렉터리를 프로젝트 루트로 고정한다.
 
-Step 6  추론 스모크 테스트
+Step 7  추론 스모크 테스트
         local_serving/localservingtest.py
 
-Step 7  MLflow 검증
-Step 8  오류 수정 및 재검증
+Step 8  MLflow 검증
+Step 9  오류 수정 및 재검증
         원격 MLflow 등록, 추론 스모크 테스트, MLflow 검증 중 오류가 있으면 서버 배포 오류사항과 Failures를 기준으로 수정한 뒤 실패한 단계부터 다시 실행한다.
         verify_mlflow.py
 ```
@@ -48,10 +51,11 @@ Step 8  오류 수정 및 재검증
 
 ```text
 3 -> python .opencode/scripts/prepare_selected_model.py --project . --model selected --execute
-4 -> python .opencode/scripts/check_environment.py --project . --entrypoint runtest_2.py
-5 -> python runtest_2.py
-6 -> python local_serving/localservingtest.py
-7 -> python .opencode/scripts/verify_mlflow.py --tracking-uri <tracking-uri> --experiment-name <experiment-name>
+4 -> requirements.txt 재정의/확인 결과를 보고 설치 기준으로 선택
+5 -> python .opencode/scripts/check_environment.py --project . --entrypoint runtest_2.py
+6 -> python runtest_2.py
+7 -> python local_serving/localservingtest.py
+8 -> python .opencode/scripts/verify_mlflow.py --tracking-uri <tracking-uri> --experiment-name <experiment-name>
 ```
 
 Windows PowerShell에서는 선택 프로젝트의 실행 폴더로 이동한 뒤 실행한다.
@@ -66,6 +70,8 @@ python localservingtest.py
 cd '<selected-project-path>'
 python '<opencode-package-path>\.opencode\scripts\verify_mlflow.py' --project '<selected-project-path>' --tracking-uri <tracking-uri> --experiment-name <experiment-name>
 ```
+
+`4`는 선택 모델 기준 `requirements.txt` 재정의/확인 단계다. 필수 패키지 5개와 모델별 추가 패키지를 보고 설치 기준으로 선택한다.
 
 `5`는 모델 환경변수 체크이며, MLflow 입력값 3개와 자동값 2개를 `set`, `empty`, `missing`, `auto_default` 상태로만 표시한다. secret 값은 출력하지 않는다.
 

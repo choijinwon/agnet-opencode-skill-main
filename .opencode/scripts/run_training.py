@@ -409,11 +409,12 @@ def main():
             EnvVarStatus("1. 모델 목록 확인", "done" if artifacts else "needs_input"),
             EnvVarStatus("2. 모델 경로로 선택", "done" if artifacts else "needs_input"),
             EnvVarStatus("3. 선택 모델 환경 변환", "done" if (work_path / "runtest_2.py").exists() else "pending"),
-            EnvVarStatus("4. 모델 환경변수 체크", "done" if not missing_env else "needs_input"),
-            EnvVarStatus("5. 원격 MLflow 등록 실행", "done" if args.execute and return_code == 0 else "pending"),
-            EnvVarStatus("6. 추론 스모크 테스트", "pending"),
-            EnvVarStatus("7. MLflow 검증", "pending"),
-            EnvVarStatus("8. 오류 수정 및 재검증", "needed" if failures else "pending"),
+            EnvVarStatus("4. requirements.txt 재정의/확인", "done" if (work_path / "requirements.txt").exists() else "pending"),
+            EnvVarStatus("5. 모델 환경변수 체크", "done" if not missing_env else "needs_input"),
+            EnvVarStatus("6. 원격 MLflow 등록 실행", "done" if args.execute and return_code == 0 else "pending"),
+            EnvVarStatus("7. 추론 스모크 테스트", "pending"),
+            EnvVarStatus("8. MLflow 검증", "pending"),
+            EnvVarStatus("9. 오류 수정 및 재검증", "needed" if failures else "pending"),
         ]
     else:
         process_checklist = [

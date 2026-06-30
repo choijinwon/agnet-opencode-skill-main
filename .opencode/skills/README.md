@@ -65,15 +65,17 @@ Step 3. 선택 모델 환경 변환
         runtest_2.py 생성 시퀀스는 모델 선택, 모델 형식 확인, .opencode/samples/aiu_studio/ 내부 파일/폴더를 워크스페이스 루트로 복사, samples/pytorch_sample/ 내부 참조(복사 금지), 선택 모델 경로와 MODEL_KIND 확인, 변환 결과 검증 순서다.
         선택 모델 실행/등록 연결부 변환은 생성 시퀀스에 넣지 말고 변환 스크립트 단계에서 별도로 수행한다.
         내부 일치 검증은 자동으로 수행하며 사용자에게 세부 파일 목록을 요구하지 않는다.
-Step 4. 모델 환경변수 체크
+Step 4. requirements.txt 재정의/확인
+        선택 모델 기준 필수 패키지와 모델별 추가 패키지를 확인하고 설치 기준으로 선택한다.
+Step 5. 모델 환경변수 체크
         입력값 3개와 자동값 2개 상태를 확인한다.
-Step 5. 원격 MLflow 등록 실행
+Step 6. 원격 MLflow 등록 실행
         runtest_2.py를 먼저 실행해 선택 모델 기준 변환/실행 파일을 확인한다.
-Step 6. 추론 스모크 테스트
+Step 7. 추론 스모크 테스트
         선택 모델 환경으로 변환된 local serving 입력/출력 스키마를 확인한다.
         기본은 화면 출력만 수행하고 프로젝트 루트 local_serving/ 폴더를 생성하지 않는다.
-Step 7. MLflow 검증
-Step 8. 오류 수정 및 재검증
+Step 8. MLflow 검증
+Step 9. 오류 수정 및 재검증
         원격 MLflow 등록, 추론 스모크 테스트, MLflow 검증 중 오류가 있으면 서버 배포 오류사항과 Failures를 기준으로 수정한 뒤 실패한 단계부터 다시 실행한다.
         Run, artifact, registered model 기록을 확인한다.
 ```

@@ -177,6 +177,7 @@ def main() -> None:
             },
             input_example=input_example,
             registered_model_name=mlflow_register_model_name,
+            code_paths=[(Path(__file__).resolve().parent / "aiu_custom").as_posix()],
             pip_requirements="requirements.txt",
         )
 

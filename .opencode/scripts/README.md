@@ -138,6 +138,8 @@ python .opencode/scripts/doctor.py --workspace . --project <model-project-folder
 
 현재 프로젝트 루트 바로 아래와 `data/**` 아래 모델 파일 목록을 만들고, 사용자가 선택한 모델 기준으로 `.opencode/samples/aiu_studio/` 내부 파일/폴더를 워크스페이스 루트로 복사한 뒤 선택 모델 실행/등록에 필요한 연결부만 안전하게 변환해줘.
 `requirements.txt`는 선택 모델 기준으로 재정의한다. 필수 패키지는 `mlflow==3.10.0`, `torch==2.12.1`, `numpy==1.26.4`, `kserve==0.15.0`, `pandas==2.23`이며, 선택 모델 종류에 필요한 추가 패키지만 `==`로 고정해서 붙인다.
+
+MLflow 모델 로깅 시 `code_paths`는 리눅스 배포 기준으로 `Path(...).as_posix()` 형태를 사용해 `aiu_custom/` 코드를 함께 업로드한다.
 `runtest_2.py`는 외부 데이터셋을 다운로드하지 않고 MODEL_KIND에 맞는 synthetic `input_example.json`을 생성한다.
 기존 `runtest.py`는 수정하지 않는다.
 PyTorch/safetensors 모델은 `.opencode/samples/pytorch_sample/` 내부를 참조해서 선택 모델 실행/등록에 필요한 연결부만 안전하게 변환해줘.

@@ -1368,6 +1368,21 @@ def insert_preserved_data_prep_block(text: str, kind: str) -> str:
     return text.rstrip() + block
 
 
+def ensure_linux_code_paths(text: str) -> str:
+    if "mlflow.pyfunc.log_model(" not in text or "code_paths=" in text:
+        return text
+    marker = "            pip_requirements=\"requirements.txt\","
+    code_paths_line = (
+        "            code_paths=[(__import__(\"pathlib\").Path(__file__).resolve().parent / \"aiu_custom\").as_posix()],\n"
+    )
+    if marker in text:
+        return text.replace(marker, code_paths_line + marker, 1)
+    marker = "            registered_model_name=mlflow_register_model_name,\n"
+    if marker in text:
+        return text.replace(marker, marker + code_paths_line, 1)
+    return text
+
+
 def generated_selected_model_runtest_text(project: Path, selected_model: Path, kind: str, reference: Path) -> str:
     selected_relative = rel(selected_model, project)
     text = reference.read_text(encoding="utf-8", errors="ignore")
@@ -1483,6 +1498,7 @@ MODEL_PATH = MODEL_DIR / "model.pt"'''
     text = text.replace('        mlflow.set_tag("data.name", "synthetic_tensor(pytorch)")', '        mlflow.set_tag("data.name", "selected_model")')
     text = text.replace("            artifacts={\n                \"model\": MODEL_PATH.as_posix(),", "            artifacts={\n                \"model\": selected_model_path.as_posix(),")
     text = text.replace('    print(f"model written: {MODEL_PATH}")', '    print(f"selected model: {selected_model_path}")')
+    text = ensure_linux_code_paths(text)
     return text.rstrip() + "\n"
 
 
@@ -1603,6 +1619,7 @@ def generated_runtest_text(project: Path, selected_model: Path, kind: str, refer
         "원격 MLflow 등록 실행을 위해 MLflow/AI Studio 설정을 runtest.py에 직접 입력하세요.",
         "원격 MLflow 등록 실행을 위해 MLflow/AI Studio 설정을 runtest_2.py에 직접 입력하세요.",
     )
+    transformed = ensure_linux_code_paths(transformed)
     return transformed.rstrip() + "\n"
 
 

@@ -5,8 +5,8 @@
 ## Design Rule
 
 ```text
-Launch mode  -> 읽기/분석/안내만 수행
-Build mode   -> 복사/수정/설치/실행 가능
+AI Studio 런치 모드  -> 읽기/분석/안내만 수행
+AI Studio 빌드 모드   -> 복사/수정/설치/실행 가능
 scripts      -> 폐쇄망에서도 동작하도록 표준 라이브러리 중심
 ```
 
@@ -68,7 +68,7 @@ apply_index_ignore.py
   .ignore, .rgignore, .gitignore에 폐쇄망 인덱싱 제외 규칙을 적용합니다.
 
 launch_workspace_summary.py
-  Launch 모드 첫 진입에서 가볍게 workspace 상태를 요약합니다.
+  AI Studio 런치 모드 첫 진입에서 가볍게 workspace 상태를 요약합니다.
   무거운 분석 대신 validate_mlflow_project.py 실행 결과를 짧게 보여줍니다.
 
 test_local_sample.py
@@ -345,7 +345,7 @@ replace_or_append()        기존 관리 블록 교체 정책
 
 책임:
 
-- Launch 모드에서 빠르게 workspace를 요약합니다.
+- AI Studio 런치 모드에서 빠르게 workspace를 요약합니다.
 - 가능하면 `validate_mlflow_project.py --json` 결과를 짧게 변환합니다.
 - 실패해도 채팅이 중단되지 않도록 안내만 출력합니다.
 
@@ -358,7 +358,7 @@ main()                     validate_mlflow_project.py 호출과 fallback 출력
 
 주의:
 
-- Launch 모드는 읽기 전용입니다. 이 파일에서 복사/수정/설치/실행을 추가하지 않습니다.
+- AI Studio 런치 모드는 읽기 전용입니다. 이 파일에서 복사/수정/설치/실행을 추가하지 않습니다.
 - 무거운 전체 스캔을 넣지 않습니다.
 
 ## test_local_sample.py

@@ -3,11 +3,11 @@
   "default_agent": "launch",
   "agent": {
     "launch": {
-      "description": "Read-only launch guide and workspace analysis",
+      "description": "AI Studio 런치 모드: read-only guide and workspace analysis",
       "mode": "primary"
     },
     "build": {
-      "description": "Build mode for sample copy, environment checks, model execution, and file changes",
+      "description": "AI Studio 빌드 모드: sample copy, environment checks, model execution, and file changes",
       "mode": "primary"
     }
   },

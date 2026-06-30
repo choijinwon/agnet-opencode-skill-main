@@ -42,7 +42,7 @@ Step 8  오류 수정 및 재검증
         verify_mlflow.py
 ```
 
-기존 모델 흐름에서 `runtest_2.py`가 있으면 Build 모드 숫자 입력은 TOD 단계로 처리한다.
+기존 모델 흐름에서 `runtest_2.py`가 있으면 AI Studio 빌드 모드 숫자 입력은 TOD 단계로 처리한다.
 
 ```text
 3 -> python .opencode/scripts/prepare_selected_model.py --project . --model selected --execute
@@ -103,7 +103,7 @@ python .opencode/scripts/apply_index_ignore.py --project .
 
 ### doctor.py
 
-Launch/Build/skills/sample/env 상태를 한 화면에서 점검한다. 주니어 QA나 폐쇄망 Windows에서 먼저 실행하기 좋다.
+AI Studio 런치/빌드/skills/sample/env 상태를 한 화면에서 점검한다. 주니어 QA나 폐쇄망 Windows에서 먼저 실행하기 좋다.
 
 ```text
 python .opencode/scripts/doctor.py --workspace . --project .

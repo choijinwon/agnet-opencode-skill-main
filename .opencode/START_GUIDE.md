@@ -39,6 +39,12 @@ Windows에서 AIU Studio 모드로 고정 실행하려면 프로젝트 루트에
 .\opencode.ps1
 ```
 
+CMD 또는 현재 폴더 `.cmd` 실행을 허용하는 콘솔에서는 아래처럼 실행할 수 있습니다.
+
+```bat
+opencode
+```
+
 `.opencode` 폴더만 복사한 프로젝트에서는 다음 파일을 실행합니다.
 
 ```powershell
@@ -49,6 +55,12 @@ Windows에서 AIU Studio 모드로 고정 실행하려면 프로젝트 루트에
 
 ```powershell
 .\.opencode\opencode.ps1
+```
+
+CMD에서는:
+
+```bat
+.\.opencode\opencode.cmd
 ```
 
 ```text

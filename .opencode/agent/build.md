@@ -250,9 +250,9 @@ For `4`, always report it as `모델 환경변수 체크`. The output must show 
 
 Step 3. 선택 모델 환경 변환
         사용자가 선택한 모델의 MODEL_KIND를 먼저 확인한 뒤 .opencode/samples/aiu_studio/ 내부 파일/폴더를 워크스페이스 루트로 복사하고 모델 환경에 맞게 변환한다.
-        PyTorch/safetensors 모델은 .opencode/samples/pytorch_sample/ 내부를 참조한다.
+        PyTorch/safetensors 모델은 .opencode/samples/pytorch_sample/ 내부를 참조만 하고, 해당 폴더를 워크스페이스로 복사하지 않는다.
         선택 모델 경로와 MODEL_KIND를 반영해 선택 모델 실행/등록에 필요한 연결부만 안전하게 변환해줘.
-        runtest_2.py 생성 시퀀스는 모델 선택 -> 모델 형식 확인 -> .opencode/samples/aiu_studio/ 내부 파일/폴더를 워크스페이스 루트로 복사 -> samples/pytorch_sample/ 내부 참조 -> 선택 모델 경로와 MODEL_KIND 확인 -> 변환 결과 검증 순서로 수행한다.
+        runtest_2.py 생성 시퀀스는 모델 선택 -> 모델 형식 확인 -> .opencode/samples/aiu_studio/ 내부 파일/폴더를 워크스페이스 루트로 복사 -> samples/pytorch_sample/ 내부 참조(복사 금지) -> 선택 모델 경로와 MODEL_KIND 확인 -> 변환 결과 검증 순서로 수행한다.
         선택 모델 실행/등록 연결부 변환은 생성 시퀀스에 넣지 말고 변환 스크립트 단계에서 별도로 수행한다.
         내부 일치 검증은 자동으로 수행하되 사용자에게 세부 파일 목록을 길게 보여주지 않는다.
 
@@ -309,7 +309,7 @@ Describe that one command to the user as:
 다음 작업 수행(한 번에): 선택 모델 환경 변환
 ```
 
-The first Build step for an existing model is always listing model artifacts directly under the currently selected project root and under that project's `data/**` tree, selecting one model, converting from the current model context, and generating `runtest_2.py`. For PyTorch/safetensors, use `.opencode/samples/pytorch_sample/runtest.py` as the conversion baseline. Do not create a fake reference file automatically; ask the user to place the real reference file in the project when fallback also fails.
+The first Build step for an existing model is always listing model artifacts directly under the currently selected project root and under that project's `data/**` tree, selecting one model, converting from the current model context, and generating `runtest_2.py`. For PyTorch/safetensors, use `.opencode/samples/pytorch_sample/runtest.py` only as the conversion baseline and never copy the `pytorch_sample/` folder into the workspace. Do not create a fake reference file automatically; ask the user to place the real reference file in the project when fallback also fails.
 
 ## MLflow Tracking Guide
 

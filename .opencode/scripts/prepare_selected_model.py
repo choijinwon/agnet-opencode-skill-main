@@ -623,7 +623,7 @@ def reference_display_path(reference: Path) -> str:
 def conversion_reference_step(kind: str, reference: Path) -> str:
     display_path = reference_display_path(reference)
     if kind in {"pytorch", "safetensors"}:
-        return f"4. samples/pytorch_sample/ 내부 참조: {display_path}"
+        return f"4. samples/pytorch_sample/ 내부 참조(복사 금지): {display_path}"
     return f"4. 선택 모델 기준 참조: {display_path}"
 
 
@@ -2266,7 +2266,7 @@ def build_report(args: argparse.Namespace) -> PreparedModelReport:
         report.next_steps.extend(
             [
                 "자동 준비 완료: 모델 프로젝트 구조 분석 + 선택 모델 환경 변환",
-                "runtest_2.py 생성 시퀀스 완료: 현재 프로젝트 경로 기준 모델 선택 -> 모델 형식 확인 -> .opencode/samples/aiu_studio/ 내부 파일/폴더를 워크스페이스 루트로 복사 -> samples/pytorch_sample/ 내부 참조 -> 선택 모델 상대경로와 MODEL_KIND 확인 -> 변환 결과 검증",
+                "runtest_2.py 생성 시퀀스 완료: 현재 프로젝트 경로 기준 모델 선택 -> 모델 형식 확인 -> .opencode/samples/aiu_studio/ 내부 파일/폴더를 워크스페이스 루트로 복사 -> samples/pytorch_sample/ 내부 참조(복사 금지) -> 선택 모델 상대경로와 MODEL_KIND 확인 -> 변환 결과 검증",
                 "PowerShell에서는 선택 프로젝트 루트로 이동한 뒤 실행하세요.",
                 f"cd {powershell_quote_path(project)}",
                 "python runtest_2.py",

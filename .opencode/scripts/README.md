@@ -95,7 +95,7 @@ python '<opencode-package-path>\.opencode\scripts\verify_mlflow.py' --project '<
 
 `4`는 선택 모델 기준 `requirements.txt` 재정의/확인 단계다. 필수 패키지 5개와 모델별 추가 패키지를 보고 설치 기준으로 선택한다.
 
-`5`는 모델 환경변수 체크이며, MLflow 입력값 3개와 자동값 2개를 `set`, `empty`, `missing`, `auto_default` 상태로만 표시한다. secret 값은 출력하지 않는다.
+`5`는 모델 환경변수와 패키지 상태 체크다. 변환된 코드 import 기준 추가 Python 패키지가 필요하면 `requirements.txt`를 업데이트하고, MLflow 입력값 3개와 자동값 2개를 `set`, `empty`, `missing`, `auto_default` 상태로만 표시한다. secret 값은 출력하지 않는다.
 
 패키지 설치 기준:
 
@@ -295,6 +295,7 @@ Python 3.11.9, dependency, MLflow 3.13.0, 원격 MLflow 서버 version, `ai_stud
 Python 기준 버전은 3.11.9이다. 다른 버전이면 `version_mismatch:python`으로 분류한다.
 `requirements.txt`가 있으면 필요한 pip 패키지 목록, 현재 설치 여부, 설치된 버전, 요구 버전, 버전 불일치 여부를 함께 출력한다.
 환경검증 화면에는 설치 기준 파일을 `requirements.txt`로 별도 표시한다.
+환경검증은 `runtest_2.py`, `aiu_custom/model.py`, `aiu_custom/predict.py`, `local_serving/localservingtest.py`의 import를 확인해 누락된 Python 패키지를 `requirements.txt`에 추가한다. pip 설치는 자동 실행하지 않고 `python -m pip install -r requirements.txt` 명령만 안내한다.
 `mlflow_tracking_url`이 있으면 원격 MLflow 서버의 `/version`을 확인하고, 서버 version과 로컬 `mlflow` 설치 version 및 `requirements.txt` 요구 version이 다르면 불일치로 표시한다.
 Python 버전이 다르면 `차단 항목 요약`에 다음 형식으로 표시한다.
 

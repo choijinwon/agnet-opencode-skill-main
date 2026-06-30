@@ -167,6 +167,38 @@ EXPECTED_PACKAGE_VERSIONS = {
     "kserve": "==0.15.0",
     "pandas": "==2.23",
 }
+IMPORT_REQUIREMENT_MAP = {
+    "cv2": "opencv-python",
+    "databricks": "databricks-sdk",
+    "joblib": "joblib==1.5.1",
+    "keras": "tensorflow",
+    "kserve": "kserve==0.15.0",
+    "matplotlib": "matplotlib",
+    "mlflow": "mlflow==3.10.0",
+    "numpy": "numpy==1.26.4",
+    "onnxruntime": "onnxruntime",
+    "pandas": "pandas==2.23",
+    "PIL": "pillow",
+    "requests": "requests",
+    "requests_oauthlib": "requests-oauthlib",
+    "safetensors": "safetensors==0.5.3",
+    "sklearn": "scikit-learn==1.7.0",
+    "smart_open": "smart-open",
+    "tensorflow": "tensorflow",
+    "torch": "torch==2.12.1",
+    "torchmetrics": "torchmetrics",
+    "torchvision": "torchvision",
+    "transformers": "transformers",
+    "xgboost": "xgboost==3.0.2",
+    "yaml": "pyyaml",
+}
+LOCAL_IMPORT_ROOTS = {"aiu_custom"}
+REQUIREMENT_SCAN_FILES = [
+    "runtest_2.py",
+    "aiu_custom/model.py",
+    "aiu_custom/predict.py",
+    "local_serving/localservingtest.py",
+]
 REQUIREMENT_OPERATORS = ["==", "!=", ">=", "<=", "~=", ">", "<"]
 REMOTE_MLFLOW_VERSION_ENDPOINTS = [
     "version",
@@ -243,6 +275,7 @@ class EnvironmentReport:
     selected_required_package: str | None = None
     selected_package_status: str | None = None
     remote_mlflow: RemoteMlflowStatus | None = None
+    requirements_updated: list[str] = field(default_factory=list)
 
 
 def package_version(name: str) -> str | None:
@@ -404,6 +437,110 @@ def parse_requirement_line(raw_line: str) -> tuple[str, str] | None:
     if spec.startswith("@"):
         spec = spec
     return name, spec
+
+
+def is_stdlib_module(name: str) -> bool:
+    root = name.split(".", 1)[0]
+    stdlib_names = getattr(sys, "stdlib_module_names", set())
+    return root in stdlib_names or root in set(sys.builtin_module_names)
+
+
+def requirement_package_name(requirement: str) -> str | None:
+    parsed = parse_requirement_line(requirement)
+    if parsed is None:
+        return None
+    return parsed[0]
+
+
+def pin_requirement(requirement: str) -> str:
+    parsed = parse_requirement_line(requirement)
+    if parsed is None:
+        return requirement
+    name, spec = parsed
+    if spec:
+        return requirement
+    expected = EXPECTED_PACKAGE_VERSIONS.get(name)
+    if expected:
+        return f"{name}{expected}"
+    installed = package_version(name)
+    if installed:
+        return f"{name}=={installed}"
+    return requirement
+
+
+def import_roots_from_file(path: Path) -> set[str]:
+    if not path.is_file():
+        return set()
+    try:
+        tree = ast.parse(path.read_text(encoding="utf-8", errors="ignore"))
+    except SyntaxError:
+        return set()
+    roots: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                root = alias.name.split(".", 1)[0]
+                if root:
+                    roots.add(root)
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            root = node.module.split(".", 1)[0]
+            if root:
+                roots.add(root)
+    return roots
+
+
+def inferred_requirements_from_imports(project: Path) -> list[str]:
+    requirements: list[str] = []
+    seen: set[str] = set()
+    for relative in REQUIREMENT_SCAN_FILES:
+        path = project / relative
+        for root in sorted(import_roots_from_file(path)):
+            if root in LOCAL_IMPORT_ROOTS or is_stdlib_module(root):
+                continue
+            raw_requirement = IMPORT_REQUIREMENT_MAP.get(root)
+            if raw_requirement is None:
+                continue
+            requirement = pin_requirement(raw_requirement)
+            package_name = requirement_package_name(requirement)
+            key = package_name or normalize_package_name(requirement)
+            if key in seen:
+                continue
+            seen.add(key)
+            requirements.append(requirement)
+    return requirements
+
+
+def update_requirements_from_imports(project: Path) -> list[str]:
+    inferred = inferred_requirements_from_imports(project)
+    if not inferred:
+        return []
+    requirements_path = project / "requirements.txt"
+    existing_lines = []
+    if requirements_path.exists():
+        existing_lines = requirements_path.read_text(encoding="utf-8", errors="ignore").splitlines()
+    existing_names = {
+        name
+        for line in existing_lines
+        for parsed in [parse_requirement_line(line)]
+        if parsed is not None
+        for name in [parsed[0]]
+    }
+    additions = []
+    for requirement in inferred:
+        package_name = requirement_package_name(requirement)
+        if package_name is None or package_name in existing_names:
+            continue
+        existing_names.add(package_name)
+        additions.append(requirement)
+    if not additions:
+        return []
+    if requirements_path.exists():
+        prefix = requirements_path.read_text(encoding="utf-8", errors="ignore").rstrip()
+        updated = (prefix + "\n" if prefix else "") + "\n".join(additions) + "\n"
+    else:
+        updated = "\n".join(additions) + "\n"
+    requirements_path.write_text(updated, encoding="utf-8")
+    return additions
 
 
 def parse_python_literal_assignments(path: Path) -> dict[str, object]:
@@ -941,8 +1078,9 @@ def build_report(project: Path, entrypoint_name: str | None = None) -> Environme
             source_input_required=[],
         )
     python_version = platform.python_version()
-    deps = dependency_files(project)
     selected_path, selected_kind, selected_required_package, selected_package_status = selected_model_status(project)
+    requirements_updated = update_requirements_from_imports(project)
+    deps = dependency_files(project)
     env_vars = [EnvVarStatus(key, env_status(key)) for key in ENV_KEYS]
     ai_env = ai_studio_env_status(project)
     model_settings = model_settings_status(project, entrypoint_name)
@@ -1020,10 +1158,10 @@ def build_report(project: Path, entrypoint_name: str | None = None) -> Environme
     mismatched_requirements = [item.name for item in blocking_requirements if item.status == "version_mismatch"]
     if missing_requirements:
         failures.append("missing_requirements:" + ",".join(missing_requirements))
-        next_steps.append("Install missing packages from requirements.txt.")
+        next_steps.append("requirements.txt 기준으로 누락 패키지를 설치하세요: python -m pip install -r requirements.txt")
     if mismatched_requirements:
         failures.append("version_mismatch_requirements:" + ",".join(mismatched_requirements))
-        next_steps.append("Resolve package version mismatches before model execution.")
+        next_steps.append("requirements.txt 기준으로 버전 불일치를 맞추세요: python -m pip install -r requirements.txt")
     if package_version("mlflow") is None:
         failures.append("missing_dependency:mlflow")
         next_steps.append("Install or activate an environment that includes mlflow.")
@@ -1097,6 +1235,7 @@ def build_report(project: Path, entrypoint_name: str | None = None) -> Environme
         selected_required_package=selected_required_package,
         selected_package_status=selected_package_status,
         remote_mlflow=remote_mlflow,
+        requirements_updated=requirements_updated,
     )
 
 
@@ -1109,6 +1248,11 @@ def print_text(report: EnvironmentReport):
     print(f"Dependency files: {', '.join(report.dependency_files) if report.dependency_files else 'missing'}")
     install_file = "requirements.txt" if "requirements.txt" in report.dependency_files else "missing"
     print(f"설치 기준 파일: {install_file}")
+    if report.requirements_updated:
+        print("\nrequirements.txt updated from imports:")
+        for item in report.requirements_updated:
+            print(f"- {item}")
+        print("- install command: python -m pip install -r requirements.txt")
     if report.selected_model_path or report.selected_model_kind or report.selected_required_package:
         print("\nSelected model:")
         print(f"- path: {report.selected_model_path or 'missing'}")

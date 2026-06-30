@@ -40,8 +40,9 @@ metadata:
 2. dependency 파일과 핵심 패키지를 확인한다.
 3. MLflow 3.13.0 설치/version을 확인한다.
 4. mlflow_tracking_url이 있으면 원격 MLflow 서버 version을 확인한다.
-5. run_model.py, runtest.py 또는 aiu_studio/runtest.py 설정 블록을 확인한다.
-6. 비어 있는 값은 사용자가 직접 소스에 입력하도록 안내한다.
+5. 변환된 코드 import 기준 추가 Python 패키지가 필요하면 requirements.txt를 업데이트한다.
+6. run_model.py, runtest.py 또는 runtest_2.py 설정 블록을 확인한다.
+7. 비어 있는 값은 사용자가 직접 소스에 입력하도록 안내한다.
 ```
 
 ## Output Contract
@@ -53,6 +54,7 @@ metadata:
 - dependency 파일 상태
 - 설치 기준 파일: requirements.txt
 - requirements.txt 필요 패키지 / 설치 여부 / 설치 버전 / 요구 버전 / 버전 불일치
+- import 기준 requirements.txt 업데이트 내역
 - MLflow 3.13.0 설치/version 상태
 - 원격 MLflow 서버 version / 로컬 MLflow version / 불일치 여부
 - 환경 변수 상태

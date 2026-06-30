@@ -2369,7 +2369,14 @@ def print_report(report: PreparedModelReport) -> None:
             "local_serving/localservingtest.py",
         ]
     )
-    print("1. 모델 목록 확인 - 완료" if report.model_artifact_paths else "1. 모델 목록 확인 - 모델 없음")
+    if report.model_artifact_paths:
+        print("1. 모델 목록 확인 - 완료")
+    elif report.entrypoint_paths:
+        print("1. 모델 목록 확인 - 실행파일 있음")
+    elif report.data_file_paths:
+        print("1. 모델 목록 확인 - 데이터만 있음")
+    else:
+        print("1. 모델 목록 확인 - 모델 없음")
     print("2. 모델 경로로 선택 - 완료" if model_selected else "2. 모델 경로로 선택 - 대기")
     print("3. 선택 모델 환경 변환 - 완료" if auto_ready else "3. 선택 모델 환경 변환 - 대기")
     print("4. 모델 환경변수 체크 - 다음")

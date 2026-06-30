@@ -1318,9 +1318,6 @@ def generated_selected_model_runtest_text(project: Path, selected_model: Path, k
     loader = loader.replace("MODEL_PATH", "_selected_model_path()")
     mapping_block = f'''
 AI_STUDIO_DIR = Path(__file__).resolve().parent
-MODEL_LOAD_HINT = {load_hint!r}
-AIU_REQUIRED_PACKAGE = {required_package!r}
-REFERENCE_ENTRYPOINT = {reference_display_path(reference)!r}
 INPUT_EXAMPLE_PATH = AI_STUDIO_DIR / "input_example.json"
 CONFIG_DIR = AI_STUDIO_DIR / "config"
 CONFIG_PATH = CONFIG_DIR / "config.json"
@@ -2004,8 +2001,10 @@ def verify_selected_model_conversion(project: Path, selected_model: Path, kind: 
         if display_path == "runtest_2.py":
             if "MAPPING_PATH" not in text or "_selected_model_kind" not in text or "_selected_model_path" not in text:
                 failures.append("runtest_2_mapping_loader_missing:runtest_2.py")
-            if "MODEL_KIND" in text or "DATA_MODEL_PATH" in text:
-                failures.append("runtest_2_should_not_embed_model_kind_or_data_path")
+            forbidden_names = ["MODEL_KIND", "DATA_MODEL_PATH", "MODEL_LOAD_HINT", "AIU_REQUIRED_PACKAGE", "REFERENCE_ENTRYPOINT"]
+            embedded = [name for name in forbidden_names if name in text]
+            if embedded:
+                failures.append(f"runtest_2_should_not_embed_selected_model_metadata:{','.join(embedded)}")
         elif f'MODEL_KIND = "{kind}"' not in text and f"MODEL_KIND = {kind!r}" not in text:
             failures.append(f"selected_model_kind_not_reflected:{display_path}:{kind}")
 

@@ -1,5 +1,5 @@
 mlflow==3.10.0
+torch==2.12.1
 numpy==1.26.4
-torch==2.7.1
-torchmetrics==1.7.3
-torchvision==0.22.1
+kserve==0.15.0
+pandas==2.23

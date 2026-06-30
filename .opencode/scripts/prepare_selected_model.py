@@ -1933,25 +1933,30 @@ def generated_mapping_json(project: Path, selected_model: Path, kind: str) -> st
 
 
 def generated_requirements_text(kind: str) -> str:
-    packages = [
-        "kserve==0.15.0",
+    required = [
         "mlflow==3.10.0",
+        "torch==2.12.1",
         "numpy==1.26.4",
-        "pandas==2.2.3",
-        "requests==2.32.4",
-        "requests-oauthlib==2.0.0",
-        "joblib==1.5.1",
-        "matplotlib==3.10.3",
-        "cloudpickle==3.1.1",
-        "databricks-sdk==0.57.0",
-        "smart-open==7.1.0",
-        "lakes==1.0.10",
-        "scikit-learn==1.7.0",
-        "torch==2.7.1",
-        "torchmetrics==1.7.3",
-        "torchvision==0.22.1",
+        "kserve==0.15.0",
+        "pandas==2.23",
     ]
-    return "\n".join(packages) + "\n"
+    extras_by_kind = {
+        "sklearn_pickle": ["scikit-learn==1.7.0", "joblib==1.5.1"],
+        "sklearn_joblib": ["scikit-learn==1.7.0", "joblib==1.5.1"],
+        "safetensors": ["safetensors==0.5.3"],
+        "xgboost_bst": ["xgboost==3.0.2"],
+        "xgboost_ubj": ["xgboost==3.0.2"],
+    }
+    packages = required + extras_by_kind.get(kind, [])
+    unique_packages: list[str] = []
+    seen: set[str] = set()
+    for package in packages:
+        key = package.split("==", 1)[0].lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        unique_packages.append(package)
+    return "\n".join(unique_packages) + "\n"
 
 
 def write_runtest_2(project: Path, selected_model: Path, kind: str, reference: Path, execute: bool, force: bool) -> tuple[list[str], list[str], list[str]]:

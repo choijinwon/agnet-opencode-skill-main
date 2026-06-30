@@ -614,6 +614,25 @@ def copy_aiu_studio_folder(project: Path, execute: bool) -> tuple[list[str], lis
     return copied, skipped, failures
 
 
+def ensure_runtime_directories(project: Path, execute: bool) -> tuple[list[str], list[str], list[str]]:
+    changed: list[str] = []
+    skipped: list[str] = []
+    failures: list[str] = []
+    runtime_dirs = ["config", "saved_model"]
+    if not execute:
+        skipped.extend(f"{name}/:dry_run" for name in runtime_dirs)
+        return changed, skipped, failures
+    for name in runtime_dirs:
+        path = project / name
+        try:
+            path.mkdir(parents=True, exist_ok=True)
+        except OSError as exc:
+            failures.append(f"runtime_dir_create_failed:{name}:{exc}")
+            continue
+        changed.append(f"{name}/")
+    return changed, skipped, failures
+
+
 def split_inline_comment(value: str) -> tuple[str, str]:
     in_single = False
     in_double = False
@@ -2127,6 +2146,13 @@ def build_report(args: argparse.Namespace) -> PreparedModelReport:
     if report.failures:
         return report
 
+    runtime_dirs_changed, runtime_dirs_skipped, runtime_dirs_failures = ensure_runtime_directories(project, args.execute)
+    report.prepared_paths.extend(runtime_dirs_changed)
+    report.skipped.extend(runtime_dirs_skipped)
+    report.failures.extend(runtime_dirs_failures)
+    if report.failures:
+        return report
+
     reference = find_reference_entrypoint(project, selected_kind)
     report.reference_entrypoint = rel(reference, project) if reference else None
     if reference is None:
@@ -2227,6 +2253,10 @@ def print_report(report: PreparedModelReport) -> None:
         print("Prepared:")
         if report.selected_model_path:
             print("- .opencode/samples/aiu_studio/* -> workspace root")
+            if "config/" in report.prepared_paths:
+                print("- config/")
+            if "saved_model/" in report.prepared_paths:
+                print("- saved_model/")
             print("- 선택 모델 실행/등록 연결부 별도 변환")
             print("- 선택 모델 실행/등록 연결부 별도 변환 검증")
         else:

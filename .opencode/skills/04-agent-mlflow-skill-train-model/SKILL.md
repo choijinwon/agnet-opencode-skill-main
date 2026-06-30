@@ -15,7 +15,7 @@ metadata:
 
 ```text
 판단 결과: pass | warn | needs_user_input | blocked
-현재 단계: 6. 원격 MLflow 등록 실행
+현재 단계: 5. 원격 MLflow 등록 실행
 현재 대상: selected_project_path 또는 copied sample folder
 핵심 판단: entrypoint 확정, 실행 성공, ai_studio 산출물 생성
 다음 단계: 추론 테스트
@@ -26,13 +26,12 @@ metadata:
 ```text
 1. 모델 목록 확인
 2. 모델 경로로 선택
-3. 선택 모델 환경 변환
-4. requirements.txt 재정의/확인
-5. 모델 환경변수 체크
-6. 원격 MLflow 등록 실행
-7. 추론 스모크 테스트
-8. MLflow 검증
-9. 오류 수정 및 재검증
+3. 선택 모델 환경 변환 + requirements.txt 재정의/확인
+4. 모델 환경변수/패키지 상태 체크
+5. 원격 MLflow 등록 실행
+6. 추론 스모크 테스트
+7. MLflow 검증
+8. 오류 수정 및 재검증
 ```
 
 ## What To Do Now
@@ -169,13 +168,12 @@ blocked:
 ```text
 1. 모델 목록 확인
 2. 모델 경로로 선택
-3. 선택 모델 환경 변환
-4. requirements.txt 재정의/확인
-5. MLflow 입력값 3개와 자동값 2개 상태 확인
-6. runtest_2.py 원격 MLflow 등록 실행
-7. 선택 모델 환경으로 변환된 local serving 입력/출력 확인
-8. MLflow run, artifact, registered model 검증
-9. 오류가 있으면 수정 후 실패한 단계부터 재검증
+3. 선택 모델 환경 변환 + requirements.txt 재정의/확인
+4. MLflow 입력값 3개와 자동값 2개 및 패키지 상태 확인
+5. runtest_2.py 원격 MLflow 등록 실행
+6. 선택 모델 환경으로 변환된 local serving 입력/출력 확인
+7. MLflow run, artifact, registered model 검증
+8. 오류가 있으면 수정 후 실패한 단계부터 재검증
 ```
 
 샘플 모델 흐름:
@@ -184,7 +182,7 @@ blocked:
 1. selected_sample 확인
 2. target_project_path 확인
 3. aiu_custom/, local_serving/, saved_model/ 확인
-4. requirements.txt, aiu_studio/input_example.json 확인
+4. requirements.txt, input_example.json 확인
 5. run_model.py 또는 runtest.py 실행
 6. ai_studio 산출물 확인
 ```

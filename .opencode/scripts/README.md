@@ -1,6 +1,6 @@
 # OpenCode MLflow Scripts
 
-이 폴더는 `.opencode/skills`의 MLflow 흐름을 보조하는 로컬 스크립트를 포함한다. 모델이 있으면 현재 프로젝트 루트 바로 아래와 `data/**` 모델 목록 확인부터 시작하는 7단계, 모델이 없으면 샘플 복사 후 6단계로 진행한다.
+이 폴더는 `.opencode/skills`의 MLflow 흐름을 보조하는 로컬 스크립트를 포함한다. 모델이 있으면 현재 프로젝트 루트 바로 아래와 `data/**` 모델 목록 확인부터 시작하는 8단계, 모델이 없으면 샘플 복사 후 6단계로 진행한다.
 
 대상은 사용자가 지정한 모델 프로젝트 폴더다.
 사용자 모델 파일은 현재 프로젝트 루트 바로 아래 또는 현재 프로젝트의 `data/**` 하위 트리 어디에나 둘 수 있으며, 자동 준비 시 모델 파일을 템플릿 폴더로 복사하지 않고 선택한 원본 경로에 연결하도록 코드를 변환한다.
@@ -58,13 +58,12 @@ QA / Maintenance
 ```text
 1. 모델 목록 확인                  -> prepare_selected_model.py
 2. 모델 경로로 선택                -> prepare_selected_model.py --model <번호|경로>
-3. 선택 모델 환경 변환             -> prepare_selected_model.py --model <경로> --execute
-4. requirements.txt 재정의/확인    -> prepare_selected_model.py 결과 확인
-5. 모델 환경변수 체크              -> check_environment.py --entrypoint runtest_2.py
-6. 원격 MLflow 등록 실행           -> python runtest_2.py
-7. 추론 스모크 테스트              -> python local_serving/localservingtest.py
-8. MLflow 검증                     -> verify_mlflow.py
-9. 오류 수정 및 재검증             -> 실패한 단계의 스크립트 재실행
+3. 선택 모델 환경 변환 + requirements.txt 재정의/확인 -> prepare_selected_model.py --model <경로> --execute
+4. 모델 환경변수/패키지 상태 체크 -> check_environment.py --entrypoint runtest_2.py
+5. 원격 MLflow 등록 실행           -> python runtest_2.py
+6. 추론 스모크 테스트              -> python local_serving/localservingtest.py
+7. MLflow 검증                     -> verify_mlflow.py
+8. 오류 수정 및 재검증             -> 실패한 단계의 스크립트 재실행
 ```
 
 화면에 표시된 모델 번호나 TOD 단계 번호는 숫자 키로 입력하면 바로 선택/실행한다.
@@ -73,11 +72,11 @@ QA / Maintenance
 
 ```text
 3 -> python .opencode/scripts/prepare_selected_model.py --project . --model selected --execute
-4 -> requirements.txt 재정의/확인 결과를 보고 설치 기준으로 선택
-5 -> python .opencode/scripts/check_environment.py --project . --entrypoint runtest_2.py
-6 -> python runtest_2.py
-7 -> python local_serving/localservingtest.py
-8 -> python .opencode/scripts/verify_mlflow.py --tracking-uri <tracking-uri> --experiment-name <experiment-name>
+4 -> python .opencode/scripts/check_environment.py --project . --entrypoint runtest_2.py
+5 -> python runtest_2.py
+6 -> python local_serving/localservingtest.py
+7 -> python .opencode/scripts/verify_mlflow.py --tracking-uri <tracking-uri> --experiment-name <experiment-name>
+8 -> 실패한 단계부터 재실행
 ```
 
 Windows PowerShell에서는 선택 프로젝트의 실행 폴더로 이동한 뒤 실행한다.
@@ -93,9 +92,9 @@ cd '<selected-project-path>'
 python '<opencode-package-path>\.opencode\scripts\verify_mlflow.py' --project '<selected-project-path>' --tracking-uri <tracking-uri> --experiment-name <experiment-name>
 ```
 
-`4`는 선택 모델 기준 `requirements.txt` 재정의/확인 단계다. 필수 패키지 5개와 모델별 추가 패키지를 보고 설치 기준으로 선택한다.
+`3`은 선택 모델 환경 변환과 `requirements.txt` 재정의/확인을 한 번에 처리한다. 필수 패키지 5개와 모델별 추가 패키지를 함께 반영한다.
 
-`5`는 모델 환경변수와 패키지 상태 체크다. 변환된 코드 import 기준 추가 Python 패키지가 필요하면 `requirements.txt`를 업데이트하고, MLflow 입력값 3개와 자동값 2개를 `set`, `empty`, `missing`, `auto_default` 상태로만 표시한다. secret 값은 출력하지 않는다.
+`4`는 모델 환경변수와 패키지 상태 체크다. 변환된 코드 import 기준 추가 Python 패키지가 필요하면 `requirements.txt`를 업데이트하고, MLflow 입력값 3개와 자동값 2개를 `set`, `empty`, `missing`, `auto_default` 상태로만 표시한다. secret 값은 출력하지 않는다.
 
 패키지 설치 기준:
 

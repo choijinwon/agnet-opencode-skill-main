@@ -7,6 +7,7 @@
 `data/` 아래 폴더명은 고정값이 아니며 사용자 프로젝트마다 다를 수 있다.
 예: `model.joblib`, `data/<임의폴더>/model.joblib`, `data/sklearn/model.pkl`, `data/checkpoints/model.pt`
 모델 있음 흐름에서는 `.opencode/samples/aiu_studio/` 내부 파일/폴더를 워크스페이스 루트로 복사한다. `aiu_custom/` 내부 템플릿 파일과 `requirements.txt`도 워크스페이스 루트로 함께 복사된다. 내부 파일 구성은 고정하지 않고 비교/수정하지 않는다.
+복사 직후 `aiu_custom/` 템플릿 파일이 워크스페이스 루트에 존재하는지 검증한 다음, 선택 모델 기준으로 필요한 연결부만 변환/갱신한다.
 기존 `runtest.py`는 워크스페이스 루트에서 읽기 전용으로 참조하고, 수정하지 않는다. 템플릿 복사 중에도 기존 `runtest.py` 또는 `run_test.py`는 덮어쓰지 않는다.
 선택 모델에 맞는 실행/등록 파일은 `runtest_2.py`로만 변환 생성한다.
 Linux 경로에 Windows 구분자(`\`, `＼`, `￦`, `₩`)가 섞이면 생성 파일에서 `/`로 자동 정규화한다.

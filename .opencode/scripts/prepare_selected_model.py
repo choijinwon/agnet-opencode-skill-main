@@ -668,6 +668,35 @@ def copy_aiu_studio_folder(project: Path, execute: bool) -> tuple[list[str], lis
     return copied, skipped, failures
 
 
+def ensure_aiu_custom_template_copied(project: Path, execute: bool) -> tuple[list[str], list[str], list[str]]:
+    changed: list[str] = []
+    skipped: list[str] = []
+    failures: list[str] = []
+    template_dir = AIU_STUDIO_SAMPLE_DIR / "aiu_custom"
+    target_dir = project / "aiu_custom"
+    if not template_dir.is_dir():
+        failures.append(f"aiu_custom_template_missing:{template_dir}")
+        return changed, skipped, failures
+    template_files = [
+        path.relative_to(template_dir).as_posix()
+        for path in template_dir.rglob("*")
+        if path.is_file()
+        and not any(part in AIU_STUDIO_COPY_IGNORE_DIRS for part in path.relative_to(template_dir).parts)
+    ]
+    if not template_files:
+        failures.append("aiu_custom_template_files_empty")
+        return changed, skipped, failures
+    if not execute:
+        skipped.append("aiu_custom/ template copy verification:dry_run")
+        return changed, skipped, failures
+    missing = [relative for relative in template_files if not (target_dir / relative).is_file()]
+    if missing:
+        failures.append("aiu_custom_template_copy_missing:" + ",".join(missing))
+        return changed, skipped, failures
+    changed.append("aiu_custom/ template copied")
+    return changed, skipped, failures
+
+
 def ensure_runtime_directories(project: Path, execute: bool) -> tuple[list[str], list[str], list[str]]:
     changed: list[str] = []
     skipped: list[str] = []
@@ -2254,6 +2283,13 @@ def build_report(args: argparse.Namespace) -> PreparedModelReport:
     if report.failures:
         return report
 
+    aiu_custom_changed, aiu_custom_skipped, aiu_custom_failures = ensure_aiu_custom_template_copied(project, args.execute)
+    report.prepared_paths.extend(aiu_custom_changed)
+    report.skipped.extend(aiu_custom_skipped)
+    report.failures.extend(aiu_custom_failures)
+    if report.failures:
+        return report
+
     runtime_dirs_changed, runtime_dirs_skipped, runtime_dirs_failures = ensure_runtime_directories(project, args.execute)
     report.prepared_paths.extend(runtime_dirs_changed)
     report.skipped.extend(runtime_dirs_skipped)
@@ -2366,6 +2402,8 @@ def print_report(report: PreparedModelReport) -> None:
         print("Prepared:")
         if report.selected_model_path:
             print("- .opencode/samples/aiu_studio/* -> workspace root")
+            if "aiu_custom/ template copied" in report.prepared_paths:
+                print("- aiu_custom/ template copied")
             if "config/" in report.prepared_paths:
                 print("- config/")
             if "saved_model/" in report.prepared_paths:

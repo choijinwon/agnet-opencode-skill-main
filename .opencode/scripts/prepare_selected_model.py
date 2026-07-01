@@ -2455,13 +2455,19 @@ def build_report(args: argparse.Namespace) -> PreparedModelReport:
             [
                 "자동 준비 완료: 모델 프로젝트 구조 분석 + 선택 모델 환경 변환",
                 "runtest_2.py 생성 시퀀스 완료: 현재 프로젝트 경로 기준 모델 선택 -> 모델 형식 확인 -> .opencode/samples/aiu_studio/ 내부 파일/폴더를 워크스페이스 루트로 복사 -> samples/pytorch_sample/ 내부 참조(복사 금지) -> 선택 모델 상대경로와 MODEL_KIND 확인 -> requirements.txt 재정의/확인 -> 변환 결과 검증",
+                "다음은 4번 모델 환경변수/패키지 상태 체크입니다.",
+                powershell_python_script(
+                    ROOT / "scripts" / "check_environment.py",
+                    "--project",
+                    powershell_quote_path(project),
+                    "--entrypoint",
+                    "runtest_2.py",
+                ),
+                "환경 체크 완료 후 5번 원격 MLflow 등록 실행을 진행하세요.",
                 "PowerShell에서는 선택 프로젝트 루트로 이동한 뒤 실행하세요.",
                 f"cd {powershell_quote_path(project)}",
                 "python runtest_2.py",
-                f"cd {powershell_quote_path(project / 'local_serving')}",
-                "python localservingtest.py",
-                "추론 테스트 결과는 화면에 출력합니다.",
-                f"cd {powershell_quote_path(project)}",
+                "6번 추론 테스트는 5번 원격 MLflow 등록 실행이 성공한 뒤에만 진행합니다.",
                 powershell_python_script(
                     ROOT / "scripts" / "verify_mlflow.py",
                     "--project",
@@ -2512,7 +2518,7 @@ def print_report(report: PreparedModelReport) -> None:
     print(f"MODEL_KIND: {report.model_kind or 'missing'}")
     print(f"Reference entrypoint: {report.reference_entrypoint or 'missing'}")
     print(f"Transformed entrypoint: {report.generated_entrypoint}")
-    print(f"Transformed inference test: {report.generated_inference_test}")
+    print(f"Local serving file: {report.generated_inference_test}")
     print(f"Execute: {report.execute}")
     if report.prepared_paths:
         print("Prepared:")
@@ -2571,8 +2577,8 @@ def print_report(report: PreparedModelReport) -> None:
     print("3. 선택 모델 환경 변환 + requirements.txt 재정의/확인 - 완료" if auto_and_requirements_ready else "3. 선택 모델 환경 변환 + requirements.txt 재정의/확인 - 대기")
     print("4. 모델 환경변수/패키지 상태 체크 - 다음")
     print("5. 원격 MLflow 등록 실행 - 다음")
-    print("6. 추론 테스트 - 다음")
-    print("7. MLflow 검증 - 다음")
+    print("6. 추론 테스트 - 대기(5번 완료 후)")
+    print("7. MLflow 검증 - 대기(6번 완료 후)")
     print("8. 오류 수정 및 재검증 - 오류 시")
     if report.next_steps:
         print("Next steps:")

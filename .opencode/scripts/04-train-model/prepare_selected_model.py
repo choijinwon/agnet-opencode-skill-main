@@ -2542,6 +2542,16 @@ def build_report(args: argparse.Namespace) -> PreparedModelReport:
             report.next_steps.append("먼저 모델 선택으로 runtest_2.py를 생성하세요.")
             return report
 
+        copied_changed, copied_skipped, copied_failures = copy_aiu_studio_folder(project, args.execute)
+        report.prepared_paths.extend(copied_changed)
+        report.skipped.extend(copied_skipped)
+        report.failures.extend(copied_failures)
+
+        aiu_template_changed, aiu_template_skipped, aiu_template_failures = ensure_aiu_custom_template_copied(project, args.execute)
+        report.prepared_paths.extend(aiu_template_changed)
+        report.skipped.extend(aiu_template_skipped)
+        report.failures.extend(aiu_template_failures)
+
         runtime_dirs_changed, runtime_dirs_skipped, runtime_dirs_failures = ensure_runtime_directories(project, args.execute)
         report.prepared_paths.extend(runtime_dirs_changed)
         report.skipped.extend(runtime_dirs_skipped)

@@ -2182,6 +2182,11 @@ def predict(payload):
 
 def generated_predict_text(template_text: str) -> str:
     text = template_text
+    if "import os" not in text:
+        if "from __future__ import annotations\n\n" in text:
+            text = text.replace("from __future__ import annotations\n\n", "from __future__ import annotations\n\nimport os\n", 1)
+        else:
+            text = "import os\n" + text
     if "import importlib.util" not in text:
         if "from __future__ import annotations\n\n" in text:
             text = text.replace("from __future__ import annotations\n\n", "from __future__ import annotations\n\nimport importlib.util\n", 1)

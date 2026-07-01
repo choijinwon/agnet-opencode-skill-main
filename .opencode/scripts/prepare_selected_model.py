@@ -1306,7 +1306,7 @@ def aiu_data_prep_payload(kind: str) -> str:
                 "name": "synthetic_image",
                 "shape": [1, 1, 28, 28],
                 "datatype": "FP32",
-                "data": _aiu_flat_zeros(1 * 1 * 28 * 28),
+                "data": [0.0 for _ in range(1 * 1 * 28 * 28)],
             }
         ],
         "model_kind": MODEL_KIND,
@@ -1432,11 +1432,11 @@ def selected_model_input_example_payload(kind: str) -> str:
                 "name": "selected_pytorch_tensor",
                 "shape": [1, 1, 28, 28],
                 "datatype": "FP32",
-                "data": _aiu_flat_zeros(1 * 1 * 28 * 28),
+                "data": [0.0 for _ in range(1 * 1 * 28 * 28)],
             }
         ],
-        "model_kind": _selected_model_kind(),
-        "model_path": str(_selected_model_path()),
+        "model_kind": MODEL_KIND,
+        "model_path": str(SOURCE_MODEL_PATH),
     }'''
     if kind in {"sklearn_pickle", "sklearn_joblib", "xgboost_bst", "xgboost_ubj"}:
         return '''{
@@ -1448,8 +1448,8 @@ def selected_model_input_example_payload(kind: str) -> str:
                 "data": [[0.0, 0.0, 0.0, 0.0]],
             }
         ],
-        "model_kind": _selected_model_kind(),
-        "model_path": str(_selected_model_path()),
+        "model_kind": MODEL_KIND,
+        "model_path": str(SOURCE_MODEL_PATH),
     }'''
     if kind == "onnx":
         return '''{
@@ -1461,8 +1461,8 @@ def selected_model_input_example_payload(kind: str) -> str:
                 "data": [[0.0, 0.0, 0.0, 0.0]],
             }
         ],
-        "model_kind": _selected_model_kind(),
-        "model_path": str(_selected_model_path()),
+        "model_kind": MODEL_KIND,
+        "model_path": str(SOURCE_MODEL_PATH),
     }'''
     if kind in {"tensorflow_keras", "tensorflow_h5"}:
         return '''{
@@ -1474,8 +1474,8 @@ def selected_model_input_example_payload(kind: str) -> str:
                 "data": [[0.0, 0.0, 0.0, 0.0]],
             }
         ],
-        "model_kind": _selected_model_kind(),
-        "model_path": str(_selected_model_path()),
+        "model_kind": MODEL_KIND,
+        "model_path": str(SOURCE_MODEL_PATH),
     }'''
     return '''{
         "inputs": [
@@ -1486,18 +1486,14 @@ def selected_model_input_example_payload(kind: str) -> str:
                 "data": [0.0],
             }
         ],
-        "model_kind": _selected_model_kind(),
-        "model_path": str(_selected_model_path()),
+        "model_kind": MODEL_KIND,
+        "model_path": str(SOURCE_MODEL_PATH),
     }'''
 
 
 def selected_model_input_example_block(kind: str) -> str:
     payload = selected_model_input_example_payload(kind)
     return f'''
-def _aiu_flat_zeros(size):
-    return [0.0 for _ in range(size)]
-
-
 def selected_model_input_example():
     # AIU Studio 변환: 선택 모델 종류에 맞는 배포용 synthetic input_example입니다.
     return {payload}
@@ -1505,7 +1501,7 @@ def selected_model_input_example():
 
 def write_selected_input_example():
     input_example = selected_model_input_example()
-    _input_example_path().write_text(
+    INPUT_EXAMPLE_PATH.write_text(
         json.dumps(input_example, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
@@ -1533,67 +1529,14 @@ def generated_selected_model_runtest_text(project: Path, selected_model: Path, k
     text = reference.read_text(encoding="utf-8", errors="ignore")
     default_experiment_name, default_register_model_name = default_mlflow_names(project, selected_model)
     details = MODEL_KIND_DETAILS.get(kind, {})
-    required_package = details.get("required_package", "unknown")
     load_hint = details.get("load_hint", "custom loader required")
     loader = details.get(
         "loader",
-        """def load_selected_model():\n    raise ValueError(f\"unsupported model kind: {_selected_model_kind()}\")\n""",
+        """def load_selected_model():\n    raise ValueError(f\"unsupported model kind: {MODEL_KIND}\")\n""",
     )
-    loader = loader.replace("MODEL_PATH", "_selected_model_path()")
-    mapping_block = f'''
-def _workspace_dir() -> Path:
-    return Path(__file__).resolve().parent
-
-
-def _input_example_path() -> Path:
-    return _workspace_dir() / "input_example.json"
-
-
-def _config_dir() -> Path:
-    return _workspace_dir() / "config"
-
-
-def _config_path() -> Path:
-    return _config_dir() / "config.json"
-
-
-def _model_dir() -> Path:
-    return _workspace_dir() / "saved_model"
-
-
-def _mapping_path() -> Path:
-    return _workspace_dir() / "aiu_custom" / "mapping.json"
-
-
-def _load_selected_mapping() -> dict:
-    mapping_path = _mapping_path()
-    if not mapping_path.is_file():
-        raise FileNotFoundError("aiu_custom/mapping.json is required")
-    return json.loads(mapping_path.read_text(encoding="utf-8"))
-
-
-def _selected_model_info() -> dict:
-    mapping = _load_selected_mapping()
-    model = mapping.get("model", {{}})
-    if not isinstance(model, dict):
-        raise ValueError("invalid model mapping: aiu_custom/mapping.json")
-    return model
-
-
-def _selected_model_kind() -> str:
-    return str(_selected_model_info().get("kind") or {kind!r})
-
-
-def _selected_model_path() -> Path:
-    raw_path = _selected_model_info().get("relative_path") or _selected_model_info().get("source_path")
-    if not raw_path:
-        raise ValueError("selected_model_path_missing: aiu_custom/mapping.json")
-    path = Path(str(raw_path))
-    if path.is_absolute():
-        return path
-    return _workspace_dir() / path
-
-
+    loader = loader.replace("MODEL_PATH", "SOURCE_MODEL_PATH")
+    selected_path_expr = "PROJECT_DIR" + "".join(f" / {json.dumps(part, ensure_ascii=False)}" for part in Path(selected_relative).parts)
+    selected_connection_block = f'''
 {loader}
 {selected_model_input_example_block(kind)}
 '''
@@ -1608,24 +1551,20 @@ CONFIG_PATH = CONFIG_DIR / "config.json"
 MODEL_DIR = PROJECT_DIR / "saved_model"
 MODEL_PATH = MODEL_DIR / "model.pt"'''
     text = text.replace("import mlflow\n", "")
-    if original_path_block in text:
-        text = text.replace(original_path_block, mapping_block.strip())
-    else:
-        path_block_pattern = re.compile(
-            r"PROJECT_DIR\s*=.*\n"
-            r"(?:(?:SOURCE_MODEL_PATH|DATA_MODEL_PATH|MODEL_KIND|MODEL_LOAD_HINT|INPUT_EXAMPLE_PATH|CONFIG_DIR|CONFIG_PATH|MODEL_DIR|MODEL_PATH)\s*=.*\n)+"
-        )
-        text, replaced_count = path_block_pattern.subn(mapping_block.strip() + "\n", text, count=1)
-        if replaced_count == 0:
-            insert_marker = "\nconfigure_utf8_stdio()\n"
-            if insert_marker in text:
-                text = text.replace(insert_marker, insert_marker + "\n" + mapping_block.strip() + "\n", 1)
-            else:
-                text = mapping_block.strip() + "\n\n" + text
-    text = text.replace("INPUT_EXAMPLE_PATH", "_input_example_path()")
-    text = text.replace("CONFIG_DIR", "_config_dir()")
-    text = text.replace("CONFIG_PATH", "_config_path()")
-    text = text.replace("MODEL_DIR", "_model_dir()")
+    text = re.sub(r"(?m)^SOURCE_MODEL_PATH\s*=.*$", f"SOURCE_MODEL_PATH = {selected_path_expr}", text, count=1)
+    text = re.sub(r"(?m)^DATA_MODEL_PATH\s*=.*$", "DATA_MODEL_PATH = SOURCE_MODEL_PATH", text, count=1)
+    text = re.sub(r"(?m)^MODEL_KIND\s*=.*$", f"MODEL_KIND = {kind!r}", text, count=1)
+    text = re.sub(r"(?m)^MODEL_LOAD_HINT\s*=.*$", f"MODEL_LOAD_HINT = {load_hint.replace('MODEL_PATH', 'SOURCE_MODEL_PATH')!r}", text, count=1)
+    text = re.sub(r"(?m)^INPUT_EXAMPLE_PATH\s*=.*$", 'INPUT_EXAMPLE_PATH = PROJECT_DIR / "input_example.json"', text, count=1)
+    text = re.sub(r"(?m)^CONFIG_DIR\s*=.*$", 'CONFIG_DIR = PROJECT_DIR / "config"', text, count=1)
+    text = re.sub(r"(?m)^CONFIG_PATH\s*=.*$", 'CONFIG_PATH = CONFIG_DIR / "config.json"', text, count=1)
+    text = re.sub(r"(?m)^MODEL_DIR\s*=.*$", 'MODEL_DIR = PROJECT_DIR / "saved_model"', text, count=1)
+    if "def load_selected_model(" not in text:
+        insert_marker = "\n# AI 환경 설정\n"
+        if insert_marker in text:
+            text = text.replace(insert_marker, "\n" + selected_connection_block.strip() + "\n" + insert_marker, 1)
+        else:
+            text = text.replace("configure_utf8_stdio()\n", "configure_utf8_stdio()\n\n" + selected_connection_block.strip() + "\n", 1)
     text = text.replace('mlflow_experiment_name = "pytorch_sample"', f"mlflow_experiment_name = {default_experiment_name!r}")
     text = text.replace('mlflow_register_model_name = "pytorch_sample_model"', f"mlflow_register_model_name = {default_register_model_name!r}")
     text = text.replace("runtest.py에 직접 입력하세요.", "runtest_2.py에 직접 입력하세요.")
@@ -1672,7 +1611,7 @@ MODEL_PATH = MODEL_DIR / "model.pt"'''
     )
     text = re.sub(
         r"(?m)^    config\s*=\s*\{.*\"framework\".*\}\n",
-        '    config = {"framework": _selected_model_kind(), "model_path": str(_selected_model_path()), "model_relative_path": '
+        '    config = {"framework": MODEL_KIND, "model_path": str(SOURCE_MODEL_PATH), "model_relative_path": '
         + repr(selected_relative)
         + "}\n",
         text,
@@ -1680,13 +1619,13 @@ MODEL_PATH = MODEL_DIR / "model.pt"'''
     )
     text = re.sub(
         r"(?m)^    torch\.save\(.*\)\n",
-        "    selected_model_path = _selected_model_path()\n",
+        "    selected_model_path = SOURCE_MODEL_PATH\n",
         text,
         count=1,
     )
     text = text.replace('        mlflow.set_tag("data.name", "synthetic_tensor(pytorch)")', '        mlflow.set_tag("data.name", "selected_model")')
     text = text.replace("            artifacts={\n                \"model\": MODEL_PATH.as_posix(),", "            artifacts={\n                \"model\": selected_model_path.as_posix(),")
-    text = text.replace("            artifacts={\n                \"model\": _model_dir().as_posix(),", "            artifacts={\n                \"model\": selected_model_path.as_posix(),")
+    text = text.replace("            artifacts={\n                \"model\": MODEL_DIR.as_posix(),", "            artifacts={\n                \"model\": selected_model_path.as_posix(),")
     text = text.replace('    print(f"model written: {MODEL_PATH}")', '    print(f"selected model: {selected_model_path}")')
     text = ensure_linux_code_paths(text)
     return text.rstrip() + "\n"
@@ -2304,24 +2243,22 @@ def verify_selected_model_conversion(project: Path, selected_model: Path, kind: 
         if selected_relative not in text and selected_absolute not in text:
             failures.append(f"selected_model_not_reflected:{display_path}:{selected_absolute}")
         if display_path == "runtest_2.py":
-            if "_mapping_path" not in text or "_selected_model_kind" not in text or "_selected_model_path" not in text:
-                failures.append("runtest_2_mapping_loader_missing:runtest_2.py")
-            forbidden_names = [
-                "MODEL_KIND",
-                "DATA_MODEL_PATH",
-                "MODEL_LOAD_HINT",
-                "AIU_REQUIRED_PACKAGE",
+            if "def load_selected_model(" not in text or "SOURCE_MODEL_PATH" not in text:
+                failures.append("runtest_2_selected_model_loader_missing:runtest_2.py")
+            if "selected_model_path = SOURCE_MODEL_PATH" not in text:
+                failures.append("runtest_2_selected_artifact_path_missing:runtest_2.py")
+            forbidden_helpers = [
+                "_workspace_dir",
+                "_selected_model_path",
+                "_selected_model_kind",
+                "_mapping_path",
                 "REFERENCE_ENTRYPOINT",
-                "AI_STUDIO_DIR",
-                "INPUT_EXAMPLE_PATH",
-                "CONFIG_DIR",
-                "CONFIG_PATH",
-                "MODEL_DIR",
-                "MAPPING_PATH",
+                "AIU_REQUIRED_PACKAGE",
+                "AIU_LOAD_HINT",
             ]
-            embedded = [name for name in forbidden_names if name in text]
+            embedded = [name for name in forbidden_helpers if name in text]
             if embedded:
-                failures.append(f"runtest_2_should_not_embed_selected_model_metadata:{','.join(embedded)}")
+                failures.append(f"runtest_2_should_preserve_format_without_helpers:{','.join(embedded)}")
         elif f'MODEL_KIND = "{kind}"' not in text and f"MODEL_KIND = {kind!r}" not in text:
             failures.append(f"selected_model_kind_not_reflected:{display_path}:{kind}")
 

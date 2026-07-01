@@ -63,12 +63,12 @@ QA / Maintenance
 ```text
 1. 모델 목록 확인                  -> prepare_selected_model.py
 2. 모델 경로로 선택                -> prepare_selected_model.py --model <번호|경로>
-3. 선택 모델 변환 시퀀스 -> prepare_selected_model.py --model <경로> --execute, prepare_selected_model.py --sync-runtime --execute
+3. aiu_studio/ 템플릿 복사 -> 선택 모델 경로 및 형식 확인 -> 복사된 템플릿을 선택 모델 형식에 맞게 변환 -> prepare_selected_model.py --model <경로> --execute, prepare_selected_model.py --sync-runtime --execute
 4. 모델 환경변수/패키지 상태 체크 -> check_environment.py --entrypoint runtest_2.py
 5. 원격 MLflow 등록 실행           -> python runtest_2.py
 6. 추론 테스트                    -> python local_serving/localservingtest.py
-7. MLflow 검증                     -> verify_mlflow.py
-8. 오류 수정 및 재검증             -> 실패한 단계의 스크립트 재실행
+7. MLflow 검증                     -> verify_mlflow.py (experiment, run, artifact, registered model 확인)
+8. 오류 수정 및 재검증             -> Failures 기준으로 실패한 단계부터 재실행
 ```
 
 화면에 표시된 모델 번호나 TODO 단계 번호는 숫자 키로 입력하면 바로 선택/실행한다.
@@ -82,7 +82,8 @@ QA / Maintenance
 5 -> python runtest_2.py
 6 -> python local_serving/localservingtest.py
 7 -> python .opencode/scripts/06-mlflow-verify/verify_mlflow.py --tracking-uri <tracking-uri> --experiment-name <experiment-name>
-8 -> 실패한 단계부터 재실행
+     # experiment, run, artifact, registered model 확인
+8 -> Failures와 오류 메시지 기준으로 수정 후 실패한 단계부터 재실행
 ```
 
 Windows PowerShell에서는 선택 프로젝트의 실행 폴더로 이동한 뒤 실행한다.
@@ -98,10 +99,10 @@ cd '<selected-project-path>'
 python '<opencode-package-path>\.opencode\scripts\verify_mlflow.py' --project '<selected-project-path>' --tracking-uri <tracking-uri> --experiment-name <experiment-name>
 ```
 
-`3`은 `.opencode/samples/aiu_studio/`에서 복사된 템플릿 폴더 내부를 기준으로, 선택 모델 실행/등록에 필요한 연결부를 모델 형식에 맞게 변환하고 `requirements.txt` 재정의/확인을 함께 처리한다. 필수 패키지 5개와 모델별 추가 패키지를 함께 반영한다.
+`3`은 `aiu_studio/` 템플릿 복사 -> 선택 모델 경로 및 형식 확인 -> 복사된 템플릿을 선택 모델 형식에 맞게 변환 흐름으로 진행한다. 이 단계에서 `requirements.txt` 재정의/확인도 함께 처리한다. 필수 패키지 5개는 항상 유지하고, 모델별 추가 패키지만 뒤에 반영한다.
 필수 패키지 기준은 `03-environment-check/requirements.required.txt`에서 관리한다.
 
-`4`는 모델 환경변수와 패키지 상태 체크다. 변환된 코드 import 기준 추가 Python 패키지가 필요하면 `requirements.txt`를 업데이트하고, MLflow 입력값 3개와 자동값 2개를 `set`, `empty`, `missing`, `auto_default` 상태로만 표시한다. secret 값은 출력하지 않는다.
+`4`는 모델 환경변수와 패키지 상태 체크다. 변환된 코드 import 기준 추가 Python 패키지가 필요하면 `requirements.txt`를 업데이트하고, 이때도 필수 패키지 5개는 절대 제거하지 않는다. MLflow 입력값 3개와 자동값 2개는 `set`, `empty`, `missing`, `auto_default` 상태로만 표시한다. secret 값은 출력하지 않는다.
 
 패키지 설치 기준:
 
@@ -420,7 +421,7 @@ python localservingtest.py
 
 ### verify_mlflow.py
 
-MLflow experiment, run, artifact, registered model 상태를 확인한다.
+MLflow experiment, run, artifact, registered model 결과를 확인한다.
 
 ```text
 python .opencode/scripts/06-mlflow-verify/verify_mlflow.py --tracking-uri http://127.0.0.1:5000 --experiment-name <name>

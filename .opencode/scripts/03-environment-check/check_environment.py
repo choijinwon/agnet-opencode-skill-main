@@ -1187,8 +1187,8 @@ def build_report(project: Path, entrypoint_name: str | None = None) -> Environme
             f"4. 모델 환경변수/패키지 상태 체크: {entrypoint_display}의 MLflow 입력값 3개와 자동값 2개를 확인한다.",
             f"5. 원격 MLflow 등록 실행: python {entrypoint_display} 로 선택 모델을 원격 MLflow 서버에 기록/등록한다.",
             "6. 추론 테스트: 5번 원격 MLflow 등록 실행이 성공한 뒤 local serving 입력/출력 스키마를 확인한다.",
-            "7. MLflow 검증: 추론 테스트 이후 Run, artifact, registered model 기록을 확인한다.",
-            "8. 오류 수정 및 재검증: 오류가 있으면 서버 배포 오류사항과 Failures를 기준으로 수정한 뒤 실패한 단계부터 다시 실행한다.",
+            "7. MLflow 검증: 추론 테스트 이후 MLflow experiment, run, artifact, registered model 결과를 확인한다.",
+            "8. 오류 수정 및 재검증: 오류가 있으면 Failures와 오류 메시지를 기준으로 수정한 뒤 실패한 단계부터 다시 실행한다.",
         ]
         if entrypoint is None:
             if entrypoint_candidates:

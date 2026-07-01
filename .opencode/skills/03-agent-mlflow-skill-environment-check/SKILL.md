@@ -15,34 +15,34 @@ metadata:
 
 ```text
 판단 결과: pass | warn | needs_user_input | blocked
-현재 단계: 2. 환경 검증
+현재 단계: 4. 환경변수/requirements 갱신
 현재 대상: selected_project_path
 핵심 판단: Python 3.11.9, MLflow 3.13.0, dependency, 설정 상태
-다음 단계: 학습 실행 및 MLflow 등록
+다음 단계: 5. 학습 실행 및 원격 MLflow 등록
 ```
 
 ## Workflow
 
 ```text
-1. 프로젝트 분석
-2. 환경 검증
-3. 샘플 규격 확인/보충
-4. 환경 변수 입력/export
-5. 패키지 설치
-6. 학습 실행 및 MLflow 등록
-7. 산출물 확인
+1. 모델 목록 확인
+2. 모델 선택
+3. 템플릿 변환
+4. 환경변수/requirements 갱신
+5. 학습 실행 및 원격 MLflow 등록
+6. 추론 테스트
+7. 오류 수정 및 재실행
 ```
 
 ## What To Do Now
 
 ```text
-1. Python 실행 파일과 버전을 확인한다.
-2. dependency 파일과 핵심 패키지를 확인한다.
-3. MLflow 3.13.0 설치/version을 확인한다.
-4. mlflow_tracking_url이 있으면 원격 MLflow 서버 version을 확인한다.
-5. 변환된 코드 import 기준 추가 Python 패키지가 필요하면 requirements.txt를 업데이트한다. 이때 필수 패키지 5개는 항상 유지한다.
-6. run_model.py, runtest.py 또는 runtest_2.py 설정 블록을 확인한다.
-7. 비어 있는 값은 사용자가 직접 소스에 입력하도록 안내한다.
+1. 선택 모델 정보가 aiu_custom/mapping.json 기준으로 유지되는지 확인한다.
+2. Python 실행 파일과 버전을 확인한다.
+3. dependency 파일과 핵심 패키지를 확인한다.
+4. MLflow 3.13.0 설치/version을 확인한다.
+5. mlflow_tracking_url이 있으면 원격 MLflow 서버 version을 확인한다.
+6. 변환된 코드 import 기준 추가 Python 패키지가 필요하면 requirements.txt를 업데이트한다. 이때 필수 패키지 5개는 항상 유지한다.
+7. runtest_2.py 설정 블록의 비어 있는 값은 사용자가 직접 소스에 입력하도록 안내한다.
 ```
 
 ## Output Contract

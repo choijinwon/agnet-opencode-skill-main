@@ -358,6 +358,8 @@ def server_deploy_error_items(failures: list[str], blocked_summary: list[str]) -
             items.append("실행 파일 경로 오류 → 선택한 프로젝트 폴더 밖의 파일은 사용할 수 없습니다.")
         elif failure == "selected_model_outside_project":
             items.append("모델 경로 오류 → 선택 모델은 현재 프로젝트 폴더 안에 있어야 합니다.")
+        elif failure == "selected_model_mapping_missing":
+            items.append("선택 모델 고정 정보 없음 → aiu_custom/mapping.json 기준으로 2~3번을 다시 실행하세요.")
         elif failure.startswith("selected_model_path_missing:"):
             items.append("모델 경로 누락 → aiu_custom/mapping.json의 선택 모델 경로를 확인하세요.")
         elif failure.startswith("selected_model_mapping_path_mismatch:"):
@@ -639,61 +641,31 @@ def parse_python_literal_assignments(path: Path) -> dict[str, object]:
 
 
 def selected_model_status(project: Path) -> tuple[str | None, str | None, str | None, str | None]:
-    mapping_path = next(
-        (
-            path
-            for path in [
-                project / "aiu_custom" / "mapping.json",
-            ]
-            if path.is_file()
-        ),
-        project / "aiu_custom" / "mapping.json",
-    )
-    if mapping_path.is_file():
-        try:
-            payload = json.loads(mapping_path.read_text(encoding="utf-8"))
-        except json.JSONDecodeError:
-            payload = {}
-        model = payload.get("model") if isinstance(payload, dict) else None
-        if isinstance(model, dict):
-            selected_path = model.get("source_path") or model.get("relative_path")
-            model_kind = model.get("kind")
-            required_package = model.get("required_package")
-            if isinstance(required_package, str) and required_package == "unknown":
-                required_package = None
-            if isinstance(model_kind, str) and not required_package:
-                required_package = MODEL_KIND_REQUIRED_PACKAGE.get(model_kind)
-            if isinstance(selected_path, str) or isinstance(model_kind, str) or isinstance(required_package, str):
-                normalized_package = normalize_package_name(required_package) if isinstance(required_package, str) else None
-                package_status = None
-                if normalized_package:
-                    package_status = "set" if package_version(normalized_package) else "missing"
-                return (
-                    selected_path if isinstance(selected_path, str) else None,
-                    model_kind if isinstance(model_kind, str) else None,
-                    normalized_package,
-                    package_status,
-                )
-
-    runtest_path = project / "runtest_2.py"
-    values = parse_python_literal_assignments(runtest_path)
-    selected_path = None
-    model_kind = values.get("MODEL_KIND")
-    if isinstance(model_kind, str):
-        required_package = MODEL_KIND_REQUIRED_PACKAGE.get(model_kind)
-    else:
+    mapping_path = project / "aiu_custom" / "mapping.json"
+    if not mapping_path.is_file():
+        return None, None, None, None
+    try:
+        payload = json.loads(mapping_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return None, None, None, None
+    model = payload.get("model") if isinstance(payload, dict) else None
+    if not isinstance(model, dict):
+        return None, None, None, None
+    selected_path = model.get("source_path") or model.get("relative_path")
+    model_kind = model.get("kind")
+    required_package = model.get("required_package")
+    if isinstance(required_package, str) and required_package == "unknown":
         required_package = None
-    model_profile = values.get("MODEL_PROFILE")
-    if isinstance(model_profile, dict):
-        raw_path = model_profile.get("model_relative_path") or model_profile.get("runtime_model_path")
-        raw_kind = model_profile.get("model_kind")
-        raw_package = model_profile.get("required_package")
-        selected_path = raw_path if isinstance(raw_path, str) else None
-        model_kind = raw_kind if isinstance(raw_kind, str) else model_kind
-        required_package = raw_package if isinstance(raw_package, str) and raw_package != "unknown" else required_package
+    if isinstance(model_kind, str) and not required_package:
+        required_package = MODEL_KIND_REQUIRED_PACKAGE.get(model_kind)
     normalized_package = normalize_package_name(required_package) if isinstance(required_package, str) else None
     package_status = "set" if normalized_package and package_version(normalized_package) else ("missing" if normalized_package else None)
-    return selected_path, model_kind if isinstance(model_kind, str) else None, normalized_package, package_status
+    return (
+        selected_path if isinstance(selected_path, str) else None,
+        model_kind if isinstance(model_kind, str) else None,
+        normalized_package,
+        package_status,
+    )
 
 
 def is_unselected_framework_requirement(item: RequirementStatus, selected_required_package: str | None) -> bool:
@@ -1210,6 +1182,9 @@ def build_report(project: Path, entrypoint_name: str | None = None) -> Environme
                 next_steps.append("Entrypoint candidates: " + ", ".join(str(path.relative_to(project)) for path in entrypoint_candidates))
             next_steps.append("실행 파일을 찾지 못했습니다. 사용자가 실제 학습/모델 생성 Python 파일을 프로젝트에 직접 넣고 --entrypoint <file>로 지정하세요.")
             source_input_required = []
+        if selected_path is None:
+            failures.append("selected_model_mapping_missing")
+            next_steps.append("4번 환경검증은 aiu_custom/mapping.json의 선택 모델 기준으로만 진행합니다. 먼저 2~3번 모델 선택/템플릿 변환을 다시 실행하세요.")
     else:
         entrypoint_display = setting_file or "run_model.py, runtest.py 또는 run_test.py"
         tod_guide = [

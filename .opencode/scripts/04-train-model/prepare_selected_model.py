@@ -2324,7 +2324,11 @@ def write_runtest_2(project: Path, selected_model: Path, kind: str, reference: P
         if reference_digest_after != reference_digest_before:
             failures.append(f"reference_entrypoint_modified:{rel(reference, project)}")
             return changed, skipped, failures
-    changed.append("runtest_2.py sequence generated + transformed (refreshed)" if existed_before else "runtest_2.py sequence generated + transformed")
+    changed.append(
+        "runtest_2.py generated from mapping selected model (refreshed)"
+        if existed_before
+        else "runtest_2.py generated from mapping selected model"
+    )
     return changed, skipped, failures
 
 
@@ -2494,6 +2498,15 @@ def verify_selected_model_conversion(project: Path, selected_model: Path, kind: 
             if other_relative != selected_relative and (other_relative in text or other_absolute in text):
                 failures.append(f"stale_model_path_in_generated:{display_path}:{other_relative}")
 
+    locked_model, locked_kind, locked_error = selected_model_from_mapping(project)
+    if locked_error:
+        failures.append(locked_error)
+    elif locked_model is None or locked_model.resolve() != selected_model.resolve():
+        locked_display = rel(locked_model, project) if locked_model else "missing"
+        failures.append(f"selected_model_mapping_mismatch:{locked_display}->{selected_relative}")
+    elif locked_kind and locked_kind != kind:
+        failures.append(f"selected_model_kind_mismatch:{locked_kind}->{kind}")
+
     return changed, [], failures
 
 
@@ -2644,7 +2657,7 @@ def build_report(args: argparse.Namespace) -> PreparedModelReport:
                 ]
             )
         elif not report.failures:
-            report.next_steps.append("검토 후 --execute를 붙여 runtest_2.py 기준 런타임 폴더/파일을 변환하세요.")
+            report.next_steps.append("검토 후 --execute를 붙여 mapping.json의 선택 모델 기준으로 런타임 폴더/파일을 변환하세요.")
         return report
 
     template_changed, template_skipped, template_failures = copy_aiu_studio_folder(project, args.execute)
@@ -2668,11 +2681,6 @@ def build_report(args: argparse.Namespace) -> PreparedModelReport:
     if report.failures:
         return report
 
-    verify_changed, verify_skipped, verify_failures = verify_selected_model_conversion(project, selected_model, selected_kind, models, args.execute)
-    report.prepared_paths.extend(verify_changed)
-    report.skipped.extend(verify_skipped)
-    report.failures.extend(verify_failures)
-
     runtime_reference = project / "runtest_2.py"
     runtime_changed, runtime_skipped, runtime_failures = sync_selected_model_runtime(
         project,
@@ -2685,6 +2693,13 @@ def build_report(args: argparse.Namespace) -> PreparedModelReport:
     report.prepared_paths.extend(runtime_changed)
     report.skipped.extend(runtime_skipped)
     report.failures.extend(runtime_failures)
+    if report.failures:
+        return report
+
+    verify_changed, verify_skipped, verify_failures = verify_selected_model_conversion(project, selected_model, selected_kind, models, args.execute)
+    report.prepared_paths.extend(verify_changed)
+    report.skipped.extend(verify_skipped)
+    report.failures.extend(verify_failures)
 
     if args.execute and not report.failures:
         report.next_steps.extend(
@@ -2830,7 +2845,7 @@ def main() -> int:
     parser.add_argument("--model", help="model index from model_artifact_paths or a project-relative path")
     parser.add_argument("--execute", action="store_true", help="write the selected-model runtest_2.py or sync runtime files when --sync-runtime is used")
     parser.add_argument("--force", action="store_true", help="kept for compatibility; runtest_2.py is refreshed for the selected model")
-    parser.add_argument("--sync-runtime", action="store_true", help="read selected model from runtest_2.py and transform runtime folders/files for that model")
+    parser.add_argument("--sync-runtime", action="store_true", help="read selected model from aiu_custom/mapping.json and transform runtime folders/files for that model")
     parser.add_argument("--json", action="store_true", help="print machine-readable JSON")
     args = parser.parse_args()
 

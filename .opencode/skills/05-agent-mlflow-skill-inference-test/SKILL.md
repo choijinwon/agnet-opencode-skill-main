@@ -18,7 +18,7 @@ metadata:
 현재 단계: 추론 테스트
 진행 조건: 사용자가 6번을 선택했을 때만 실행
 현재 대상: trained model project
-핵심 판단: input_example, load mode, predict contract, output schema
+핵심 판단: mapping.json 선택 모델, input_example, load mode, predict contract, output schema
 다음 단계: 7. 오류 수정 및 재실행
 ```
 
@@ -39,9 +39,10 @@ metadata:
 ```text
 1. input_example.json을 확인한다.
 2. local_serving/localservingtest.py를 확인한다.
-3. localservingtest.py의 선택 모델 경로, MODEL_KIND, load_selected_model()을 확인한다.
-4. Windows native load는 보조 확인으로만 둔다.
-5. 결과가 JSON serializable인지 확인한다.
+3. aiu_custom/mapping.json의 선택 모델 경로와 MODEL_KIND를 확인한다.
+4. localservingtest.py의 load_selected_model()과 predict contract를 확인한다.
+5. Windows native load는 보조 확인으로만 둔다.
+6. 결과가 JSON serializable인지 확인한다.
 ```
 
 ## Output Contract

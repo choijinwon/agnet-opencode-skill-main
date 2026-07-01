@@ -1,24 +1,9 @@
 import argparse
 import importlib.util
 import json
-import os
-import re
 import sys
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
-
-
-DATA_MODEL_SUFFIXES = {".pkl", ".joblib", ".pt", ".pth", ".onnx", ".h5", ".keras", ".safetensors", ".bst", ".ubj"}
-MODEL_SCAN_SKIP_DIRS = {
-    ".git",
-    ".opencode",
-    ".venv",
-    "__pycache__",
-    "ai_studio",
-    "aiu_studio",
-    "node_modules",
-    "venv",
-}
 
 
 def resolve_workspace_project(raw_project: str) -> Path:
@@ -67,51 +52,34 @@ def find_input_example(project: Path) -> Path | None:
     return None
 
 
-def find_model_path_from_generated_entrypoint(project: Path) -> Path | None:
-    for entrypoint in [project / "runtest_2.py"]:
-        if not entrypoint.exists():
-            continue
-        text = entrypoint.read_text(encoding="utf-8", errors="ignore")
-        patterns = [
-            r"SOURCE_MODEL_PATH\s*=\s*PROJECT_DIR\s*/\s*['\"]([^'\"]+)['\"]",
-            r"MODEL_PATH\s*=\s*PROJECT_DIR\s*/\s*['\"]([^'\"]+)['\"]",
-        ]
-        for pattern in patterns:
-            match = re.search(pattern, text)
-            if not match:
-                continue
-            candidate = (project / match.group(1)).resolve()
-            if candidate.exists():
-                return candidate
-    return None
+def find_model_path_from_mapping(project: Path) -> tuple[Path | None, str | None]:
+    mapping_path = project / "aiu_custom" / "mapping.json"
+    if not mapping_path.is_file():
+        return None, "selected_model_mapping_missing"
+    try:
+        payload = json.loads(mapping_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        return None, f"selected_model_mapping_parse_error:{exc.lineno}"
+    model = payload.get("model") if isinstance(payload, dict) else None
+    if not isinstance(model, dict):
+        return None, "selected_model_mapping_model_missing"
+    source_path = model.get("source_path") or model.get("relative_path")
+    if not isinstance(source_path, str) or not source_path.strip():
+        return None, "selected_model_mapping_source_path_missing"
+    candidate = Path(source_path)
+    if not candidate.is_absolute():
+        candidate = project / candidate
+    candidate = candidate.resolve()
+    if not candidate.exists():
+        return None, f"selected_model_mapping_not_found:{source_path}"
+    return candidate, None
 
 
-def find_model_path(project: Path) -> Path | None:
-    selected_model = find_model_path_from_generated_entrypoint(project)
+def find_model_path(project: Path) -> tuple[Path | None, str | None]:
+    selected_model, mapping_error = find_model_path_from_mapping(project)
     if selected_model is not None:
-        return selected_model
-    for root, dirs, files in os.walk(project):
-        root_path = Path(root)
-        try:
-            relative_parts = root_path.relative_to(project).parts
-        except ValueError:
-            dirs[:] = []
-            continue
-        if any(part in MODEL_SCAN_SKIP_DIRS for part in relative_parts):
-            dirs[:] = []
-            continue
-        dirs[:] = [dirname for dirname in dirs if dirname not in MODEL_SCAN_SKIP_DIRS]
-        for filename in sorted(files):
-            path = root_path / filename
-            if path.suffix.lower() in DATA_MODEL_SUFFIXES:
-                return path
-    for name in ["aiu_studio", "ai_studio", "saved_model", "model", "artifacts"]:
-        candidate = project / name
-        if candidate.exists():
-            return candidate
-    if (project / "MLmodel").exists():
-        return project
-    return None
+        return selected_model, None
+    return None, mapping_error
 
 
 def jsonable(value) -> bool:
@@ -166,7 +134,11 @@ def main():
     args = parser.parse_args()
 
     project = resolve_workspace_project(args.project)
-    model_path = Path(args.model_path).expanduser().resolve() if args.model_path else find_model_path(project)
+    if args.model_path:
+        model_path = Path(args.model_path).expanduser().resolve()
+        model_path_error = None
+    else:
+        model_path, model_path_error = find_model_path(project)
     input_path = Path(args.input_example).expanduser().resolve() if args.input_example else find_input_example(project)
     failures: list[str] = []
     result = None
@@ -176,7 +148,7 @@ def main():
     if input_path is None:
         failures.append("missing_input_example")
     if model_path is None and args.mode in {"auto", "pyfunc"}:
-        failures.append("model_load_error:model path not found")
+        failures.append(model_path_error or "model_load_error:model path not found")
 
     payload = None
     if input_path is not None:

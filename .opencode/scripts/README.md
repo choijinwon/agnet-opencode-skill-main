@@ -169,7 +169,7 @@ python .opencode/scripts/04-train-model/prepare_selected_model.py --project <mod
 python .opencode/scripts/04-train-model/prepare_selected_model.py --project <model-project-folder> --model data/<임의폴더>/model.joblib --execute
 python .opencode/scripts/04-train-model/prepare_selected_model.py --project <model-project-folder> --model data/torch/model.pt --execute
 python .opencode/scripts/04-train-model/prepare_selected_model.py --project <model-project-folder> --model selected --execute
-# 보정용: 이미 생성된 runtest_2.py 기준으로 런타임 파일만 다시 맞출 때 사용
+# 보정용: aiu_custom/mapping.json의 선택 모델 기준으로 런타임 파일만 다시 맞출 때 사용
 python .opencode/scripts/04-train-model/prepare_selected_model.py --project <model-project-folder> --sync-runtime --execute
 ```
 

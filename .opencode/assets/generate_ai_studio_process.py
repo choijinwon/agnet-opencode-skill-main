@@ -173,7 +173,7 @@ def draw_process(path: Path, bottom_text: str) -> None:
     cards = [
         ("1", "모델 목록 확인", "search", "프로젝트 루트\n+ data/** 검색", blue),
         ("2", "모델 선택", "select", "번호 또는\n경로 선택", blue),
-        ("3", "템플릿 변환", "template", "템플릿 복사,\n코드 변환", blue),
+        ("3", "템플릿 변환", "template", "템플릿 복사,\n연결부 수정", blue),
         ("4", "환경변수\nrequirements 갱신", "requirements", "MLflow 입력값,\n패키지 갱신", blue),
         ("5", "원격 MLflow\n등록 실행", "mlflow", "runtest_2.py\n실행", blue),
         ("6", "추론 테스트", "inference", "추론 테스트\n실행", green),

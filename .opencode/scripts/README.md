@@ -60,7 +60,7 @@ QA / Maintenance
 ```text
 1. 모델 목록 확인                  -> prepare_selected_model.py
 2. 모델 선택                       -> prepare_selected_model.py --model <번호|경로>
-3. 템플릿 변환                     -> 템플릿 복사 + 선택 모델 기준 코드 변환
+3. 템플릿 변환                     -> 템플릿 복사 + 복사된 템플릿 기준 연결부 수정
 4. 환경변수/requirements 갱신      -> check_environment.py --entrypoint runtest_2.py
 5. 원격 MLflow 등록 실행           -> python runtest_2.py
 6. 추론 테스트                     -> python local_serving/localservingtest.py
@@ -89,7 +89,7 @@ cd '<selected-project-path>\local_serving'
 python localservingtest.py
 ```
 
-`1~3`은 모델 선택 명령 한 번으로 모델 목록 확인 -> 모델 선택 -> 템플릿 복사와 선택 모델 기준 코드 변환 흐름으로 진행한다. 이 단계에서 `requirements.txt` 재정의/확인도 함께 처리한다. 필수 패키지 5개는 항상 유지하고, 모델별 추가 패키지만 뒤에 반영한다.
+`1~3`은 모델 선택 명령 한 번으로 모델 목록 확인 -> 모델 선택 -> 템플릿 복사와 복사된 템플릿 기준 연결부 수정 흐름으로 진행한다. 이 단계에서 `requirements.txt` 재정의/확인도 함께 처리한다. 필수 패키지 5개는 항상 유지하고, 모델별 추가 패키지만 뒤에 반영한다.
 필수 패키지 기준은 `03-environment-check/requirements.required.txt`에서 관리한다.
 
 `9`는 모델 환경변수와 패키지 상태 체크다. 변환된 코드 import 기준 추가 Python 패키지가 필요하면 `requirements.txt`를 업데이트하고, 이때도 필수 패키지 5개는 절대 제거하지 않는다. MLflow 입력값 3개와 자동값 2개는 `set`, `empty`, `missing`, `auto_default` 상태로만 표시한다. secret 값은 출력하지 않는다.

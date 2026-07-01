@@ -168,7 +168,7 @@ blocked:
 1. 모델 목록 확인
 2. 모델 선택
 3. 템플릿 변환
-   템플릿 복사와 선택 모델 기준 코드 변환을 함께 수행
+   템플릿 복사 후, 복사된 템플릿 기준으로 선택 모델 경로와 모델 형식 연결부를 수정
 4. 환경변수/requirements 갱신
    필수 패키지 5개는 항상 유지하고, 모델 형식별 추가 패키지만 반영
 5. runtest_2.py 원격 MLflow 등록 실행
@@ -182,7 +182,7 @@ blocked:
 1. selected_sample 확인
 2. target_project_path 확인
 3. aiu_custom/, local_serving/, saved_model/ 확인
-4. 복사된 템플릿 내부에서 실제 존재하는 파일과 필요한 산출물 확인
+4. 복사된 템플릿 내부에서 실제 존재하는 파일과 필요한 연결부 확인
 5. run_model.py 또는 runtest.py 실행
 6. ai_studio 산출물 확인
 ```

@@ -373,7 +373,7 @@ model_found: true
 1. selected_project_path를 실행 기준 경로로 사용한다.
 2. train_entrypoint 또는 run_model.py를 확인한다.
 3. ai_studio.env 필수 키를 확인한다.
-4. 템플릿 복사와 코드 변환을 수행한다.
+4. 템플릿 복사 후 복사된 템플릿 기준으로 선택 모델 경로와 모델 형식 연결부를 수정한다.
 5. requirements.txt 필수/추가 패키지를 확인한다.
 6. 원격 MLflow 등록 실행을 준비한다.
 7. 추론 테스트에 필요한 input_example과 local_serving 경로를 확인한다.

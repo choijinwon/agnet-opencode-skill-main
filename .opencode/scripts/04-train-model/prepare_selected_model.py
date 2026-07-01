@@ -754,7 +754,7 @@ def runtest_2_sequence(project: Path, selected_model: Path, kind: str, reference
         "2. aiu_studio/ 템플릿을 현재 워크스페이스 루트로 복사",
         f"3. 참조 entrypoint 확인: {reference_display_path(reference)}",
         "4. runtest.py 참조해서 runtest_2.py 생성",
-        "5. 복사된 템플릿을 선택 모델 형식에 맞게 변환",
+        "5. 복사된 템플릿 기준으로 선택 모델 경로와 모델 형식 연결부 수정",
         "6. 변환 결과 검증",
     ]
 
@@ -2603,7 +2603,7 @@ def build_report(args: argparse.Namespace) -> PreparedModelReport:
         if args.execute and not report.failures:
             report.next_steps.extend(
                 [
-                    "후속 변환 완료: 복사된 템플릿 폴더 내부에서 선택 모델 실행/등록에 필요한 연결부를 선택 모델에 맞게 변환했습니다.",
+                    "후속 변환 완료: 복사된 템플릿 폴더 내부에서 선택 모델 경로와 모델 형식 연결부를 수정했습니다.",
                     "선택 모델 변환 완료: 모델 목록 확인 -> 모델 선택 -> 템플릿 변환",
                     "다음은 4번 환경변수/requirements 갱신입니다.",
                     powershell_python_script(

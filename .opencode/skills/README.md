@@ -60,7 +60,7 @@ Step 2. 모델 선택
 Step 3. 템플릿 변환
         aiu_studio/ 템플릿을 먼저 복사한다.
         기존 runtest.py를 읽기 전용으로 참조해 runtest_2.py를 생성/갱신한다.
-        복사된 템플릿을 선택 모델 형식에 맞게 변환한다.
+        복사된 템플릿 기준으로 선택 모델 경로와 모델 형식 연결부를 수정한다.
         모델 선택 명령 한 번으로 이 단계까지 수행한다. `--sync-runtime`은 이미 생성된 runtest_2.py 기준으로 런타임 파일을 다시 맞출 때만 사용한다.
         requirements.txt 필수 5개 패키지는 .opencode/scripts/03-environment-check/requirements.required.txt 기준을 사용하며 절대 제거하지 않는다.
         내부 일치 검증은 선택된 runtest_2.py와 런타임 파일 기준으로 수행한다.

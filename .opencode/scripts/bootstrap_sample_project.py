@@ -440,7 +440,7 @@ def main():
             for failure in report.failures:
                 print(f"- {failure}")
         if report.tod_guide:
-            print("TOD Guide:")
+            print("TODO Guide:")
             for step in report.tod_guide:
                 print(f"- {step}")
         if report.next_steps:

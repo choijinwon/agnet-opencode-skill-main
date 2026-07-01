@@ -1,6 +1,7 @@
 import argparse
 import ast
 import json
+import os
 import subprocess
 import sys
 from dataclasses import asdict, dataclass, field
@@ -199,6 +200,22 @@ def build_command(python_bin: str, entrypoint: Path, prepare_only: bool) -> list
     return cmd
 
 
+def iter_project_files(project: Path):
+    for root, dirs, files in os.walk(project):
+        root_path = Path(root)
+        try:
+            relative_parts = root_path.relative_to(project).parts
+        except ValueError:
+            dirs[:] = []
+            continue
+        if any(part in MODEL_SCAN_SKIP_DIRS for part in relative_parts):
+            dirs[:] = []
+            continue
+        dirs[:] = [dirname for dirname in dirs if dirname not in MODEL_SCAN_SKIP_DIRS]
+        for filename in files:
+            yield root_path / filename
+
+
 def find_artifacts(project: Path) -> list[str]:
     found: list[str] = []
     for name in ARTIFACT_DIRS:
@@ -213,13 +230,7 @@ def find_artifacts(project: Path) -> list[str]:
                 continue
             if path.is_file() and any(part in MLFLOW_OUTPUT_DIRS for part in path.relative_to(ai_studio).parts):
                 found.append(str(path))
-    for path in project.rglob("*"):
-        try:
-            relative_parts = path.relative_to(project).parts
-        except ValueError:
-            continue
-        if any(part in MODEL_SCAN_SKIP_DIRS for part in relative_parts):
-            continue
+    for path in iter_project_files(project):
         if path.name == "model_info.json":
             continue
         if path.is_file() and (path.suffix.lower() in ARTIFACT_SUFFIXES or path.name in {"MLmodel", "python_model.pkl"}):
@@ -323,6 +334,8 @@ def is_filesystem_root(path: Path) -> bool:
 
 def is_opencode_sample_source(path: Path) -> bool:
     parts = path.resolve().parts
+    if ".opencode" in parts:
+        return True
     for index, part in enumerate(parts[:-1]):
         if part == ".opencode" and parts[index + 1] in {"sample", "samples"}:
             return True
@@ -351,7 +364,7 @@ def main():
     if is_filesystem_root(project):
         raise ValueError("drive/root scan is not allowed. Run from the model project folder or pass --project <current-project-folder>.")
     if is_opencode_sample_source(project):
-        raise ValueError(".opencode/sample(s)는 번들 샘플 원본이라 실행/분석 대상이 아닙니다. 실제 모델 프로젝트 폴더를 --project로 지정하세요.")
+        raise ValueError(".opencode/는 번들 스킬 원본이라 실행/분석 대상이 아닙니다. 실제 모델 프로젝트 폴더를 --project로 지정하세요.")
 
     failures: list[str] = []
     next_steps: list[str] = []

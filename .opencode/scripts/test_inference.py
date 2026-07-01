@@ -1,6 +1,7 @@
 import argparse
 import importlib.util
 import json
+import os
 import re
 import sys
 from dataclasses import asdict, dataclass, field
@@ -73,15 +74,21 @@ def find_model_path(project: Path) -> Path | None:
     selected_model = find_model_path_from_generated_entrypoint(project)
     if selected_model is not None:
         return selected_model
-    for path in sorted(project.rglob("*")):
+    for root, dirs, files in os.walk(project):
+        root_path = Path(root)
         try:
-            relative_parts = path.relative_to(project).parts
+            relative_parts = root_path.relative_to(project).parts
         except ValueError:
+            dirs[:] = []
             continue
         if any(part in MODEL_SCAN_SKIP_DIRS for part in relative_parts):
+            dirs[:] = []
             continue
-        if path.is_file() and path.suffix.lower() in DATA_MODEL_SUFFIXES:
-            return path
+        dirs[:] = [dirname for dirname in dirs if dirname not in MODEL_SCAN_SKIP_DIRS]
+        for filename in sorted(files):
+            path = root_path / filename
+            if path.suffix.lower() in DATA_MODEL_SUFFIXES:
+                return path
     for name in ["aiu_studio", "ai_studio", "saved_model", "model", "artifacts"]:
         candidate = project / name
         if candidate.exists():

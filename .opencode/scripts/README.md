@@ -8,7 +8,7 @@
 예: `model.joblib`, `data/<임의폴더>/model.joblib`, `data/sklearn/model.pkl`, `data/checkpoints/model.pt`
 모델 있음 흐름에서는 기존 `runtest.py`를 워크스페이스 루트에서 읽기 전용으로 참조하고, 선택 모델 기준 `runtest_2.py`만 생성/갱신한다.
 `aiu_custom/`, `local_serving/`, `saved_model/`, `config/`, `requirements.txt`, `input_example.json`은 모델 선택 단계에서 자동 생성하지 않는다.
-후속 런타임 변환은 `runtest_2.py`를 기준으로 `--sync-runtime` 단계에서만 수행한다.
+후속 런타임 변환은 3번 선택 모델 변환 시퀀스의 추가 실행으로 `--sync-runtime`에서 수행한다.
 기존 `runtest.py`는 수정하지 않는다.
 선택 모델에 맞는 실행/등록 파일은 `runtest_2.py`로만 변환 생성한다.
 Linux 경로에 Windows 구분자(`\`, `＼`, `￦`, `₩`)가 섞이면 생성 파일에서 `/`로 자동 정규화한다.
@@ -51,29 +51,29 @@ QA / Maintenance
    MAINTENANCE.md                  유지보수 상세 문서
 ```
 
-## TOD Script Map
+## TODO Script Map
 
-사용자에게 보이는 TOD 단계는 아래 스크립트로 연결합니다.
+사용자에게 보이는 TODO 단계는 아래 스크립트로 연결합니다.
 
 ```text
 1. 모델 목록 확인                  -> prepare_selected_model.py
 2. 모델 경로로 선택                -> prepare_selected_model.py --model <번호|경로>
-3. 선택 모델 기준 runtest_2.py 변환 -> prepare_selected_model.py --model <경로> --execute
-4. runtest_2.py 기준 런타임 변환 + 환경체크 -> prepare_selected_model.py --sync-runtime --execute, check_environment.py --entrypoint runtest_2.py
+3. 선택 모델 변환 시퀀스 -> prepare_selected_model.py --model <경로> --execute, prepare_selected_model.py --sync-runtime --execute
+4. 모델 환경변수/패키지 상태 체크 -> check_environment.py --entrypoint runtest_2.py
 5. 원격 MLflow 등록 실행           -> python runtest_2.py
 6. 추론 테스트                    -> python local_serving/localservingtest.py
 7. MLflow 검증                     -> verify_mlflow.py
 8. 오류 수정 및 재검증             -> 실패한 단계의 스크립트 재실행
 ```
 
-화면에 표시된 모델 번호나 TOD 단계 번호는 숫자 키로 입력하면 바로 선택/실행한다.
+화면에 표시된 모델 번호나 TODO 단계 번호는 숫자 키로 입력하면 바로 선택/실행한다.
 
-기존 모델 흐름에서 `runtest_2.py`가 있으면 AIU Studio 빌드 모드 숫자 입력은 TOD 단계로 처리한다.
+기존 모델 흐름에서 `runtest_2.py`가 있으면 AIU Studio 빌드 모드 숫자 입력은 TODO 단계로 처리한다.
 
 ```text
 3 -> python .opencode/scripts/prepare_selected_model.py --project . --model selected --execute
-4 -> python .opencode/scripts/prepare_selected_model.py --project . --sync-runtime --execute
-     python .opencode/scripts/check_environment.py --project . --entrypoint runtest_2.py
+     python .opencode/scripts/prepare_selected_model.py --project . --sync-runtime --execute
+4 -> python .opencode/scripts/check_environment.py --project . --entrypoint runtest_2.py
 5 -> python runtest_2.py
 6 -> python local_serving/localservingtest.py
 7 -> python .opencode/scripts/verify_mlflow.py --tracking-uri <tracking-uri> --experiment-name <experiment-name>
@@ -125,7 +125,7 @@ python .opencode/scripts/response_speed_check.py --project .
 python .opencode/scripts/apply_index_ignore.py --project .
 ```
 
-이 명령은 워크스페이스 루트의 `.ignore`, `.rgignore`, `.gitignore`에 관리 블록을 추가한다. 제외 대상은 `.venv/`, `node_modules/`, `ai_studio/tracking/`, `ai_studio/code/`, `saved_model/`, `datasets/`, `*.pt`, `*.pkl`, `*.safetensors`, `*.bst`, `*.ubj` 같은 생성물과 대용량 모델 파일이다. `.opencode` 경로는 제외 패턴에 넣지 않는다.
+이 명령은 워크스페이스 루트의 `.ignore`, `.rgignore`, `.gitignore`에 관리 블록을 추가한다. 제외 대상은 `.opencode/`, `.opencode/node_modules/`, `.venv/`, `node_modules/`, `ai_studio/tracking/`, `ai_studio/code/`, `saved_model/`, `datasets/`, `*.pt`, `*.pkl`, `*.safetensors`, `*.bst`, `*.ubj` 같은 스킬 번들/생성물/대용량 모델 파일이다.
 
 자세한 운영 기준은 `.opencode/performance/CLOSED_NETWORK_SPEED.md`를 본다.
 

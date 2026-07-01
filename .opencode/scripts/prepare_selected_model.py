@@ -365,6 +365,8 @@ def is_filesystem_root(path: Path) -> bool:
 
 def is_opencode_sample_source(path: Path) -> bool:
     parts = path.resolve().parts
+    if ".opencode" in parts:
+        return True
     for index, part in enumerate(parts[:-1]):
         if part == ".opencode" and parts[index + 1] in {"sample", "samples"}:
             return True
@@ -2375,7 +2377,7 @@ def build_report(args: argparse.Namespace) -> PreparedModelReport:
     if is_filesystem_root(project):
         raise ValueError("drive/root scan is not allowed. Run from the model project folder or pass --project <current-project-folder>.")
     if is_opencode_sample_source(project):
-        raise ValueError(".opencode/sample(s)는 분석 대상이 아닙니다. 선택한 실제 모델 프로젝트 폴더를 --project로 지정하세요.")
+        raise ValueError(".opencode/는 분석 대상이 아닙니다. 선택한 실제 모델 프로젝트 폴더를 --project로 지정하세요.")
 
     data_root = project / "data"
     models = scan_model_artifacts(project)
@@ -2489,6 +2491,7 @@ def build_report(args: argparse.Namespace) -> PreparedModelReport:
             report.next_steps.extend(
                 [
                     "후속 변환 완료: runtest_2.py 기준으로 런타임 폴더/파일을 선택 모델에 맞게 변환했습니다.",
+                    "3번 선택 모델 변환 시퀀스 완료: runtest_2.py 생성 + runtest_2.py 기준 런타임 변환",
                     "다음은 4번 모델 환경변수/패키지 상태 체크입니다.",
                     powershell_python_script(
                         ROOT / "scripts" / "check_environment.py",
@@ -2527,7 +2530,7 @@ def build_report(args: argparse.Namespace) -> PreparedModelReport:
             [
                 "자동 준비 완료: 모델 선택 기준 runtest_2.py 변환",
                 "runtest_2.py 생성 시퀀스 완료: 현재 프로젝트 경로 기준 모델 선택 -> 모델 형식 확인 -> 기존 runtest.py 읽기 전용 참조 -> 선택 모델 경로와 MODEL_KIND 반영 -> 변환 결과 검증",
-                "다음은 4번 runtest_2.py 기준 런타임 변환 + 모델 환경변수/패키지 상태 체크입니다.",
+                "3번 선택 모델 변환 시퀀스 추가 실행: runtest_2.py 기준 런타임 변환",
                 powershell_python_script(
                     ROOT / "scripts" / "prepare_selected_model.py",
                     "--project",
@@ -2614,7 +2617,7 @@ def print_report(report: PreparedModelReport) -> None:
         print("Failures:")
         for failure in report.failures:
             print(f"- {failure}")
-    print("TOD Guide:")
+    print("TODO Guide:")
     model_selected = bool(report.selected_model_path)
     auto_ready = all(
         path in report.prepared_paths
@@ -2625,16 +2628,6 @@ def print_report(report: PreparedModelReport) -> None:
             "runtest_2.py",
         ]
     )
-    if report.model_artifact_paths:
-        print("1. 모델 목록 확인 - 완료")
-    elif report.entrypoint_paths:
-        print("1. 모델 목록 확인 - 실행파일 있음")
-    elif report.data_file_paths:
-        print("1. 모델 목록 확인 - 데이터만 있음")
-    else:
-        print("1. 모델 목록 확인 - 모델 없음")
-    print("2. 모델 경로로 선택 - 완료" if model_selected else "2. 모델 경로로 선택 - 대기")
-    print("3. 선택 모델 기준 runtest_2.py 변환 - 완료" if auto_ready else "3. 선택 모델 기준 runtest_2.py 변환 - 대기")
     runtime_ready = all(
         (Path(report.project_path) / path).exists()
         for path in [
@@ -2646,10 +2639,25 @@ def print_report(report: PreparedModelReport) -> None:
             "requirements.txt",
         ]
     )
-    if runtime_ready:
-        print("4. runtest_2.py 기준 런타임 변환 - 완료 / 모델 환경변수·패키지 상태 체크 - 다음")
+    if report.model_artifact_paths:
+        print("1. 모델 목록 확인 - 완료")
+    elif report.entrypoint_paths:
+        print("1. 모델 목록 확인 - 실행파일 있음")
+    elif report.data_file_paths:
+        print("1. 모델 목록 확인 - 데이터만 있음")
     else:
-        print("4. runtest_2.py 기준 런타임 변환 + 모델 환경변수·패키지 상태 체크 - 다음")
+        print("1. 모델 목록 확인 - 모델 없음")
+    print("2. 모델 경로로 선택 - 완료" if model_selected else "2. 모델 경로로 선택 - 대기")
+    if auto_ready and runtime_ready:
+        print("3. 선택 모델 변환 시퀀스 - 완료(runtest_2.py + 런타임 변환)")
+    elif auto_ready:
+        print("3. 선택 모델 변환 시퀀스 - 진행중(runtest_2.py 완료, 런타임 변환 대기)")
+    else:
+        print("3. 선택 모델 변환 시퀀스 - 대기")
+    if runtime_ready:
+        print("4. 모델 환경변수·패키지 상태 체크 - 다음")
+    else:
+        print("4. 모델 환경변수·패키지 상태 체크 - 3번 선택 모델 변환 시퀀스 완료 후 진행")
     print("5. 원격 MLflow 등록 실행 - 다음")
     print("6. 추론 테스트 - 대기(5번 완료 후)")
     print("7. MLflow 검증 - 대기(6번 완료 후)")

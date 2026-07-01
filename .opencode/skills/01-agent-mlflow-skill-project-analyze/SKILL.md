@@ -40,7 +40,7 @@ metadata:
 1. 현재 워크스페이스 경로를 확인한다.
 2. 프로젝트 루트 전체와 data/** 모델 원본 파일을 model_artifact_paths로 나열한다.
 3. `.csv`는 모델이 아니라 데이터 파일로 data_file_paths에 표시한다.
-4. `.opencode/sample` 또는 `.opencode/samples`는 복사용 원본이므로 분석 대상에서 제외한다.
+4. `.opencode/` 전체는 스킬 번들이므로 분석 대상에서 제외한다.
 5. model_found 값을 먼저 결정한다.
 6. 모델 artifact가 없고 Python 실행파일이 있으면 CSV 유무와 관계없이 샘플 선택 대신 entrypoint 실행 흐름으로 안내한다.
 7. 모델이 있으면 model_artifact_paths를 번호로 보여주고 사용할 모델 번호 또는 경로 선택을 요청한다.
@@ -167,7 +167,7 @@ python .opencode/scripts/bootstrap_sample_project.py --project <model-project-fo
 <summary>Safety 규칙 보기</summary>
 
 - Launch 모드에서는 분석만 수행하고 파일을 수정하지 않는다.
-- `.opencode/sample(s)`는 번들 샘플 원본이므로 모델 프로젝트로 분석하지 않는다.
+- `.opencode/`는 번들/스킬 원본이므로 모델 프로젝트로 분석하지 않는다.
 - 모델이 발견되면 `.opencode/samples` 선택을 요청하지 않는다.
 - 샘플 규격 보충은 기존 모델 파일을 덮어쓰지 않는다.
 - secret 값은 출력하지 않는다.

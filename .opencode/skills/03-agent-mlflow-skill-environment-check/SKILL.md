@@ -61,7 +61,7 @@ metadata:
 - 실행 파일명이 다른 경우 --entrypoint <file> 사용 여부
 - 입력이 필요한 값
 - password는 값 없이 set/empty/missing
-- TOD Guide
+- TODO Guide
 - 차단 항목 요약
 ```
 

@@ -9,6 +9,8 @@ START = "# >>> opencode closed-network index ignore >>>"
 END = "# <<< opencode closed-network index ignore <<<"
 
 PATTERNS = [
+    ".opencode/",
+    ".opencode/node_modules/",
     ".venv/",
     "venv/",
     "env/",

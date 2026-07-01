@@ -3,6 +3,8 @@
 # Keep source files visible, but exclude generated folders, dependency caches,
 # wheel files, MLflow runs, and large model artifacts that slow file-tree scans.
 
+.opencode/
+.opencode/node_modules/
 .venv/
 venv/
 env/

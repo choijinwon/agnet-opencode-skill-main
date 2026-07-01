@@ -420,6 +420,8 @@ def is_filesystem_root(path: Path) -> bool:
 
 def is_opencode_sample_source(path: Path) -> bool:
     parts = path.resolve().parts
+    if ".opencode" in parts:
+        return True
     for index, part in enumerate(parts[:-1]):
         if part == ".opencode" and parts[index + 1] in {"sample", "samples"}:
             return True
@@ -748,7 +750,7 @@ def build_report(workspace: Path, project: Path, sample: str, setting_file: str 
             DoctorCheck(
                 ".opencode sample source",
                 "fail",
-                ".opencode/sample(s)는 번들 샘플 원본이라 분석 대상이 아닙니다.",
+                ".opencode/는 번들 스킬 원본이라 분석 대상이 아닙니다.",
                 [str(project)],
                 ["실제 사용자가 선택한 모델 프로젝트 폴더를 --project로 지정하세요."],
             )
@@ -796,7 +798,7 @@ def print_text(report: DoctorReport) -> None:
         for item in check.evidence:
             print(f"   - {item}")
         if check.tod:
-            print("   TOD:")
+            print("   TODO:")
             for item in check.tod:
                 print(f"   - {item}")
     print("")

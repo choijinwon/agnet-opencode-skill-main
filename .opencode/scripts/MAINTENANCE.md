@@ -83,7 +83,7 @@ SETTING_ALIASES            사용자가 다르게 쓴 설정명 허용 목록
 주의:
 
 - `mlflow_tracking_password` 값은 절대 evidence에 그대로 넣지 않습니다.
-- `.opencode/` 내부 샘플은 사용자 모델 산출물로 오인하지 않도록 스캔에서 제외합니다.
+- `.opencode/` 전체는 사용자 모델 산출물로 오인하지 않도록 스캔에서 제외합니다.
 - 실행 파일 후보가 여러 개면 `--entrypoint <file>`로 사용자가 실제 파일을 확정해야 합니다.
 - `--strict-exit`은 QA 자동화용입니다. 일반 사용 흐름에서는 기본 exit code 0을 유지합니다.
 
@@ -162,7 +162,7 @@ IGNORED_NAMES              복사 제외 이름
 GENERATED_ROOT_DIRS        복사 제외 생성 폴더
 REQUIRED_PROJECT_DIRS      샘플에 반드시 있어야 할 폴더
 SCAFFOLD_ROOT_NAMES        기존 모델에 보충 가능한 루트 항목
-build_tod_guide()          복사 후 사용자에게 보여줄 TOD 단계
+build_tod_guide()          복사 후 사용자에게 보여줄 TODO 단계
 ```
 
 주의:
@@ -294,7 +294,7 @@ scan_workspace()           파일 트리 스캔 정책
 
 주의:
 
-- `.opencode/samples/` 내부 샘플은 불필요한 경고에서 제외합니다.
+- `.opencode/` 내부는 불필요한 경고와 대형 `node_modules` 스캔에서 제외합니다.
 - 기본 exit code는 fail이 있을 때만 1입니다.
 - 대용량 파일 내용을 읽지 말고 stat만 사용합니다.
 

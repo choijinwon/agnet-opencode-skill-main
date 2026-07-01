@@ -10,6 +10,8 @@ from pathlib import Path
 
 
 EXPECTED_IGNORE_PATTERNS = [
+    ".opencode/",
+    ".opencode/node_modules/",
     ".venv/",
     "node_modules/",
     "ai_studio/tracking/",
@@ -31,6 +33,7 @@ EXPECTED_IGNORE_PATTERNS = [
 ]
 
 SLOW_DIR_NAMES = {
+    ".opencode",
     ".cache",
     ".mypy_cache",
     ".pytest_cache",
@@ -97,9 +100,7 @@ def rel(path: Path, root: Path) -> str:
 
 def should_report_slow_dir(path: Path, root: Path) -> bool:
     value = rel(path, root)
-    if value.startswith(".opencode/samples/"):
-        return False
-    if value.startswith(".opencode/scripts/__pycache__"):
+    if value == ".opencode" or value.startswith(".opencode/"):
         return False
     return True
 
@@ -203,7 +204,7 @@ def scan_workspace(project: Path, max_files: int, large_mb: int) -> tuple[list[F
                 except OSError:
                     immediate_count = -1
                 slow_dirs.append((rel(dir_path, project), immediate_count))
-            if dirname in {".git", "node_modules", ".venv", "venv", "__pycache__", "wheelhouse"}:
+            if dirname in {".git", ".opencode", "node_modules", ".venv", "venv", "__pycache__", "wheelhouse"}:
                 continue
             kept_dirs.append(dirname)
         dirnames[:] = kept_dirs
@@ -299,7 +300,7 @@ def render_text(project: Path, findings: list[Finding]) -> None:
     print("4. In AIU Studio 빌드 모드, run scripts directly instead of re-scanning the full tree.")
     if has_warn_or_fail:
         print("")
-        print("TOD:")
+        print("TODO:")
         print("- Fix warn/fail items above before long model analysis.")
 
 

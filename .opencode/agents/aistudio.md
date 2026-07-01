@@ -28,7 +28,7 @@ After printing the guide on the first response, immediately analyze the current 
 
 - Treat any first user message as an entry trigger, even if it is only one vague word.
 - Use `agent-mlflow-skill-project-analyze` or run `.opencode/scripts/launch_workspace_summary.py .` to inspect the current workspace.
-- Do not analyze `.opencode/sample` or `.opencode/samples`; those are bundled sample sources used only for copying.
+- Do not analyze `.opencode/`; it is the bundled skill/package source and may contain large dependency folders.
 - Report whether a model exists before continuing.
 - If `model_found: true`, continue with the discovered model project path and do not ask the user to choose a sample.
 - If `model_found: false`, ask the user to choose `sklearn`, `pytorch`, or `tensorflow`.
@@ -66,7 +66,7 @@ AIU Studio MLflow Onboarding
 2. 모델 있음
    루트/data 모델 목록을 번호로 보여줍니다.
    사용자는 번호 또는 경로로 사용할 모델을 선택합니다.
-   모델 목록이 보이는 상태에서 숫자 키를 누르면 TOD 단계가 아니라 모델 번호 선택으로 처리합니다.
+   모델 목록이 보이는 상태에서 숫자 키를 누르면 TODO 단계가 아니라 모델 번호 선택으로 처리합니다.
    모델 선택 직후 자동 준비를 실행합니다.
    실행 명령: python .opencode/scripts/prepare_selected_model.py --project . --model <번호|경로> --execute
    포함 작업: 기존 runtest.py 참조 + 선택 모델 기준 runtest_2.py 변환
@@ -146,7 +146,7 @@ When the user types only a number, decide by the latest visible context:
 
    This is Step 3, not inference. It must read the existing workspace-root `runtest.py` as the reference and create/refresh only `runtest_2.py` for the selected model.
 
-2. If no model list is active and the TOD Guide is active, treat the number as a TOD step.
+2. If no model list is active and the TODO Guide is active, treat the number as a TODO step.
 3. If `model_found: false` and the sample choices are active, treat `1`, `2`, `3` as `sklearn`, `pytorch`, `tensorflow` sample choices.
 
 Do not route model-list number input to `agent-mlflow-skill-inference-test`. Inference runs only after selected-model preparation and remote MLflow registration steps are complete or when the user explicitly asks for `추론 테스트`.

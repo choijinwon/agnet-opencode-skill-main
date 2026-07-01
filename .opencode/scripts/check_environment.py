@@ -704,6 +704,8 @@ def is_filesystem_root(path: Path) -> bool:
 
 def is_opencode_sample_source(path: Path) -> bool:
     parts = path.resolve().parts
+    if ".opencode" in parts:
+        return True
     for index, part in enumerate(parts[:-1]):
         if part == ".opencode" and parts[index + 1] in {"sample", "samples"}:
             return True
@@ -726,15 +728,21 @@ def find_model_artifacts(project: Path) -> list[Path]:
     if is_opencode_sample_source(project):
         return []
     found: list[Path] = []
-    for path in project.rglob("*"):
+    for root, dirs, files in os.walk(project):
+        root_path = Path(root)
         try:
-            relative_parts = path.relative_to(project).parts
+            relative_parts = root_path.relative_to(project).parts
         except ValueError:
+            dirs[:] = []
             continue
         if any(part in MODEL_SCAN_SKIP_DIRS for part in relative_parts):
+            dirs[:] = []
             continue
-        if path.is_file() and path.suffix.lower() in ARTIFACT_SUFFIXES:
-            found.append(path)
+        dirs[:] = [dirname for dirname in dirs if dirname not in MODEL_SCAN_SKIP_DIRS]
+        for filename in files:
+            path = root_path / filename
+            if path.suffix.lower() in ARTIFACT_SUFFIXES:
+                found.append(path)
     return sorted(set(found))
 
 
@@ -1071,7 +1079,7 @@ def build_report(project: Path, entrypoint_name: str | None = None) -> Environme
             ai_studio_env=None,
             model_settings=None,
             export_ready=[],
-            blocked_summary=[".opencode/sample(s)는 번들 샘플 원본이라 분석 대상이 아닙니다."],
+            blocked_summary=[".opencode/는 번들 스킬 원본이라 분석 대상이 아닙니다."],
             failures=["opencode_sample_source_not_analysis_target"],
             next_steps=["실제 사용자가 선택한 모델 프로젝트 폴더를 --project로 지정하세요."],
             tod_guide=[],
@@ -1117,8 +1125,8 @@ def build_report(project: Path, entrypoint_name: str | None = None) -> Environme
         tod_guide = [
             "1. 모델 목록 확인: 현재 프로젝트 루트 바로 아래와 data/**에서 사용할 모델 후보를 확인한다.",
             "2. 모델 경로로 선택: prepare_selected_model.py --model <경로> 또는 --model selected로 선택한다.",
-            "3. 선택 모델 기준 runtest_2.py 변환: 기존 runtest.py를 참조해 선택 모델 경로와 MODEL_KIND를 반영한 runtest_2.py만 생성한다.",
-            f"4. runtest_2.py 기준 런타임 변환 + 모델 환경변수/패키지 상태 체크: --sync-runtime으로 후속 폴더/파일을 변환한 뒤 {entrypoint_display}의 MLflow 입력값 3개와 자동값 2개를 확인한다.",
+            "3. 선택 모델 변환 시퀀스: 기존 runtest.py를 참조해 runtest_2.py를 생성하고, 추가 시퀀스로 --sync-runtime을 실행해 후속 폴더/파일을 변환한다.",
+            f"4. 모델 환경변수/패키지 상태 체크: {entrypoint_display}의 MLflow 입력값 3개와 자동값 2개를 확인한다.",
             f"5. 원격 MLflow 등록 실행: python {entrypoint_display} 로 선택 모델을 원격 MLflow 서버에 기록/등록한다.",
             "6. 추론 테스트: 5번 원격 MLflow 등록 실행이 성공한 뒤 local serving 입력/출력 스키마를 확인한다.",
             "7. MLflow 검증: 추론 테스트 이후 Run, artifact, registered model 기록을 확인한다.",

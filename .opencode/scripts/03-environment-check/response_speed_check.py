@@ -122,7 +122,7 @@ def check_ignore(project: Path) -> list[Finding]:
                 "warn",
                 "ignore files",
                 ".ignore, .rgignore, .gitignore ignore block is missing",
-                "Run: python .opencode/scripts/apply_index_ignore.py --project .",
+                "Run: python .opencode/scripts/03-environment-check/apply_index_ignore.py --project .",
             )
         ]
 
@@ -133,7 +133,7 @@ def check_ignore(project: Path) -> list[Finding]:
                 "warn",
                 "ignore patterns",
                 "missing: " + ", ".join(missing),
-                "Run: python .opencode/scripts/apply_index_ignore.py --project .",
+                "Run: python .opencode/scripts/03-environment-check/apply_index_ignore.py --project .",
             )
         ]
     return [
@@ -294,7 +294,7 @@ def render_text(project: Path, findings: list[Finding]) -> None:
     has_warn_or_fail = any(item.status in {"warn", "fail"} for item in findings)
     print("")
     print("Recommended fast path:")
-    print("1. python .opencode/scripts/apply_index_ignore.py --project .")
+    print("1. python .opencode/scripts/03-environment-check/apply_index_ignore.py --project .")
     print("2. Restart/Open OpenCode after ignore files are applied.")
     print("3. In AIU Studio 모드, answer with model_found + one next action only.")
     print("4. In AIU Studio 빌드 모드, run scripts directly instead of re-scanning the full tree.")

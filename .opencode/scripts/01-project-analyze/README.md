@@ -7,13 +7,7 @@ Scripts:
 
 - `launch_workspace_summary.py`
 - `validate_mlflow_project.py`
-- `prepare_selected_model.py`
-
-Root compatibility wrappers:
-
-- `../launch_workspace_summary.py`
-- `../validate_mlflow_project.py`
-- `../prepare_selected_model.py`
+- `../04-train-model/prepare_selected_model.py`
 
 Responsibility:
 

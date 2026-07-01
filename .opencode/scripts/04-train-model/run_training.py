@@ -375,7 +375,7 @@ def main():
     if not model_found:
         failures.append("model_not_found")
         failures.append("sample_bootstrap_required: choose one of sklearn, pytorch, tensorflow and copy the sample folder first")
-        next_steps.append("python .opencode/scripts/bootstrap_sample_project.py --project <model-project-folder> --sample sklearn --execute")
+        next_steps.append("python .opencode/scripts/02-sample-bootstrap/bootstrap_sample_project.py --project <model-project-folder> --sample sklearn --execute")
 
     entrypoint = None
     entrypoint_candidates: list[Path] = []

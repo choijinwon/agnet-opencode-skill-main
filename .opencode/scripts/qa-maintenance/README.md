@@ -5,11 +5,6 @@ Scripts:
 - `doctor.py`
 - `test_local_sample.py`
 
-Root compatibility wrappers:
-
-- `../doctor.py`
-- `../test_local_sample.py`
-
 Documents:
 
 - `../README.md`

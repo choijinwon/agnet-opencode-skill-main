@@ -3,7 +3,6 @@
 이 문서는 `.opencode/skills` 01~06 목록에 맞춘 스크립트 정리표입니다.
 
 실제 구현 파일은 스킬 목록 기준 폴더에 둡니다.
-기존 실행 명령 호환성을 위해 `.opencode/scripts/` 루트에는 같은 이름의 wrapper를 둡니다.
 
 ## 01 Project Analyze
 

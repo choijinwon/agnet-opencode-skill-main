@@ -9,12 +9,6 @@ Scripts:
 - `run_training.py`
 - `adapt_ai_studio.py`
 
-Root compatibility wrappers:
-
-- `../prepare_selected_model.py`
-- `../run_training.py`
-- `../adapt_ai_studio.py`
-
 Responsibility:
 
 - 기존 `runtest.py`를 읽기 전용으로 참조

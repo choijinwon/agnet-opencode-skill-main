@@ -7,10 +7,6 @@ Scripts:
 
 - `bootstrap_sample_project.py`
 
-Root compatibility wrappers:
-
-- `../bootstrap_sample_project.py`
-
 Responsibility:
 
 - 모델 없음 상태에서 샘플 선택 처리

@@ -13,12 +13,6 @@ Required files:
 
 - `requirements.required.txt` - every generated workspace `requirements.txt` starts from these required packages
 
-Root compatibility wrappers:
-
-- `../check_environment.py`
-- `../response_speed_check.py`
-- `../apply_index_ignore.py`
-
 Responsibility:
 
 - Python 버전 확인

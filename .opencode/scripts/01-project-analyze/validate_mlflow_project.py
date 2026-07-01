@@ -757,7 +757,7 @@ def build_report(project: Path, reason: str, write_check: bool) -> ValidationRep
     next_steps = []
     if artifacts:
         next_steps.append("Data/root model found. Select one model by number or path before automatic preparation.")
-        next_steps.append("Run: python .opencode/scripts/prepare_selected_model.py --project <model-project-folder> --model <번호|경로> --execute")
+        next_steps.append("Run: python .opencode/scripts/04-train-model/prepare_selected_model.py --project <model-project-folder> --model <번호|경로> --execute")
     if any(check.status == "block" for check in checks):
         next_steps.append("Resolve blocked checks before MLflow registration.")
     if not has_mlflow_dep:
@@ -776,7 +776,7 @@ def build_report(project: Path, reason: str, write_check: bool) -> ValidationRep
             f"Sample spec scaffold missing: {', '.join(missing_spec)}."
         )
         next_steps.append(
-            f"Copy missing scaffold without overwriting existing model files: python .opencode/scripts/bootstrap_sample_project.py --project {project} --sample {sample_key} --scaffold-existing --execute"
+            f"Copy missing scaffold without overwriting existing model files: python .opencode/scripts/02-sample-bootstrap/bootstrap_sample_project.py --project {project} --sample {sample_key} --scaffold-existing --execute"
         )
     if not prepare_found:
         next_steps.append("Confirm a prepare-only or preflight behavior before registration.")

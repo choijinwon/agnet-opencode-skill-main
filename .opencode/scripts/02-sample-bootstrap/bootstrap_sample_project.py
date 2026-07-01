@@ -1,4 +1,5 @@
 import argparse
+import importlib.util
 import json
 import shutil
 import sys
@@ -284,7 +285,7 @@ def build_tod_guide(target_project_path: Path, runtest_path: Path | None) -> lis
     else:
         entrypoint = "run_model.py"
     return [
-        f"1. 환경 검증: python .opencode/scripts/check_environment.py --project {target_project_path}",
+        f"1. 환경 검증: python .opencode/scripts/03-environment-check/check_environment.py --project {target_project_path}",
         f"2. 샘플 규격 확인/보충: {target_project_path}에 복사된 템플릿 폴더 내부 파일들을 확인한다. 대표 예시: aiu_custom/, local_serving/, saved_model/, requirements.txt, input_example.json",
         f"3. 환경 변수 입력/export: {entrypoint}의 설정 블록 값을 직접 입력하고 실행 시 MLFLOW_*로 export한다.",
         "4. 패키지 설치: 폐쇄망 WSL은 bash .opencode/wsl/install_offline.sh를 우선 사용하고, wheelhouse가 없으면 온라인 WSL에서 bash .opencode/wsl/download_wheels.sh로 먼저 준비한다.",
@@ -315,8 +316,15 @@ def main():
     args = parser.parse_args()
 
     if args.model:
-        from prepare_selected_model import build_report as build_selected_model_report
-        from prepare_selected_model import print_report as print_selected_model_report
+        module_path = ROOT / "scripts" / "04-train-model" / "prepare_selected_model.py"
+        spec = importlib.util.spec_from_file_location("prepare_selected_model_impl", module_path)
+        if spec is None or spec.loader is None:
+            raise ImportError(f"cannot load script: {module_path}")
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[spec.name] = module
+        spec.loader.exec_module(module)
+        build_selected_model_report = module.build_report
+        print_selected_model_report = module.print_report
 
         delegated_args = Namespace(
             project=args.project,

@@ -7,10 +7,6 @@ Scripts:
 
 - `verify_mlflow.py`
 
-Root compatibility wrappers:
-
-- `../verify_mlflow.py`
-
 Responsibility:
 
 - MLflow run 확인

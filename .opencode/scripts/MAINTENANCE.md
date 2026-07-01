@@ -22,7 +22,7 @@ scripts      -> 폐쇄망에서도 동작하도록 표준 라이브러리 중심
 
 스킬 목록 기준 사람이 읽는 정리표는 `.opencode/scripts/SCRIPT_INDEX.md`입니다.
 도구가 읽는 스킬-스크립트 매핑의 단일 기준은 `.opencode/scripts/skill_script_map.json`입니다.
-실제 구현 파일은 스킬 목록 기준 폴더에 두고, 실행 경로 호환성을 위해 `.opencode/scripts/` 루트에는 wrapper를 둡니다.
+실제 구현 파일은 스킬 목록 기준 폴더에 두고, 실행도 해당 폴더 경로를 직접 사용합니다.
 문서를 수정할 때는 아래 표, `SCRIPT_INDEX.md`, JSON을 함께 맞춥니다.
 
 ```text
@@ -372,15 +372,15 @@ test_sample()              샘플별 테스트 순서
 ```text
 python -m py_compile .opencode/scripts/*.py
 python -m json.tool .opencode/opencode.json
-python .opencode/scripts/doctor.py --workspace . --project .opencode/samples/pytorch_sample --entrypoint run_model.py
-python .opencode/scripts/response_speed_check.py --project .
+python .opencode/scripts/qa-maintenance/doctor.py --workspace . --project .opencode/samples/pytorch_sample --entrypoint run_model.py
+python .opencode/scripts/03-environment-check/response_speed_check.py --project .
 ```
 
 샘플 복사 로직을 바꿨다면 추가로 확인합니다.
 
 ```text
-python .opencode/scripts/bootstrap_sample_project.py --list
-python .opencode/scripts/bootstrap_sample_project.py --project /tmp/opencode-sample-qa --sample pytorch
+python .opencode/scripts/02-sample-bootstrap/bootstrap_sample_project.py --list
+python .opencode/scripts/02-sample-bootstrap/bootstrap_sample_project.py --project /tmp/opencode-sample-qa --sample pytorch
 ```
 
 ## Common Failure Meaning

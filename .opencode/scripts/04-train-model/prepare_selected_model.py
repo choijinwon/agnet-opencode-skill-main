@@ -52,6 +52,10 @@ ROOT = Path(__file__).resolve().parents[2]
 AIU_STUDIO_SAMPLE_DIR_NAME = "aiu_studio"
 AIU_STUDIO_SAMPLE_DIR = ROOT / "samples" / AIU_STUDIO_SAMPLE_DIR_NAME
 REQUIRED_REQUIREMENTS_FILE = ROOT / "scripts" / "03-environment-check" / "requirements.required.txt"
+CHECK_ENVIRONMENT_SCRIPT = ROOT / "scripts" / "03-environment-check" / "check_environment.py"
+PREPARE_SELECTED_MODEL_SCRIPT = ROOT / "scripts" / "04-train-model" / "prepare_selected_model.py"
+RUN_TRAINING_SCRIPT = ROOT / "scripts" / "04-train-model" / "run_training.py"
+VERIFY_MLFLOW_SCRIPT = ROOT / "scripts" / "06-mlflow-verify" / "verify_mlflow.py"
 PYTORCH_REFERENCE_ENTRYPOINT = ROOT / "samples" / "pytorch_sample" / "runtest.py"
 REFERENCE_ENTRYPOINT_BY_KIND = {
     "pytorch": PYTORCH_REFERENCE_ENTRYPOINT,
@@ -2431,7 +2435,7 @@ def build_report(args: argparse.Namespace) -> PreparedModelReport:
             report.next_steps.append("CSV 파일은 모델이 아니라 데이터로 판단합니다. Python 실행파일을 모델 생성/등록 entrypoint로 사용하세요.")
             report.next_steps.append(f"감지된 CSV 데이터: {', '.join(data_paths[:5])}")
             report.next_steps.append(f"감지된 Python 실행파일: {', '.join(entrypoint_paths[:5])}")
-            report.next_steps.append(f"실행 예: python .opencode/scripts/run_training.py --project {powershell_quote_path(project)} --entrypoint {powershell_quote_path(Path(entrypoint_paths[0]))} --execute")
+            report.next_steps.append(f"실행 예: python .opencode/scripts/04-train-model/run_training.py --project {powershell_quote_path(project)} --entrypoint {powershell_quote_path(Path(entrypoint_paths[0]))} --execute")
         elif data_files:
             report.failures.append("csv_data_without_model_entrypoint")
             report.next_steps.append("CSV 파일은 모델이 아니라 데이터입니다. 모델을 생성/로드/등록하는 Python 실행파일을 프로젝트 루트에 넣어주세요.")
@@ -2439,7 +2443,7 @@ def build_report(args: argparse.Namespace) -> PreparedModelReport:
         elif entrypoints:
             report.failures.append("entrypoint_without_model_artifact")
             report.next_steps.append("모델 artifact는 없지만 Python 실행파일이 있습니다. 해당 파일이 모델 생성/등록 entrypoint인지 확인해 실행하세요.")
-            report.next_steps.append(f"실행 예: python .opencode/scripts/run_training.py --project {powershell_quote_path(project)} --entrypoint {powershell_quote_path(Path(entrypoint_paths[0]))} --execute")
+            report.next_steps.append(f"실행 예: python .opencode/scripts/04-train-model/run_training.py --project {powershell_quote_path(project)} --entrypoint {powershell_quote_path(Path(entrypoint_paths[0]))} --execute")
         else:
             report.failures.append("model_artifact_paths_empty")
             report.next_steps.append("현재 프로젝트 루트 바로 아래 또는 data/** 아래에 .pkl, .joblib, .pt, .pth, .onnx, .keras, .h5, .safetensors, .bst, .ubj 모델 파일을 넣어주세요.")
@@ -2448,7 +2452,7 @@ def build_report(args: argparse.Namespace) -> PreparedModelReport:
         if models:
             report.next_steps.append("사용할 모델을 번호 또는 경로로 선택하세요. 예: --model 1, --model model.joblib, --model data/torch/model.pt")
             report.next_steps.append(
-                "모델 선택 후 자동 준비 실행: python .opencode/scripts/prepare_selected_model.py --project <model-project-folder> --model <번호|경로> --execute"
+                "모델 선택 후 자동 준비 실행: python .opencode/scripts/04-train-model/prepare_selected_model.py --project <model-project-folder> --model <번호|경로> --execute"
             )
     if selected_model and not ensure_under_project(project, selected_model):
         report.failures.append("selected_model_outside_project")
@@ -2514,7 +2518,7 @@ def build_report(args: argparse.Namespace) -> PreparedModelReport:
                     "3번 선택 모델 변환 시퀀스 완료: runtest_2.py 생성 + runtest_2.py 기준 런타임 변환",
                     "다음은 4번 모델 환경변수/패키지 상태 체크입니다.",
                     powershell_python_script(
-                        ROOT / "scripts" / "check_environment.py",
+                        CHECK_ENVIRONMENT_SCRIPT,
                         "--project",
                         powershell_quote_path(project),
                         "--entrypoint",
@@ -2552,14 +2556,14 @@ def build_report(args: argparse.Namespace) -> PreparedModelReport:
                 "runtest_2.py 생성 시퀀스 완료: 현재 프로젝트 경로 기준 모델 선택 -> 모델 형식 확인 -> 기존 runtest.py 읽기 전용 참조 -> 선택 모델 경로와 MODEL_KIND 반영 -> 변환 결과 검증",
                 "3번 선택 모델 변환 시퀀스 추가 실행: runtest_2.py 기준 런타임 변환",
                 powershell_python_script(
-                    ROOT / "scripts" / "prepare_selected_model.py",
+                    PREPARE_SELECTED_MODEL_SCRIPT,
                     "--project",
                     powershell_quote_path(project),
                     "--sync-runtime",
                     "--execute",
                 ),
                 powershell_python_script(
-                    ROOT / "scripts" / "check_environment.py",
+                    CHECK_ENVIRONMENT_SCRIPT,
                     "--project",
                     powershell_quote_path(project),
                     "--entrypoint",
@@ -2571,7 +2575,7 @@ def build_report(args: argparse.Namespace) -> PreparedModelReport:
                 "python runtest_2.py",
                 "6번 추론 테스트는 5번 원격 MLflow 등록 실행이 성공한 뒤에만 진행합니다.",
                 powershell_python_script(
-                    ROOT / "scripts" / "verify_mlflow.py",
+                    VERIFY_MLFLOW_SCRIPT,
                     "--project",
                     powershell_quote_path(project),
                     "--tracking-uri",

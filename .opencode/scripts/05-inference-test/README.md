@@ -7,10 +7,6 @@ Scripts:
 
 - `test_inference.py`
 
-Root compatibility wrappers:
-
-- `../test_inference.py`
-
 Generated runtime entrypoint:
 
 - `local_serving/localservingtest.py`

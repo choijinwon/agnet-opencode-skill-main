@@ -115,10 +115,10 @@ def main() -> int:
     if model_found:
         print("  - 사용할 모델을 번호 또는 경로로 선택하세요. 예: 1 또는 data/<folder>/model.joblib")
         print("  - 모델 목록이 보이는 상태에서 숫자 입력은 TODO 단계가 아니라 모델 번호 선택입니다.")
-        print("  - AIU Studio 빌드 모드 다음 작업 수행(한 번에): python .opencode/scripts/prepare_selected_model.py --project . --model <번호|경로> --execute")
+        print("  - AIU Studio 빌드 모드 다음 작업 수행(한 번에): python .opencode/scripts/04-train-model/prepare_selected_model.py --project . --model <번호|경로> --execute")
         print("  - 포함 작업: 모델 프로젝트 구조 분석 + runtest.py 참조 + 선택 모델 기준 runtest_2.py 변환")
         print("  - 생성/갱신: runtest_2.py")
-        print("  - 3번 추가 시퀀스: python .opencode/scripts/prepare_selected_model.py --project . --sync-runtime --execute")
+        print("  - 3번 추가 시퀀스: python .opencode/scripts/04-train-model/prepare_selected_model.py --project . --sync-runtime --execute")
     else:
         print("  - 모델이 없으면 sklearn / pytorch / tensorflow 중 하나를 선택해 샘플을 생성할 수 있습니다.")
         print("  - 실제 샘플 복사/모델 생성/검증 실행은 OpenCode AIU Studio 빌드 모드에서 선택해주세요.")

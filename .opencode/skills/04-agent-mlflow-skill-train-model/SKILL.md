@@ -76,25 +76,25 @@ MLflow artifact:
 
 ```text
 실행 파일 자동 판단:
-python .opencode/scripts/run_training.py --project <project>
+python .opencode/scripts/04-train-model/run_training.py --project <project>
 
 원격 MLflow 등록 실행:
-python .opencode/scripts/run_training.py --project <project> --execute
+python .opencode/scripts/04-train-model/run_training.py --project <project> --execute
 
 명시적 entrypoint 실행:
-python .opencode/scripts/run_training.py --project <project> --entrypoint <file> --execute
-python .opencode/scripts/run_training.py --project <project> --entrypoint run.py --execute
+python .opencode/scripts/04-train-model/run_training.py --project <project> --entrypoint <file> --execute
+python .opencode/scripts/04-train-model/run_training.py --project <project> --entrypoint run.py --execute
 
 선택 모델 준비:
-python .opencode/scripts/prepare_selected_model.py --project <project>
-python .opencode/scripts/prepare_selected_model.py --project <project> --model 1 --execute
-python .opencode/scripts/prepare_selected_model.py --project <project> --model data/torch/model.pt --execute
+python .opencode/scripts/04-train-model/prepare_selected_model.py --project <project>
+python .opencode/scripts/04-train-model/prepare_selected_model.py --project <project> --model 1 --execute
+python .opencode/scripts/04-train-model/prepare_selected_model.py --project <project> --model data/torch/model.pt --execute
 
 AI Studio/MLflow 연결부 보강 dry-run:
-python .opencode/scripts/adapt_ai_studio.py --project <project> --entrypoint <file>
+python .opencode/scripts/04-train-model/adapt_ai_studio.py --project <project> --entrypoint <file>
 
 AI Studio/MLflow 연결부 실제 보강:
-python .opencode/scripts/adapt_ai_studio.py --project <project> --entrypoint <file> --execute
+python .opencode/scripts/04-train-model/adapt_ai_studio.py --project <project> --entrypoint <file> --execute
 ```
 
 ## Artifact Map

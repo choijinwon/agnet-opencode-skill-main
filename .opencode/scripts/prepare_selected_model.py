@@ -543,9 +543,19 @@ def preserve_reference_code(reference: Path) -> bool:
     if not PYTORCH_REFERENCE_ENTRYPOINT.is_file():
         return False
     try:
-        return file_sha256(reference) == file_sha256(PYTORCH_REFERENCE_ENTRYPOINT)
+        if file_sha256(reference) == file_sha256(PYTORCH_REFERENCE_ENTRYPOINT):
+            return True
     except OSError:
         return False
+    text = reference.read_text(encoding="utf-8", errors="ignore")
+    pytorch_sample_markers = [
+        "TinyTorchModel",
+        "def prepare_data(",
+        "def train_model(",
+        "def compute_metrics(",
+        "mlflow.pyfunc.log_model(",
+    ]
+    return all(marker in text for marker in pytorch_sample_markers)
 
 
 def file_sha256(path: Path) -> str:
@@ -1414,6 +1424,95 @@ def insert_preserved_data_prep_block(text: str, kind: str) -> str:
     return text.rstrip() + block
 
 
+def selected_model_input_example_payload(kind: str) -> str:
+    if kind in {"pytorch", "safetensors"}:
+        return '''{
+        "inputs": [
+            {
+                "name": "selected_pytorch_tensor",
+                "shape": [1, 1, 28, 28],
+                "datatype": "FP32",
+                "data": _aiu_flat_zeros(1 * 1 * 28 * 28),
+            }
+        ],
+        "model_kind": _selected_model_kind(),
+        "model_path": str(_selected_model_path()),
+    }'''
+    if kind in {"sklearn_pickle", "sklearn_joblib", "xgboost_bst", "xgboost_ubj"}:
+        return '''{
+        "inputs": [
+            {
+                "name": "selected_tabular",
+                "shape": [1, 4],
+                "datatype": "FP32",
+                "data": [[0.0, 0.0, 0.0, 0.0]],
+            }
+        ],
+        "model_kind": _selected_model_kind(),
+        "model_path": str(_selected_model_path()),
+    }'''
+    if kind == "onnx":
+        return '''{
+        "inputs": [
+            {
+                "name": "input",
+                "shape": [1, 4],
+                "datatype": "FP32",
+                "data": [[0.0, 0.0, 0.0, 0.0]],
+            }
+        ],
+        "model_kind": _selected_model_kind(),
+        "model_path": str(_selected_model_path()),
+    }'''
+    if kind in {"tensorflow_keras", "tensorflow_h5"}:
+        return '''{
+        "inputs": [
+            {
+                "name": "selected_tensor",
+                "shape": [1, 4],
+                "datatype": "FP32",
+                "data": [[0.0, 0.0, 0.0, 0.0]],
+            }
+        ],
+        "model_kind": _selected_model_kind(),
+        "model_path": str(_selected_model_path()),
+    }'''
+    return '''{
+        "inputs": [
+            {
+                "name": "selected_input",
+                "shape": [1],
+                "datatype": "FP32",
+                "data": [0.0],
+            }
+        ],
+        "model_kind": _selected_model_kind(),
+        "model_path": str(_selected_model_path()),
+    }'''
+
+
+def selected_model_input_example_block(kind: str) -> str:
+    payload = selected_model_input_example_payload(kind)
+    return f'''
+def _aiu_flat_zeros(size):
+    return [0.0 for _ in range(size)]
+
+
+def selected_model_input_example():
+    # AIU Studio 변환: 선택 모델 종류에 맞는 배포용 synthetic input_example입니다.
+    return {payload}
+
+
+def write_selected_input_example():
+    input_example = selected_model_input_example()
+    _input_example_path().write_text(
+        json.dumps(input_example, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    return input_example
+'''
+
+
 def ensure_linux_code_paths(text: str) -> str:
     if "mlflow.pyfunc.log_model(" not in text or "code_paths=" in text:
         return text
@@ -1496,6 +1595,7 @@ def _selected_model_path() -> Path:
 
 
 {loader}
+{selected_model_input_example_block(kind)}
 '''
     original_path_block = '''PROJECT_DIR = Path(__file__).resolve().parent
 SOURCE_MODEL_PATH = PROJECT_DIR / "data" / "torch" / "model.pt"
@@ -1508,7 +1608,20 @@ CONFIG_PATH = CONFIG_DIR / "config.json"
 MODEL_DIR = PROJECT_DIR / "saved_model"
 MODEL_PATH = MODEL_DIR / "model.pt"'''
     text = text.replace("import mlflow\n", "")
-    text = text.replace(original_path_block, mapping_block.strip())
+    if original_path_block in text:
+        text = text.replace(original_path_block, mapping_block.strip())
+    else:
+        path_block_pattern = re.compile(
+            r"PROJECT_DIR\s*=.*\n"
+            r"(?:(?:SOURCE_MODEL_PATH|DATA_MODEL_PATH|MODEL_KIND|MODEL_LOAD_HINT|INPUT_EXAMPLE_PATH|CONFIG_DIR|CONFIG_PATH|MODEL_DIR|MODEL_PATH)\s*=.*\n)+"
+        )
+        text, replaced_count = path_block_pattern.subn(mapping_block.strip() + "\n", text, count=1)
+        if replaced_count == 0:
+            insert_marker = "\nconfigure_utf8_stdio()\n"
+            if insert_marker in text:
+                text = text.replace(insert_marker, insert_marker + "\n" + mapping_block.strip() + "\n", 1)
+            else:
+                text = mapping_block.strip() + "\n\n" + text
     text = text.replace("INPUT_EXAMPLE_PATH", "_input_example_path()")
     text = text.replace("CONFIG_DIR", "_config_dir()")
     text = text.replace("CONFIG_PATH", "_config_path()")
@@ -1526,23 +1639,54 @@ MODEL_PATH = MODEL_DIR / "model.pt"'''
         "    export_mlflow_environment()\n"
         "    mlflow.set_tracking_uri(mlflow_tracking_url)",
     )
-    text = text.replace(
-        "    model = TinyTorchModel(input_dim=train_x.shape[1], output_dim=2)\n"
-        "    train_model(model, train_x, train_y)\n"
-        "    metrics = compute_metrics(model, test_x, test_y)\n",
+    text = re.sub(
+        r"(?m)^    model\s*=\s*TinyTorchModel\(.*\)\n",
         "    model = load_selected_model()\n"
-        "    # 모델 준비: 선택된 모델을 그대로 사용하고 재학습하지 않습니다.\n"
-        "    metrics = {\"model_loaded\": 1.0 if model is not None else 0.0}\n",
+        "    # 모델 준비: 선택된 모델을 그대로 사용하고 재학습하지 않습니다.\n",
+        text,
+        count=1,
     )
-    text = text.replace(
-        '    config = {"framework": "pytorch", "input_dim": train_x.shape[1], "output_dim": 2}\n',
+    text = re.sub(
+        r"(?m)^    train_x,\s*train_y,\s*test_x,\s*test_y\s*=\s*prepare_data\(\)\n",
+        "    input_example = write_selected_input_example()\n",
+        text,
+        count=1,
+    )
+    text = re.sub(
+        r"(?m)^    train_model\(.*\)\n",
+        "    # 선택 모델은 이미 학습된 모델이므로 원본 train_model 호출은 실행하지 않습니다.\n",
+        text,
+        count=1,
+    )
+    text = re.sub(
+        r"(?m)^    metrics\s*=\s*compute_metrics\(.*\)\n",
+        "    metrics = {\"model_loaded\": 1.0 if model is not None else 0.0}\n",
+        text,
+        count=1,
+    )
+    text = re.sub(
+        r"(?m)^    input_example\s*=\s*write_input_example\(.*\)\n",
+        "",
+        text,
+        count=1,
+    )
+    text = re.sub(
+        r"(?m)^    config\s*=\s*\{.*\"framework\".*\}\n",
         '    config = {"framework": _selected_model_kind(), "model_path": str(_selected_model_path()), "model_relative_path": '
         + repr(selected_relative)
         + "}\n",
+        text,
+        count=1,
     )
-    text = text.replace("    torch.save(model.state_dict(), MODEL_PATH)\n", "    selected_model_path = _selected_model_path()\n")
+    text = re.sub(
+        r"(?m)^    torch\.save\(.*\)\n",
+        "    selected_model_path = _selected_model_path()\n",
+        text,
+        count=1,
+    )
     text = text.replace('        mlflow.set_tag("data.name", "synthetic_tensor(pytorch)")', '        mlflow.set_tag("data.name", "selected_model")')
     text = text.replace("            artifacts={\n                \"model\": MODEL_PATH.as_posix(),", "            artifacts={\n                \"model\": selected_model_path.as_posix(),")
+    text = text.replace("            artifacts={\n                \"model\": _model_dir().as_posix(),", "            artifacts={\n                \"model\": selected_model_path.as_posix(),")
     text = text.replace('    print(f"model written: {MODEL_PATH}")', '    print(f"selected model: {selected_model_path}")')
     text = ensure_linux_code_paths(text)
     return text.rstrip() + "\n"

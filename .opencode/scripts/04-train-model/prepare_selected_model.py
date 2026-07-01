@@ -2036,14 +2036,15 @@ def generated_model_text(project: Path, selected_model: Path, kind: str) -> str:
     return f'''from __future__ import annotations
 
 import json
-from pathlib import Path
+import os
 
 
 def _load_mapping():
-    mapping_path = Path(__file__).resolve().with_name("mapping.json")
-    if not mapping_path.is_file():
+    mapping_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "mapping.json")
+    if not os.path.isfile(mapping_path):
         return {{}}
-    return json.loads(mapping_path.read_text(encoding="utf-8"))
+    with open(mapping_path, "r", encoding="utf-8") as handle:
+        return json.load(handle)
 
 
 def _mapping_model():
@@ -2069,10 +2070,11 @@ def _resolve_model_path():
     raw_path = model.get("relative_path") or model.get("source_path")
     if not raw_path:
         raise ValueError("selected_model_path_missing: aiu_custom/mapping.json")
-    path = Path(str(raw_path))
-    if path.is_absolute():
-        return path
-    return Path(__file__).resolve().parents[1] / path
+    path = str(raw_path).replace("\\\\", "/")
+    if os.path.isabs(path):
+        return os.path.normpath(path)
+    workspace_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    return os.path.normpath(os.path.join(workspace_root, path))
 
 
 def _context_artifact_path(context, name):
@@ -2081,7 +2083,7 @@ def _context_artifact_path(context, name):
     artifact_path = context.artifacts.get(name)
     if not artifact_path:
         return None
-    return Path(str(artifact_path).replace("\\\\", "/"))
+    return os.path.normpath(str(artifact_path).replace("\\\\", "/"))
 
 
 def _model_kind():
@@ -2470,9 +2472,19 @@ def verify_selected_model_conversion(project: Path, selected_model: Path, kind: 
     selected_absolute = absolute_path_text(selected_model)
     required_text_files = [
         project / "runtest_2.py",
+        project / "aiu_custom" / "model.py",
+        project / "aiu_custom" / "mapping.json",
+        project / "local_serving" / "localservingtest.py",
+        project / "input_example.json",
     ]
-    changed = ["runtest_2.py 선택 모델 연결부 변환 검증"]
+    changed = ["선택 모델 연결부 변환 검증"]
     failures: list[str] = []
+    direct_selected_path_files = {
+        "runtest_2.py",
+        "aiu_custom/mapping.json",
+        "local_serving/localservingtest.py",
+        "input_example.json",
+    }
 
     for path in required_text_files:
         display_path = rel(path, project)
@@ -2481,7 +2493,7 @@ def verify_selected_model_conversion(project: Path, selected_model: Path, kind: 
             continue
 
         text = path.read_text(encoding="utf-8", errors="ignore")
-        if selected_relative not in text and selected_absolute not in text:
+        if display_path in direct_selected_path_files and selected_relative not in text and selected_absolute not in text:
             failures.append(f"selected_model_not_reflected:{display_path}:{selected_absolute}")
         if display_path == "runtest_2.py":
             if "def load_selected_model(" not in text or "SOURCE_MODEL_PATH" not in text:
@@ -2497,11 +2509,31 @@ def verify_selected_model_conversion(project: Path, selected_model: Path, kind: 
             embedded = [name for name in forbidden_helpers if name in text]
             if embedded:
                 failures.append(f"runtest_2_should_preserve_format_without_helpers:{','.join(embedded)}")
+        if display_path == "aiu_custom/model.py":
+            if "def load_selected_model(" not in text:
+                failures.append("aiu_custom_model_loader_missing:aiu_custom/model.py")
+            if "_resolve_model_path()" not in text:
+                failures.append("aiu_custom_model_selected_path_resolver_missing:aiu_custom/model.py")
+            if kind not in text:
+                failures.append(f"aiu_custom_model_kind_not_reflected:aiu_custom/model.py:{kind}")
+        if display_path == "aiu_custom/mapping.json":
+            try:
+                mapping = json.loads(text)
+            except json.JSONDecodeError as exc:
+                failures.append(f"selected_model_mapping_invalid_json:{exc.lineno}")
+                mapping = {}
+            model_mapping = mapping.get("model", {}) if isinstance(mapping, dict) else {}
+            mapped_path = model_mapping.get("relative_path") or model_mapping.get("source_path")
+            mapped_kind = model_mapping.get("kind")
+            if normalize_path_text(str(mapped_path or "")) != normalize_path_text(selected_relative):
+                failures.append(f"selected_model_mapping_path_mismatch:{mapped_path}->{selected_relative}")
+            if mapped_kind != kind:
+                failures.append(f"selected_model_mapping_kind_mismatch:{mapped_kind}->{kind}")
 
         for other_model in models:
             other_relative = rel(other_model, project)
             other_absolute = absolute_path_text(other_model)
-            if other_relative != selected_relative and (other_relative in text or other_absolute in text):
+            if display_path in direct_selected_path_files and other_relative != selected_relative and (other_relative in text or other_absolute in text):
                 failures.append(f"stale_model_path_in_generated:{display_path}:{other_relative}")
 
     locked_model, locked_kind, locked_error = selected_model_from_mapping(project)

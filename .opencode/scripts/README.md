@@ -64,7 +64,7 @@ QA / Maintenance
 1. 모델 목록 확인                  -> prepare_selected_model.py
 2. 모델 경로로 선택                -> prepare_selected_model.py --model <번호|경로>
 3. aiu_studio/ 템플릿 복사 -> 선택 모델 경로 및 형식 확인 -> 복사된 템플릿을 선택 모델 형식에 맞게 변환 -> prepare_selected_model.py --model <경로> --execute, prepare_selected_model.py --sync-runtime --execute
-4. 모델 환경변수/패키지 상태 체크 -> check_environment.py --entrypoint runtest_2.py
+4. 모델 환경변수/패키지 상태 체크 -> check_environment.py --entrypoint runtest_2.py (requirements.txt 필수 항목 및 추가 패키지 목록 갱신 포함)
 5. 원격 MLflow 등록 실행           -> python runtest_2.py
 6. 추론 테스트                    -> python local_serving/localservingtest.py
 7. MLflow 검증                     -> verify_mlflow.py (experiment, run, artifact, registered model 확인)

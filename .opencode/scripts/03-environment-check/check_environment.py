@@ -1184,7 +1184,7 @@ def build_report(project: Path, entrypoint_name: str | None = None) -> Environme
             "1. 모델 목록 확인: 현재 프로젝트 루트 바로 아래와 data/**에서 사용할 모델 후보를 확인한다.",
             "2. 모델 경로로 선택: prepare_selected_model.py --model <경로> 또는 --model selected로 선택한다.",
             "3. 선택 모델 변환 시퀀스: 기존 runtest.py를 참조해 runtest_2.py를 생성하고, 추가 시퀀스로 --sync-runtime을 실행해 후속 폴더/파일을 변환한다.",
-            f"4. 모델 환경변수/패키지 상태 체크: {entrypoint_display}의 MLflow 입력값 3개와 자동값 2개를 확인한다.",
+            f"4. 모델 환경변수/패키지 상태 체크: {entrypoint_display}의 MLflow 입력값 3개와 자동값 2개를 확인하고, requirements.txt 필수 항목 및 추가 패키지 목록을 갱신한다.",
             f"5. 원격 MLflow 등록 실행: python {entrypoint_display} 로 선택 모델을 원격 MLflow 서버에 기록/등록한다.",
             "6. 추론 테스트: 5번 원격 MLflow 등록 실행이 성공한 뒤 local serving 입력/출력 스키마를 확인한다.",
             "7. MLflow 검증: 추론 테스트 이후 MLflow experiment, run, artifact, registered model 결과를 확인한다.",

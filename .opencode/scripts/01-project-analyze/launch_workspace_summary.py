@@ -31,7 +31,12 @@ MODEL_HINTS = [
 
 def main() -> int:
     project_dir = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else Path.cwd().resolve()
-    analyzer = project_dir / ".opencode" / "scripts" / "validate_mlflow_project.py"
+    analyzer_candidates = [
+        project_dir / ".opencode" / "scripts" / "01-project-analyze" / "validate_mlflow_project.py",
+        project_dir / ".opencode" / "scripts" / "validate_mlflow_project.py",
+        Path(__file__).resolve().with_name("validate_mlflow_project.py"),
+    ]
+    analyzer = next((path for path in analyzer_candidates if path.exists()), analyzer_candidates[0])
 
     print("[Workspace Analysis]")
 

@@ -156,6 +156,41 @@ def read_text(path: Path) -> str:
         return ""
 
 
+def safe_exists(path: Path) -> bool:
+    try:
+        return path.exists()
+    except OSError:
+        return False
+
+
+def safe_is_file(path: Path) -> bool:
+    try:
+        return path.is_file()
+    except OSError:
+        return False
+
+
+def safe_is_dir(path: Path) -> bool:
+    try:
+        return path.is_dir()
+    except OSError:
+        return False
+
+
+def safe_iterdir(path: Path):
+    try:
+        yield from path.iterdir()
+    except OSError:
+        return
+
+
+def safe_glob(path: Path, pattern: str):
+    try:
+        yield from path.glob(pattern)
+    except OSError:
+        return
+
+
 def safe_relative(path: Path, base: Path) -> str:
     try:
         return str(path.relative_to(base))
@@ -179,33 +214,33 @@ def has_project_markers(path: Path) -> bool:
         "run_model.py",
         "train.py",
     }
-    if any((path / name).exists() for name in marker_names):
+    if any(safe_exists(path / name) for name in marker_names):
         return True
-    if any((path / name).exists() for name in ["aiu_studio/runtest.py", "aiu_studio/run_test.py", "aui_studio/runtest.py", "aui_studio/run_test.py"]):
+    if any(safe_exists(path / name) for name in ["aiu_studio/runtest.py", "aiu_studio/run_test.py", "aui_studio/runtest.py", "aui_studio/run_test.py"]):
         return True
     direct_artifact_dirs = [path / "ai_studio", path / "aiu_studio", path / "aui_studio", path / "data", path / "saved_model", path / "artifacts", path / "model"]
-    if any(candidate.exists() for candidate in direct_artifact_dirs):
+    if any(safe_exists(candidate) for candidate in direct_artifact_dirs):
         return True
     if find_artifacts(path, max_depth=3):
         return True
-    return any(file_path.suffix.lower() in ARTIFACT_SUFFIXES for file_path in path.iterdir() if file_path.is_file())
+    return any(file_path.suffix.lower() in ARTIFACT_SUFFIXES for file_path in safe_iterdir(path) if safe_is_file(file_path))
 
 
 def score_project(path: Path) -> int:
     # The score is intentionally simple and transparent. It is a candidate
     # ranking aid, not a pass/fail quality score.
     score = 0
-    if (path / "requirements.txt").exists():
+    if safe_exists(path / "requirements.txt"):
         score += 5
-    if any((path / name).exists() for name in ENTRYPOINT_NAMES):
+    if any(safe_exists(path / name) for name in ENTRYPOINT_NAMES):
         score += 4
     if find_artifacts(path, max_depth=3):
         score += 3
-    if any((path / name).exists() for name in CONFIG_NAMES):
+    if any(safe_exists(path / name) for name in CONFIG_NAMES):
         score += 2
-    if any((path / name).exists() for name in INPUT_EXAMPLE_NAMES):
+    if any(safe_exists(path / name) for name in INPUT_EXAMPLE_NAMES):
         score += 2
-    if all((path / name).is_dir() for name in REQUIRED_DIRS):
+    if all(safe_is_dir(path / name) for name in REQUIRED_DIRS):
         score += 2
     return score
 
@@ -251,17 +286,29 @@ def is_opencode_sample_source(path: Path) -> bool:
 def iter_files(path: Path, max_depth: int = 4):
     if is_opencode_sample_source(path):
         return
-    # Limit traversal depth and skip heavy/generated directories so this script
-    # remains safe to run in large Windows workspaces.
-    base_depth = len(path.parts)
-    for root, dirs, files in os.walk(path):
+    # Model selection is scoped to the selected workspace only:
+    # - files directly under the workspace root
+    # - files under data/**
+    # This prevents accidental scans of large/generated folders on Windows.
+    for candidate in safe_iterdir(path):
+        if safe_is_file(candidate):
+            yield candidate
+
+    data_root = path / "data"
+    if not safe_is_dir(data_root):
+        return
+
+    base_depth = len(data_root.parts)
+    for root, dirs, files in os.walk(data_root, onerror=lambda _error: None):
         root_path = Path(root)
         depth = len(root_path.parts) - base_depth
         if depth >= max_depth:
             dirs[:] = []
         dirs[:] = [d for d in dirs if d not in SCAN_SKIP_DIRS]
         for file_name in files:
-            yield root_path / file_name
+            candidate = root_path / file_name
+            if safe_is_file(candidate):
+                yield candidate
 
 
 def find_artifacts(path: Path, max_depth: int = 4) -> list[Path]:
@@ -302,7 +349,7 @@ def detect_framework(project: Path, requirements_text: str, artifacts: list[Path
 
 def parse_requirements(project: Path) -> tuple[Path | None, str, list[str]]:
     req = project / "requirements.txt"
-    if not req.exists():
+    if not safe_exists(req):
         return None, "", []
     text = read_text(req)
     packages = []
@@ -314,10 +361,10 @@ def parse_requirements(project: Path) -> tuple[Path | None, str, list[str]]:
 
 
 def check_json_file(path: Path) -> tuple[bool, str]:
-    if not path.exists():
+    if not safe_exists(path):
         return False, "missing"
     try:
-        json.loads(path.read_text(encoding="utf-8"))
+        json.loads(read_text(path))
     except json.JSONDecodeError as exc:
         return False, f"invalid json: {exc}"
     except OSError as exc:
@@ -327,9 +374,9 @@ def check_json_file(path: Path) -> tuple[bool, str]:
 
 def parse_env_file(path: Path) -> dict[str, str]:
     values: dict[str, str] = {}
-    if not path.exists():
+    if not safe_exists(path):
         return values
-    for raw_line in path.read_text(encoding="utf-8", errors="ignore").splitlines():
+    for raw_line in read_text(path).splitlines():
         line = raw_line.strip()
         if not line or line.startswith("#") or "=" not in line:
             continue
@@ -343,7 +390,7 @@ def check_ai_studio_env(project: Path, code_settings: list[str]) -> Check:
     values = parse_env_file(path)
     evidence = []
     missing = []
-    if path.exists():
+    if safe_exists(path):
         evidence.append("ai_studio.env")
     evidence.extend(code_settings)
     for key in AI_STUDIO_ENV_KEYS:
@@ -374,7 +421,7 @@ def check_ai_studio_env(project: Path, code_settings: list[str]) -> Check:
 def find_first_existing(project: Path, names: list[str]) -> Path | None:
     for name in names:
         candidate = project / name
-        if candidate.exists():
+        if safe_exists(candidate):
             return candidate
     return None
 
@@ -383,7 +430,10 @@ def unique_paths(paths: list[Path]) -> list[Path]:
     unique = []
     seen = set()
     for path in paths:
-        key = path.resolve()
+        try:
+            key = path.resolve()
+        except OSError:
+            continue
         if key in seen:
             continue
         seen.add(key)
@@ -392,14 +442,14 @@ def unique_paths(paths: list[Path]) -> list[Path]:
 
 
 def find_entrypoints(project: Path) -> list[Path]:
-    found = [project / name for name in ENTRYPOINT_NAMES if (project / name).exists()]
-    found.extend(path for path in iter_files(project, max_depth=2) if path.suffix == ".py")
+    found = [project / name for name in ENTRYPOINT_NAMES if safe_exists(project / name)]
+    found.extend(path for path in safe_glob(project, "*.py") if safe_is_file(path))
     return unique_paths(found)
 
 
 def find_training_entrypoints(project: Path) -> list[Path]:
-    found = [project / name for name in TRAINING_ENTRYPOINT_NAMES if (project / name).exists()]
-    found.extend(path for path in project.glob("*.py") if path.is_file())
+    found = [project / name for name in TRAINING_ENTRYPOINT_NAMES if safe_exists(project / name)]
+    found.extend(path for path in safe_glob(project, "*.py") if safe_is_file(path))
     return unique_paths(found)
 
 
@@ -413,20 +463,20 @@ def check_aiu_custom(project: Path, entrypoints: list[Path]) -> Check:
     )
     aiu_dir = project / "aiu_custom"
     model_wrapper_file = aiu_dir / "model_wrapper.py"
-    predict_file = model_wrapper_file if model_wrapper_file.exists() else aiu_dir / "predict.py"
+    predict_file = model_wrapper_file if safe_exists(model_wrapper_file) else aiu_dir / "predict.py"
 
-    if not required and not aiu_dir.exists():
+    if not required and not safe_exists(aiu_dir):
         return Check(
             "AI Studio custom wrapper",
             "pass",
             "aiu_custom is not required by detected entrypoints",
             [],
         )
-    if not required and aiu_dir.exists():
+    if not required and safe_exists(aiu_dir):
         evidence = ["aiu_custom/"]
-        if model_wrapper_file.exists():
+        if safe_exists(model_wrapper_file):
             evidence.append("aiu_custom/model_wrapper.py")
-        elif (aiu_dir / "predict.py").exists():
+        elif safe_exists(aiu_dir / "predict.py"):
             evidence.append("aiu_custom/predict.py")
         return Check(
             "AI Studio custom wrapper",
@@ -436,11 +486,11 @@ def check_aiu_custom(project: Path, entrypoints: list[Path]) -> Check:
         )
 
     evidence = []
-    if aiu_dir.exists():
+    if safe_exists(aiu_dir):
         evidence.append("aiu_custom/")
-    if model_wrapper_file.exists():
+    if safe_exists(model_wrapper_file):
         evidence.append("aiu_custom/model_wrapper.py")
-    elif predict_file.exists():
+    elif safe_exists(predict_file):
         evidence.append("aiu_custom/predict.py")
     predict_text = read_text(predict_file)
     if "ModelWrapper" in predict_text:
@@ -449,11 +499,11 @@ def check_aiu_custom(project: Path, entrypoints: list[Path]) -> Check:
         evidence.append("PythonModel")
 
     missing = []
-    if not aiu_dir.exists():
+    if not safe_exists(aiu_dir):
         missing.append("aiu_custom/")
-    if not predict_file.exists():
+    if not safe_exists(predict_file):
         missing.append("aiu_custom/model_wrapper.py or aiu_custom/predict.py")
-    if predict_file.exists() and "ModelWrapper" not in predict_text:
+    if safe_exists(predict_file) and "ModelWrapper" not in predict_text:
         missing.append("ModelWrapper class")
     if missing:
         return Check(
@@ -474,7 +524,7 @@ def check_required_dirs(project: Path) -> Check:
     evidence = []
     missing = []
     for name in REQUIRED_DIRS:
-        if (project / name).is_dir():
+        if safe_is_dir(project / name):
             evidence.append(f"{name}/")
         else:
             missing.append(f"{name}/")
@@ -502,16 +552,16 @@ def sample_key_for_framework(framework: str) -> str:
 def sample_spec_missing(project: Path) -> list[str]:
     missing = []
     for name in REQUIRED_DIRS:
-        if not (project / name).is_dir():
+        if not safe_is_dir(project / name):
             missing.append(f"{name}/")
     for name in SAMPLE_SPEC_FILES:
-        if not (project / name).exists():
+        if not safe_exists(project / name):
             missing.append(name)
     if not find_training_entrypoints(project):
         missing.append("training entrypoint")
-    if not ((project / "aiu_custom" / "predict.py").exists() or (project / "aiu_custom" / "model_wrapper.py").exists()):
+    if not (safe_exists(project / "aiu_custom" / "predict.py") or safe_exists(project / "aiu_custom" / "model_wrapper.py")):
         missing.append("aiu_custom/predict.py")
-    if not (project / "local_serving" / "serve.py").exists():
+    if not safe_exists(project / "local_serving" / "serve.py"):
         missing.append("local_serving/serve.py")
     return missing
 
@@ -643,7 +693,7 @@ def build_report(project: Path, reason: str, write_check: bool) -> ValidationRep
     checks: list[Check] = []
     project = project.resolve()
 
-    if not project.exists():
+    if not safe_exists(project):
         checks.append(Check("local model path selection", "block", "selected project path does not exist", [str(project)]))
         return ValidationReport(str(project), reason, platform.platform(), sys.version.split()[0], checks, ["Provide a valid --project path."])
     if is_filesystem_root(project):
@@ -750,7 +800,7 @@ def build_report(project: Path, reason: str, write_check: bool) -> ValidationRep
     # target should come from their config or environment.
     if config_file and config_file.suffix == ".json":
         try:
-            payload = json.loads(config_file.read_text(encoding="utf-8"))
+            payload = json.loads(read_text(config_file))
             for key in ["registered_model_name", "experiment_name", "tracking_uri", "tracking_url"]:
                 if key in payload:
                     local_remote_evidence.append(f"{key}: present")

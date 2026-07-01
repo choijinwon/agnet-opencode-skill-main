@@ -2187,19 +2187,20 @@ def generated_predict_text(template_text: str) -> str:
             text = text.replace("from __future__ import annotations\n\n", "from __future__ import annotations\n\nimport os\n", 1)
         else:
             text = "import os\n" + text
+    text = text.replace("from pathlib import Path\n", "")
     if "import importlib.util" not in text:
         if "from __future__ import annotations\n\n" in text:
             text = text.replace("from __future__ import annotations\n\n", "from __future__ import annotations\n\nimport importlib.util\n", 1)
         else:
             text = "import importlib.util\n" + text
 
-    delegate_block = '''def _model_module_path() -> Path:
-    return Path(__file__).resolve().parent / "model.py"
+    delegate_block = '''def _model_module_path():
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)), "model.py")
 
 
 def _load_model_module():
     model_module_path = _model_module_path()
-    if not model_module_path.is_file():
+    if not os.path.isfile(model_module_path):
         raise FileNotFoundError("aiu_custom/model.py is required for AI Studio deployment")
 
     spec = importlib.util.spec_from_file_location("aiu_custom_selected_model", model_module_path)

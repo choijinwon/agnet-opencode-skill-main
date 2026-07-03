@@ -210,7 +210,7 @@ def resolve_project_arg(raw_project: str) -> Path:
 
 
 def reference_runtest_path(project: Path) -> Path | None:
-    for name in ["aiu_studio/runtest.py", "aui_studio/runtest.py", "runtest.py"]:
+    for name in ["runtest.py"]:
         path = project / name
         if path.exists():
             return path

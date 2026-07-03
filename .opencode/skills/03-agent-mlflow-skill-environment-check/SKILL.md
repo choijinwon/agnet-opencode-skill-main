@@ -193,7 +193,7 @@ mlflow_register_model_name
 조치: 호환성 경고로 표시하고 필요 시 3.11.9 환경 사용
 
 증상: 환경변수를 입력했는데 체크가 안 됨
-원인: run_model.py/runtest.py/aiu_studio/runtest.py 설정 블록 또는 export 설정 누락
+원인: run_model.py/runtest.py 설정 블록 또는 export 설정 누락
 조치: 소스 설정 블록 값을 확인하고 MLFLOW_* export 상태를 표시
 
 증상: 폐쇄망 설치가 느림

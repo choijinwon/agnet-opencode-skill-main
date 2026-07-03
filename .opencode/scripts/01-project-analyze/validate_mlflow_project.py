@@ -15,13 +15,8 @@ ROOT = Path(__file__).resolve().parents[2]
 # used only as hints when detecting a registration or inference entrypoint.
 ENTRYPOINT_NAMES = [
     "register_model.py",
-    "aiu_studio/runtest_2.py",
-    "runtest_2.py",
-    "aiu_studio/runtest.py",
-    "aiu_studio/run_test.py",
-    "aui_studio/runtest.py",
-    "aui_studio/run_test.py",
-    "runtest.py",
+        "runtest_2.py",
+                    "runtest.py",
     "run_test.py",
     "run_model.py",
     "run.py",
@@ -35,13 +30,8 @@ ENTRYPOINT_NAMES = [
 
 TRAINING_ENTRYPOINT_NAMES = [
     "register_model.py",
-    "aiu_studio/runtest_2.py",
-    "runtest_2.py",
-    "aiu_studio/runtest.py",
-    "aiu_studio/run_test.py",
-    "aui_studio/runtest.py",
-    "aui_studio/run_test.py",
-    "runtest.py",
+        "runtest_2.py",
+                    "runtest.py",
     "run_test.py",
     "run_model.py",
     "run.py",
@@ -53,12 +43,7 @@ TRAINING_ENTRYPOINT_NAMES = [
 
 CONFIG_NAMES = [
     "ai_studio.env",
-    "aiu_studio/config/config.json",
-    "aiu_studio/config/model_config.json",
-    "aiu_studio/config/mlflow_config.json",
-    "aiu_studio/config/config.yaml",
-    "aiu_studio/config/config.yml",
-]
+                    ]
 
 INPUT_EXAMPLE_NAMES = [
     "input_example.json",
@@ -97,9 +82,7 @@ SCAN_SKIP_DIRS = {
     ".venv",
     "__pycache__",
     "ai_studio",
-    "aiu_studio",
-    "aui_studio",
-    "build",
+            "build",
     "dist",
     "env",
     "node_modules",
@@ -207,7 +190,6 @@ def has_project_markers(path: Path) -> bool:
         "pyproject.toml",
         "environment.yml",
         "environment.yaml",
-        "aiu_studio/config/config.json",
         "input_example.json",
         "register_model.py",
         "runtest.py",
@@ -216,9 +198,7 @@ def has_project_markers(path: Path) -> bool:
     }
     if any(safe_exists(path / name) for name in marker_names):
         return True
-    if any(safe_exists(path / name) for name in ["aiu_studio/runtest.py", "aiu_studio/run_test.py", "aui_studio/runtest.py", "aui_studio/run_test.py"]):
-        return True
-    direct_artifact_dirs = [path / "ai_studio", path / "aiu_studio", path / "aui_studio", path / "data", path / "saved_model", path / "artifacts", path / "model"]
+    direct_artifact_dirs = [path / "ai_studio", path / "data", path / "saved_model", path / "artifacts", path / "model"]
     if any(safe_exists(candidate) for candidate in direct_artifact_dirs):
         return True
     if find_artifacts(path, max_depth=3):

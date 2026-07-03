@@ -48,7 +48,7 @@ metadata:
 3. MODEL_KIND를 확장자 기준으로 판별한다.
 4. 워크스페이스 루트의 runtest.py를 우선 읽기 전용으로 참조하고, PyTorch 계열은 `.opencode/samples/pytorch_sample/` 폴더를 참조 영역으로 사용한다. 단, 샘플 `requirements.txt`는 참조하지 않는다.
 5. 기존 runtest.py 또는 run_test.py는 절대 수정하지 않고 runtest_2.py만 선택 모델 기준으로 변환 생성한다.
-6. 모델 파일은 aiu_studio/로 복사하지 않는다.
+6. 모델 파일은 템플릿 폴더로 복사하지 않는다.
 7. 실행 전 MLflow/AI Studio 설정 블록을 확인한다.
 ```
 
@@ -215,7 +215,7 @@ blocked:
 - 원격 학습이나 외부 데이터 다운로드는 기본 동작으로 가정하지 않는다.
 - secret 값은 출력하지 않는다.
 - Windows native/standalone executable 실행은 기본 경로로 안내하지 않는다.
-- 기존 루트/data 모델 원본을 이동하거나 aiu_studio/로 복사하지 않는다.
-- aiu_studio/ 내부 파일 구성은 고정하지 않고 비교/수정하지 않는다.
+- 기존 루트/data 모델 원본을 이동하거나 템플릿 폴더로 복사하지 않는다.
+- 복사된 템플릿 내부 파일 구성은 고정하지 않고 비교/수정하지 않는다.
 
 </details>

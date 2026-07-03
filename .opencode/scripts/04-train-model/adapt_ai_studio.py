@@ -16,12 +16,7 @@ END = "# <<< AI Studio MLflow adapter <<<"
 REQUIRED_DIRS = ["aiu_custom", "local_serving", "saved_model"]
 REQUIRED_FILES = ["input_example.json", "requirements.txt"]
 ENTRYPOINT_HINTS = [
-    "aiu_studio/runtest_2.py",
-    "aiu_studio/runtest.py",
-    "aiu_studio/run_test.py",
-    "aui_studio/runtest.py",
-    "aui_studio/run_test.py",
-    "runtest.py",
+                        "runtest.py",
     "run_test.py",
     "run_model.py",
     "run.py",

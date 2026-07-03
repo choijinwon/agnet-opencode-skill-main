@@ -77,7 +77,7 @@ REFERENCE_ENTRYPOINT_BY_KIND = {
     "tensorflow_h5": ROOT / "samples" / "tensorflow_sample" / "run_model.py",
 }
 ai_STUDIO_COPY_IGNORE_DIRS = {"__pycache__", "code", "metrics", "tracking"}
-ai_STUDIO_COPY_IGNORE_FILES = {"runtest_2.py"}
+ai_STUDIO_COPY_IGNORE_FILES = {"runtest.py", "runtest_2.py"}
 FORBIDDEN_RUNTEST_SELECTED_MODEL_MARKERS = (
     "PROJECT_DIR = Path(__file__).resolve().parent",
     "SOURCE_MODEL_PATH",
@@ -300,7 +300,7 @@ def resolve_workspace_project(raw_project: str) -> Path:
     return project
 PATH_LIKE_STRING_PATTERN = re.compile(
     r"("
-    r"(?:/mnt|/data|/home|/workspace|/tmp|aiu_studio|ai_studio|data|models?|artifacts?|saved_model)"
+    r"(?:/mnt|/data|/home|/workspace|/tmp|ai_studio|data|models?|artifacts?|saved_model)"
     r"[A-Za-z0-9가-힣_./\\＼￦₩() -]*"
     r")",
     re.IGNORECASE,
@@ -784,7 +784,7 @@ def selected_model_display_name(project: Path, selected_model: Path) -> str:
 
 
 def default_mlflow_names(project: Path, selected_model: Path) -> tuple[str, str]:
-    experiment_name = safe_mlflow_name(selected_model_display_name(project, selected_model), "aiu_studio")
+    experiment_name = safe_mlflow_name(selected_model_display_name(project, selected_model), "ai_studio")
     return experiment_name, f"{experiment_name}_model"
 
 
@@ -1469,7 +1469,7 @@ def transform_reference_text(
 def aiu_injected_block(project: Path, selected_model: Path, kind: str, reference: Path) -> str:
     selected_relative = rel(selected_model, project)
     reference_expr = runtime_project_path_expr(project, reference)
-    aiu_studio_path = project
+    ai_studio_path = project
     selected_model_expr = runtime_project_path_expr(project, selected_model)
     input_example_expr = 'AI_STUDIO_DIR / "input_example.json"'
     config_dir_expr = 'AI_STUDIO_DIR / "config"'
@@ -1513,7 +1513,7 @@ ai_REQUIRED_PACKAGE = "{required_package}"
 ai_LOAD_HINT = "{load_hint}"
 REFERENCE_ENTRYPOINT = {reference_expr}
 
-# 자주 쓰는 소문자 변수명도 선택 모델 및 aiu_studio 산출물 경로를 보도록 맞춥니다.
+# 자주 쓰는 소문자 변수명도 선택 모델 및 ai_studio 산출물 경로를 보도록 맞춥니다.
 source_model_path = str(SOURCE_MODEL_PATH)
 data_model_path = str(DATA_MODEL_PATH)
 model_path = str(MODEL_PATH)
@@ -1871,7 +1871,7 @@ def selected_model_config_data(project: Path, selected_model: Path, kind: str) -
             "local_serving_test": "local_serving/localservingtest.py",
         },
         "policy": {
-            "copy_model_to_aiu_studio": False,
+            "copy_model_to_ai_studio": False,
             "model_source": "selected_project_model_path",
             "secret_output": "masked",
         },
@@ -2495,7 +2495,7 @@ def generated_runtest_text(project: Path, selected_model: Path, kind: str, refer
     if preserve_code:
         return generated_selected_model_runtest_text(project, selected_model, kind, reference)
     path_constructor = "Path" if preserve_code else "_aiPath"
-    aiu_studio_path = project
+    ai_studio_path = project
     default_experiment_name, default_register_model_name = default_mlflow_names(project, selected_model)
     details = MODEL_KIND_DETAILS.get(kind, {})
     required_package = details.get("required_package", "unknown")

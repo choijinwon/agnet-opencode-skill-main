@@ -65,13 +65,8 @@ def resolve_workspace_project(raw_project: str) -> Path:
 
 
 ENTRYPOINT_CANDIDATES = [
-    "aiu_studio/runtest_2.py",
-    "runtest_2.py",
-    "aiu_studio/runtest.py",
-    "aiu_studio/run_test.py",
-    "aui_studio/runtest.py",
-    "aui_studio/run_test.py",
-    "runtest.py",
+        "runtest_2.py",
+                    "runtest.py",
     "run_test.py",
     "run_model.py",
     "run.py",
@@ -82,13 +77,8 @@ ENTRYPOINT_CANDIDATES = [
 ]
 
 SETTING_FILES = [
-    "aiu_studio/runtest_2.py",
-    "runtest_2.py",
-    "aiu_studio/runtest.py",
-    "aiu_studio/run_test.py",
-    "aui_studio/runtest.py",
-    "aui_studio/run_test.py",
-    "runtest.py",
+        "runtest_2.py",
+                    "runtest.py",
     "run_test.py",
     "run_model.py",
     "run.py",
